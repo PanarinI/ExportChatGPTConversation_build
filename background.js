@@ -168,7 +168,56 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
     }
 });
 
+// External message from GitHub Pages welcome page
+chrome.runtime.onMessageExternal.addListener(function(message, sender, sendResponse) {
+    if (message.action === 'openChatGPT') {
+        chrome.storage.local.set({pdfcrowdHighlightBtn: true}, function() {
+            chrome.tabs.query({url: ['*://chatgpt.com/*', '*://chat.com/*']}, function(tabs) {
+                if (!tabs || tabs.length === 0) {
+                    chrome.tabs.create({url: 'https://chatgpt.com'});
+                } else {
+                    var conv = tabs.find(function(t) {
+                        return t.url && /chatgpt\.com\/c\//.test(t.url);
+                    });
+                    var target = conv || tabs[0];
+                    chrome.tabs.update(target.id, {active: true}, function() {
+                        chrome.tabs.reload(target.id);
+                    });
+                }
+            });
+        });
+        sendResponse({ok: true});
+    }
+});
+
+// Clicking the extension icon navigates to ChatGPT and triggers the ripple animation
+chrome.action.onClicked.addListener(function() {
+    chrome.storage.local.set({pdfcrowdHighlightBtn: true}, function() {
+        chrome.tabs.query({url: ['*://chatgpt.com/*', '*://chat.com/*']}, function(tabs) {
+            if (!tabs || tabs.length === 0) {
+                chrome.tabs.create({url: 'https://chatgpt.com'});
+                return;
+            }
+            const conversationTab = tabs.find(function(t) {
+                return t.url && /chatgpt\.com\/c\//.test(t.url);
+            });
+            const target = conversationTab || tabs[0];
+            chrome.tabs.update(target.id, {active: true}, function() {
+                chrome.tabs.reload(target.id);
+            });
+        });
+    });
+});
+
 chrome.runtime.onInstalled.addListener((details) => {
+    if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
+        // Set highlight flag immediately so animation plays when user opens ChatGPT
+        chrome.storage.local.set({pdfcrowdHighlightBtn: true});
+        // Open the welcome page (GitHub Pages standalone)
+        chrome.tabs.create({
+            url: 'https://panarini.github.io/ExportChatGPTConversation/'
+        });
+    }
     if (details.reason === 'install') {
         const newUserDefaults = {
             margins: '',
@@ -185,15 +234,42 @@ chrome.runtime.onInstalled.addListener((details) => {
             margin_top: '0.4in',
             margin_bottom: '0.4in',
             page_break: '',
-            toc: '',
+            toc: 'basic',
             no_icons: true,
             model_name: false,
-            source_link: false,
-            datetime_format: 'none',
-            q_align: 'justified',
-            q_rounded: false
+            source_link: true,
+            datetime_format: 'date_only',
+            single_page: false,
+            q_align: 'right',
+            q_rounded: true
         };
 
         chrome.storage.sync.set({options: newUserDefaults});
+    }
+
+    if (details.reason === 'update' || details.reason === 'install') {
+        // Migrate settings: apply new defaults only if user still had old values
+        chrome.storage.sync.get('options', function(data) {
+            const opts = data.options;
+            if(!opts) return;
+            const updated = Object.assign({}, opts);
+            let changed = false;
+
+            if(opts.toc === '' || opts.toc === undefined) {
+                updated.toc = 'basic'; changed = true;
+            }
+            if(opts.source_link === false || opts.source_link === undefined) {
+                updated.source_link = true; changed = true;
+            }
+            if(opts.datetime_format === 'none' || opts.datetime_format === undefined) {
+                updated.datetime_format = 'date_only'; changed = true;
+            }
+            // single_page was moved from menu to settings — default is off
+            if(opts.single_page === undefined) {
+                updated.single_page = false; changed = true;
+            }
+
+            if(changed) chrome.storage.sync.set({options: updated});
+        });
     }
 });

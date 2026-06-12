@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Export ChatGPT</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{
+      width:100vw;height:100vh;overflow:hidden;
+      background:#f7f7f5;
+      font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;
+      position:relative;
+    }
+    /* TOP RIGHT */
+    .top-ui{
+      position:absolute;top:28px;right:34px;
+      display:flex;align-items:center;gap:18px;z-index:10;
+    }
+    /* EXPORT BUTTON */
+    .export-wrap{position:relative;}
+    .ring{
+      position:absolute;inset:-28px;border-radius:34px;
+      border:2px solid rgba(255,120,60,0.18);
+      animation:ring 3.2s infinite;pointer-events:none;
+      opacity:0;
+    }
+    .ring:nth-child(2){animation-delay:1.1s;}
+    .ring:nth-child(3){animation-delay:2.2s;}
+    @keyframes ring{
+      0%{transform:scale(0.88);opacity:0;}
+      15%{opacity:1;}
+      100%{transform:scale(1.55);opacity:0;}
+    }
+    .export-btn{
+      display:flex;align-items:center;
+      background:white;border-radius:24px;overflow:hidden;
+      text-decoration:none;cursor:pointer;border:none;
+      box-shadow:0 4px 12px rgba(0,0,0,0.04),0 18px 50px rgba(0,0,0,0.06);
+      transition:transform .2s ease,box-shadow .2s ease;
+      position:relative;z-index:2;
+    }
+    .export-btn:hover{
+      transform:translateY(-1px);
+      box-shadow:0 6px 14px rgba(0,0,0,0.05),0 24px 60px rgba(0,0,0,0.08);
+    }
+    .export-main{
+      display:flex;align-items:center;gap:14px;
+      padding:18px 26px;font-size:22px;font-weight:500;color:#111;
+    }
+    .divider{width:1px;height:58px;background:#e0e0e0;}
+    .export-arrow{
+      width:58px;display:flex;align-items:center;
+      justify-content:center;color:#888;font-size:18px;
+    }
+    /* SHARE */
+    .share-btn{
+      display:flex;align-items:center;gap:12px;
+      padding:18px 28px;border-radius:24px;
+      background:rgba(0,0,0,0.045);color:#111;
+      font-size:22px;opacity:.88;
+    }
+    /* CENTER */
+    .center{
+      position:absolute;inset:0;
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      text-align:center;z-index:2;
+    }
+    @keyframes popIn{
+      0%{opacity:0;transform:scale(.6) translateY(8px);}
+      70%{transform:scale(1.1);}
+      100%{opacity:1;transform:scale(1) translateY(0);}
+    }
+    h1{
+      font-size:108px;line-height:1.05;font-weight:800;
+      letter-spacing:-5px;margin-bottom:16px;padding-bottom:8px;
+      background:linear-gradient(135deg,#ff9a3d 0%,#ff4d1f 100%);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      opacity:0;animation:fadeUp .6s .5s forwards;
+    }
+    .subtitle{
+      font-size:36px;line-height:1.38;color:#111;max-width:860px;
+      opacity:0;animation:fadeUp .6s .7s forwards;
+    }
+    .accent{color:#ff5a2f;font-weight:600;}
+    @keyframes fadeUp{
+      from{opacity:0;transform:translateY(16px);}
+      to{opacity:1;transform:translateY(0);}
+    }
+    /* ARROW */
+    .arrow-svg{
+      position:absolute;
+      pointer-events:none;z-index:3;
+      top:0;left:0;width:100%;height:100%;
+      opacity:0;animation:fadeIn .5s 1.1s forwards;
+    }
+    @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+    /* BOTTOM LINK */
+    .bottom-link{
+      position:absolute;left:50%;bottom:48px;
+      transform:translateX(-50%);
+      display:flex;align-items:center;gap:12px;
+      text-decoration:none;color:#666;font-size:18px;
+      background:none;border:none;cursor:pointer;
+      transition:opacity .2s;z-index:4;
+      opacity:0;animation:fadeUp .5s 1s forwards;
+      white-space:nowrap;
+    }
+    .bottom-link:hover{opacity:.65;}
+    /* CONFETTI CANVAS */
+    #confetti-canvas{
+      position:absolute;top:0;left:0;
+      width:50vw;height:100vh;
+      pointer-events:none;z-index:20;
+    }
+    @media(max-width:900px){
+      .top-ui{transform:scale(.7);transform-origin:top right;}
+      h1{font-size:58px;}
+      .subtitle{font-size:22px;padding:0 20px;}
+      .bottom-link{font-size:15px;}
+    }
+  </style>
+</head>
+<body>
+<canvas id="confetti-canvas"></canvas>
+
+<!-- TOP UI -->
+<div class="top-ui">
+  <div class="export-wrap" id="export-wrap">
+    <div class="ring"></div>
+    <div class="ring"></div>
+    <div class="ring"></div>
+    <button class="export-btn" id="export-btn">
+      <div class="export-main">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <path d="M12 3V14" stroke="#ff5a2f" stroke-width="2.8" stroke-linecap="round"/>
+          <path d="M7.5 10.5L12 15L16.5 10.5" stroke="#ff5a2f" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M5 16V17.5C5 19.4 6.1 20.5 8 20.5H16C17.9 20.5 19 19.4 19 17.5V16" stroke="#ff5a2f" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Export</span>
+      </div>
+      <div class="divider"></div>
+      <div class="export-arrow">▼</div>
+    </button>
+  </div>
+  <div class="share-btn">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+      <path d="M12 16V4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M7 9L12 4L17 9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M5 13V17C5 18.66 6.34 20 8 20H16C17.66 20 19 18.66 19 17V13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span>Share</span>
+  </div>
+</div>
+
+<!-- CENTER CONTENT -->
+<div class="center">
+  <h1 id="congrats-title">Congratulations!</h1>
+  <div class="subtitle">
+    Your <span class="accent">Export</span> button is now<br>
+    active inside ChatGPT
+  </div>
+</div>
+
+<!-- ARROW SVG -->
+<svg class="arrow-svg" id="arrow-svg" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="arrowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff6030" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ff6030" stop-opacity="1"/>
+    </linearGradient>
+    <marker id="ah" markerWidth="12" markerHeight="10" refX="10" refY="5" orient="auto">
+      <path d="M0,0 L0,10 L12,5 Z" fill="#ff5a2f"/>
+    </marker>
+  </defs>
+  <path id="arrow-path" stroke="url(#arrowGrad)" stroke-width="4" stroke-linecap="round" fill="none" marker-end="url(#ah)"/>
+</svg>
+
+<!-- BOTTOM LINK -->
+<button class="bottom-link" id="bottom-link">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    <path d="M10 6L4 12L10 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M20 12H5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+  </svg>
+  <span>Return to your ChatGPT conversation</span>
+</button>
+
+<script src="welcome_v1.js"></script>
+</body>
+</html>

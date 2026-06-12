@@ -1,9 +1,10 @@
 // manifest.json
 {
     "manifest_version": 3,
-    "name": "ChatGPT to PDF by PDFCrowd",
-    "version": "3.9",
-    "description": "Turn your chats into neatly formatted PDF.",
+    "name": "__MSG_appName__",
+    "version": "0.9",
+    "description": "__MSG_shortDesc__",
+    "default_locale": "en",
     "action": {
         "default_icon": {
             "16": "icons/icon16.png",

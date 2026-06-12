@@ -8,27 +8,32 @@ pdfcrowdShared.defaultOptions = {
     zoom: 100,
     no_questions: false,
     q_color: 'default',
-    q_color_picker: '#ecf9f2',
+    q_color_picker: '#f0f4f8',
     q_fg_color: 'default',
-    q_fg_color_picker: '#000',
+    q_fg_color_picker: '#000000',
     title_mode: '',
     margin_left: '0.4in',
     margin_right: '0.4in',
     margin_top: '0.4in',
     margin_bottom: '0.4in',
     page_break: '',
-    toc: '',
-    no_icons: false,
+    toc: 'basic',
+    no_icons: true,
     model_name: false,
-    source_link: false,
-    datetime_format: 'none',
-    q_align: 'justified',
-    q_rounded: false
+    source_link: true,
+    datetime_format: 'date_only',
+    q_align: 'right',
+    q_rounded: true,
+    page_size: 'a4',
+    orientation: '',
+    single_page: false
 }
 
 pdfcrowdShared.version = 'v3.9';
 
 pdfcrowdShared.rateUsLink = '#';
+// For 1–3 stars: redirect to private feedback form instead of public CWS review
+pdfcrowdShared.feedbackFormLink = 'https://forms.gle/tXvfsrDsYbMprwiR7';
 pdfcrowdShared.hasOptions = true;
 if (typeof GM_info !== 'undefined') {
     pdfcrowdShared.rateUsLink = 'https://greasyfork.org/en/scripts/484463-save-chatgpt-as-pdf/feedback#post-discussion';
@@ -36,7 +41,7 @@ if (typeof GM_info !== 'undefined') {
 } else if (navigator.userAgent.includes('Edg/')) {
     pdfcrowdShared.rateUsLink = 'https://microsoftedge.microsoft.com/addons/detail/save-chatgpt-as-pdf/fjlfcopnobjbkjiclieaopipchijelmj';
 } else if (navigator.userAgent.includes("Chrome")) {
-    pdfcrowdShared.rateUsLink = 'https://chromewebstore.google.com/detail/save-chatgpt-as-pdf/ccjfggejcoobknjolglgmfhoeneafhhm/reviews';
+    pdfcrowdShared.rateUsLink = 'https://chromewebstore.google.com/detail/aighdeikamhkemngfanhnamdlpoceimo/reviews';
 } else if (navigator.userAgent.includes("Firefox")) {
     pdfcrowdShared.rateUsLink = 'https://addons.mozilla.org/en-US/firefox/addon/save-chatgpt-as-pdf/reviews/';
 }
@@ -50,9 +55,7 @@ pdfcrowdShared.helpContent = `
 <div style="line-height:1.5">
     Feel free to contact us with any questions or for assistance. We're always happy to help!
     <br>
-    Email us at <strong>support@pdfcrowd.com</strong> or use our
-    <a href="https://pdfcrowd.com/contact/?ref=chatgpt&amp;pr=save-chatgpt-as-pdf-pdfcrowd" title="Contact us" target="_blank">
-        contact form</a>.
+    Email us at <strong>panarin2005@gmail.com</strong>.
     <br>
     <span class="popup-hidden">
     Please <a href="${pdfcrowdShared.rateUsLink}">rate us</a> if you like the extension. It helps a lot!
@@ -66,7 +69,7 @@ pdfcrowdShared.helpContent = `
   <div>
     All generated PDFs include a banner which cannot be removed.
     <br>
-    Purchasing a PDFCrowd license does not remove the banner.
+    This is a limitation of the free conversion tier.
   </div>
 </div>
 
@@ -95,17 +98,7 @@ pdfcrowdShared.helpContent = `
     </div>
     <ul>
         <li>
-            ChatGPT to PDF by PDFCrowd
-            <a href="https://pdfcrowd.com/save-chatgpt-as-pdf/" target="_blank">homepage</a>
-        </li>
-        <li>
-            Visit <a href="https://pdfcrowd.com/" target="_blank">PDFCrowd</a>
-            to learn more about our tool and services.
-        </li>
-        <li>
-            Discover how our
-            <a href="https://pdfcrowd.com/api/html-to-pdf-api/" target="_blank">HTML to PDF API</a>
-            can enhance your projects.
+            <a href="https://panarini.github.io/ExportChatGPTConversation/" target="_blank">Export ChatGPT Conversation homepage</a>
         </li>
     </ul>
 </div>

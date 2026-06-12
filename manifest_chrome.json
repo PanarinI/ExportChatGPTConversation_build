@@ -1,8 +1,9 @@
 {
     "manifest_version": 3,
-    "name": "ChatGPT to PDF by PDFCrowd",
-    "version": "3.9",
-    "description": "Turn your chats into neatly formatted PDF.",
+    "name": "__MSG_appName__",
+    "version": "1.0.5",
+    "description": "__MSG_shortDesc__",
+    "default_locale": "en",
     "action": {
         "default_icon": {
             "16": "icons/icon16.png",
@@ -11,8 +12,7 @@
             "48": "icons/icon48.png",
             "64": "icons/icon64.png",
             "128": "icons/icon128.png"
-        },
-        "default_popup": "popup.html"
+        }
     },
     "background": {
         "service_worker": "background.js"
@@ -35,6 +35,9 @@
         "page": "options.html",
         "open_in_tab": true
     },
-    "permissions": ["storage"],
-    "minimum_chrome_version" : "100"
+    "permissions": ["storage", "tabs"],
+    "minimum_chrome_version" : "100",
+    "externally_connectable": {
+        "matches": ["https://panarini.github.io/*"]
+    }
 }

@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         ChatGPT to PDF by PDFCrowd
+// @name         Export ChatGPT Conversation
 // @namespace    http://tampermonkey.net/
 // @version      3.9
 // @description  Turn your chats into neatly formatted PDF.

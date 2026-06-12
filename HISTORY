@@ -1,141 +1,41 @@
-Changes in 3.9
-- Fixed button positioning
 
-Changes in 3.8
-- fix selection to PDF
 
-Changes in 3.7
-- Added: conversation source link in the PDF
-- Improved: updated addon detection
-
-Changes in 3.6
-- Fixed: position on resize and on custom agent chats
-- Fixed: do not show the button on the edit page for a custom agent
-- Fixed: position of the button's drop down menu
-
-Changes in 3.5
-- Fixed: button positioning
-
-Changes in 3.4
-- Improved: ability to process larger conversations
-- Changed: icons are now excluded by default for new installations (existing users unaffected)
-
-Changes in 3.3
-- Added: option for user input text alignment (justified, left, center,
-  right)
-- Added: option for rounded corners on user inputs
-- Improved: reorganized options page with logical grouping
-- Fixed: content presentation issues
-
-Changes in 3.2
-- Added: ability to insert the current date and time into the generated PDF
-- Fixed: the main title detection
-- Fixed: printed model name
-
-Changes in 3.1
-- Minor: improved error message when converting large chats
-
-Changes in 3.0
-- Major version bump
-
-Changes in 1.28
-- Fixed: missing images in the PDF
-
-Changes in 1.27
-- Minor: Help dialog text update
-
-Changes in 1.26
-- Added: option to print ChatGPT model name in the PDF
-- Added: option for text color for user prompts
-
-Changes in 1.25
-- Support for o3-mini.
-
-Changes in 1.24
-- Renamed the extension to ChatGPT to PDF by PDFCrowd.
-
-Changes in 1.23
-- Fixed: table of contents and button appearance
-
-Changes in 1.22
-- Added: match the domain chat.com
-
-Changes in 1.21
-- Added: option to exclude icons
-- Added: option to add page break after each response
-- Added: option to generate a table of contents
-
-Changes in 1.20
-- Fixed: dynamic appearance of the button so it does not overlap other buttons
-
-Changes in 1.19
-- Added: option for no background color or a custom background color for prompts
-- Added: option to define a custom title
-
-Changes in 1.18
-- Fixed: appearance of the button on shared chats
-
-Changes in 1.17
-- Fixed: overlapping of a part of the Share button
-
-Changes in 1.16
-- Fixed: show the button if there is a conflict with another extension
-
-Changes in 1.15
-- Fixed: overlapping of a part of the Sign up button
-- Reorganized: CSS and HTML code
-
-Changes in 1.14
-- Fixed: overlapping of a part of the Sign up button
-
-Changes in 1.13
-- Improved error message when there is no connection to API servers
-- Fix printing of new plots and tables
-
-Changes in 1.12
-- Added new options: theme, exclude prompts, font size and page margins
-- Added popup menu
-
-Changes in 1.11
-- Fixed: conversion error 456
-
-Changes in 1.10
-- Fixed: button position
-- Fixed: adjusted to the new layout
-
-Changes in 1.9
-- Fixed: button border and hover color
-- Added: `Rate us` link
-
-Changes in 1.8
-- New: using converter 24.04
-- Improved: button appearance
-
-Changes in 1.7
-- Fixed: the domain has changed to chatgpt.com
-
-Changes in 1.6
-- Added the "Single Page" option
-- Fixed: extra dots in the input file name
-- Fixed: chat selection fix (sub-button)
-
-Changes in 1.5
-- Added a help dialog
-- Minor chat selection fix
-
-Changes in 1.4
-- Added an option to convert only the selected part of the chat
-
-Changes in 1.3
-- Improved detection of the page title
-
-Changes in 1.2
-- Fixed conversion of math formulae
-- Fixed conversion of shared chats
-- Fixed the appearance of dropdown menu in the dark theme
 
 Changes in 1.1
-- Show conversion button on chats and dall-e only
+to do -- google form for reviews 1-3
+to do -- export for claude
+
 
 Changes in 1.0
+- SELECTED EXPORT function added
+- output pdf design improved - native-d: newsletter style, ToC
+- PDFCrowd watermark removed
+- UI improved
+- bugs fixed
+
+Changes in 0.9
 - Initial release
+
+
+API by open-source CrowdPDF
+
+Open-source: chat-gpt by CrowdPDF
+Re-imaged
+Re-designed
+Modified
+
+cd /Users/igor/PycharmProjects/save-chatgpt-as-pdf
+
+git add -A
+git commit -m "v1.05: star rating, feedback form, themes, TOC, welcome page"
+git tag v1.05
+git push origin master --tags
+
+git remote add origin https://github.com/PanarinI/ExportChatGPTConversation_build.git
+git branch -M main
+git push -u origin main
+
+исправление url:
+git remote set-url origin https://github.com/PanarinI/ExportChatGPTConversation_build.git
+
+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

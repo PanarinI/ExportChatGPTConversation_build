@@ -1,4 +1,4 @@
-# ChatGPT to PDF by PDFCrowd
+# Export ChatGPT Conversation
 
 See [here](../README.md).
 
