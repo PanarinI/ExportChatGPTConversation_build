@@ -38,4 +38,23 @@ git push -u origin main
 исправление url:
 git remote set-url origin https://github.com/PanarinI/ExportChatGPTConversation_build.git
 
-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
+# 1. Убедиться, что ты на dev и он свежий
+git checkout dev
+git pull origin dev
+
+# 2. Создать ветку под конкретную фичу
+git checkout -b feature/my-new-thing
+
+# 3. Работаешь, коммитишь как обычно
+git add .
+git commit -m "добавил новую штуку"
+
+# 4. Пушишь фича-ветку
+git push -u origin feature/my-new-thing
+
+# 5. Открываешь PR: feature/my-new-thing → dev
+# Это через GitHub UI или gh cli
+
+# 6. Тестируешь на dev-окружении
+
+# 7. Когда всё ок — открываешь PR: dev → main
