@@ -1135,7 +1135,6 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
         </div>
     </button>
     <div id="pcr-rateus-dropdown" style="display:none;">
-        <div class="pcr-dropdown-label">Enjoying it?</div>
         <div class="pdfcrowd-stars" id="pcr-dropdown-stars">
             <span class="pdfcrowd-star" data-n="1">★</span>
             <span class="pdfcrowd-star" data-n="2">★</span>
