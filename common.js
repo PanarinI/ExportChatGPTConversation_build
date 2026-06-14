@@ -395,6 +395,60 @@ html.dark .pdfcrowd-menu-arrow {
      100% { transform: rotate(360deg); }
  }
 
+/* ── Three-dot button loader ────────────────────────────── */
+.pcr-dots-loader {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.pcr-dots-loader span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #EA4C3A;
+    animation: pcrDotPulse 1.2s ease-in-out infinite;
+}
+.pcr-dots-loader span:nth-child(1) { animation-delay: 0s; }
+.pcr-dots-loader span:nth-child(2) { animation-delay: 0.2s; }
+.pcr-dots-loader span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pcrDotPulse {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.25; }
+    40%            { transform: scale(1.15); opacity: 1; }
+}
+
+/* ── Rate Us dropdown panel ─────────────────────────────── */
+#pcr-rateus-dropdown {
+    position: absolute;
+    top: 42px;
+    right: 0;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: #ffffff;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    z-index: 99999;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+html.dark #pcr-rateus-dropdown {
+    background: rgba(32,33,35,0.97);
+    border-color: rgba(255,255,255,0.08);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    color: rgba(255,255,255,0.9);
+}
+#pcr-rateus-dropdown .pcr-dropdown-label {
+    font-size: 11px;
+    color: rgba(0,0,0,0.45);
+    letter-spacing: 0.03em;
+}
+html.dark #pcr-rateus-dropdown .pcr-dropdown-label {
+    color: rgba(255,255,255,0.4);
+}
+#pcr-rateus-dropdown .pdfcrowd-stars { gap: 4px; }
+#pcr-rateus-dropdown .pdfcrowd-star  { font-size: 22px; }
+
  .pdfcrowd-invisible {
      visibility: hidden;
  }
@@ -1070,11 +1124,29 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
         </div>
         <div id="pdfcrowd-spinner" class="pdfcrowd-hidden">
             <div class="pdfcrowd-flex pdfcrowd-justify-center pdfcrowd-items-center pdfcrowd-mr-4" style="height: 100%;">
-                <div class="pdfcrowd-spinner">
+                <div class="pcr-dots-loader">
+                    <span></span><span></span><span></span>
                 </div>
             </div>
         </div>
+<<<<<<< Updated upstream
+=======
+        <div id="pcr-rateus-face" style="display:none;align-items:center;justify-content:center;gap:5px;width:100%;height:100%;padding:0 0.5rem;font-size:13px;font-weight:600;cursor:pointer;">
+            <span style="font-size:15px;color:#EA4C3A;">★</span>
+            <span>Rate us</span>
+        </div>
+>>>>>>> Stashed changes
     </button>
+    <div id="pcr-rateus-dropdown" style="display:none;">
+        <div class="pcr-dropdown-label">Enjoying it?</div>
+        <div class="pdfcrowd-stars" id="pcr-dropdown-stars">
+            <span class="pdfcrowd-star" data-n="1">★</span>
+            <span class="pdfcrowd-star" data-n="2">★</span>
+            <span class="pdfcrowd-star" data-n="3">★</span>
+            <span class="pdfcrowd-star" data-n="4">★</span>
+            <span class="pdfcrowd-star" data-n="5">★</span>
+        </div>
+    </div>
     <div id="pdfcrowd-no-chat-tooltip" class="pdfcrowd-no-chat-tooltip">
         Open a conversation first — then click Export
     </div>
@@ -2712,8 +2784,23 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
     */
 
     // ─────────────────────────────────────────────────────────────────────
+<<<<<<< Updated upstream
 
     async function convert(event) {
+=======
+    // Rate Us state
+    let pcrRateUsMode = false;
+    let pcrDropdownOpen = false;
+    // ─────────────────────────────────────────────────────────────────────
+
+    async function convert(event) {
+        // Rate Us intercept: open dropdown instead of exporting
+        if(pcrRateUsMode) {
+            if(!pcrDropdownOpen) pcrOpenDropdown();
+            return;
+        }
+
+>>>>>>> Stashed changes
         document.getElementById('pdfcrowd-extra-btns').classList.add(
             'pdfcrowd-hidden');
 
@@ -3005,6 +3092,79 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
 
     const pdfcrowd_block = addPdfcrowdBlock();
 
+<<<<<<< Updated upstream
+=======
+    // ── Rate Us dropdown ──────────────────────────────────────────────────
+    function pcrShowRateUs() {
+        pcrRateUsMode = true;
+        document.getElementById('pdfcrowd-btn-left').style.display = 'none';
+        document.getElementById('pdfcrowd-more').style.display = 'none';
+        document.getElementById('pcr-rateus-face').style.display = 'flex';
+    }
+
+    function pcrRevertToExport() {
+        pcrRateUsMode = false;
+        pcrDropdownOpen = false;
+        document.getElementById('pdfcrowd-btn-left').style.display = '';
+        document.getElementById('pdfcrowd-more').style.display = '';
+        document.getElementById('pcr-rateus-face').style.display = 'none';
+        document.getElementById('pcr-rateus-dropdown').style.display = 'none';
+    }
+
+    function pcrOpenDropdown() {
+        pcrDropdownOpen = true;
+        document.getElementById('pcr-rateus-dropdown').style.display = 'flex';
+    }
+
+    function pcrCloseDropdown() {
+        pcrDropdownOpen = false;
+        document.getElementById('pcr-rateus-dropdown').style.display = 'none';
+        // revert button to Export immediately (per spec: outside click → back to Export)
+        pcrRevertToExport();
+    }
+
+    // Hook into saveBlob — fires on every successful export
+    const _pcrOrigSaveBlob = pdfcrowdChatGPT.saveBlob;
+    pdfcrowdChatGPT.saveBlob = function(url, filename) {
+        _pcrOrigSaveBlob.call(this, url, filename);
+        chrome.storage.local.get('pcr_rated', function(r) {
+            if(!r.pcr_rated) pcrShowRateUs();
+        });
+    };
+
+    // Star click → open URL, mark rated, revert to Export
+    document.querySelectorAll('#pcr-dropdown-stars .pdfcrowd-star').forEach(function(s) {
+        s.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const n = parseInt(s.dataset.n);
+            const url = n >= 4
+                ? (pdfcrowdShared.rateUsLink || '#')
+                : (pdfcrowdShared.feedbackFormLink || pdfcrowdShared.rateUsLink || '#');
+            chrome.storage.local.set({ pcr_rated: true });
+            pcrRevertToExport();
+            window.open(url, '_blank');
+        });
+    });
+
+    // Click outside → close dropdown and revert to Export
+    document.addEventListener('click', function(e) {
+        if(!pcrDropdownOpen) return;
+        const btn  = document.getElementById('pdfcrowd-convert-main');
+        const drop = document.getElementById('pcr-rateus-dropdown');
+        if(btn && !btn.contains(e.target) && drop && !drop.contains(e.target)) {
+            pcrCloseDropdown();
+        }
+    });
+
+    // Esc → close dropdown and revert to Export
+    document.addEventListener('keydown', function(e) {
+        if(e.key === 'Escape' && (pcrRateUsMode || pcrDropdownOpen)) {
+            pcrCloseDropdown();
+        }
+    });
+    // ─────────────────────────────────────────────────────────────────────
+
+>>>>>>> Stashed changes
     const BUTTON_MARGIN = -2;
     const WIDTHS = [{
         width: 135,

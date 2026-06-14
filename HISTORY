@@ -58,3 +58,16 @@ git push -u origin feature/my-new-thing
 # 6. Тестируешь на dev-окружении
 
 # 7. Когда всё ок — открываешь PR: dev → main
+
+
+
+# 1. Создаём новую правильную ветку от main
+git checkout 39cd401
+git checkout -b rate-us-inline-fix
+
+# 2. Переносим только изменения из inline коммита
+git cherry-pick 6281736
+
+# 3. Удаляем старую неправильную ветку и переименовываем
+git branch -D rate-us-inline
+git branch -m rate-us-inline-fix rate-us-inline
