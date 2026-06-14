@@ -1129,13 +1129,10 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
                 </div>
             </div>
         </div>
-<<<<<<< Updated upstream
-=======
         <div id="pcr-rateus-face" style="display:none;align-items:center;justify-content:center;gap:5px;width:100%;height:100%;padding:0 0.5rem;font-size:13px;font-weight:600;cursor:pointer;">
             <span style="font-size:15px;color:#EA4C3A;">★</span>
             <span>Rate us</span>
         </div>
->>>>>>> Stashed changes
     </button>
     <div id="pcr-rateus-dropdown" style="display:none;">
         <div class="pcr-dropdown-label">Enjoying it?</div>
@@ -2784,10 +2781,6 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
     */
 
     // ─────────────────────────────────────────────────────────────────────
-<<<<<<< Updated upstream
-
-    async function convert(event) {
-=======
     // Rate Us state
     let pcrRateUsMode = false;
     let pcrDropdownOpen = false;
@@ -2800,7 +2793,6 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
             return;
         }
 
->>>>>>> Stashed changes
         document.getElementById('pdfcrowd-extra-btns').classList.add(
             'pdfcrowd-hidden');
 
@@ -3092,8 +3084,6 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
 
     const pdfcrowd_block = addPdfcrowdBlock();
 
-<<<<<<< Updated upstream
-=======
     // ── Rate Us dropdown ──────────────────────────────────────────────────
     function pcrShowRateUs() {
         pcrRateUsMode = true;
@@ -3164,7 +3154,6 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
     });
     // ─────────────────────────────────────────────────────────────────────
 
->>>>>>> Stashed changes
     const BUTTON_MARGIN = -2;
     const WIDTHS = [{
         width: 135,
