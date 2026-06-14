@@ -539,6 +539,53 @@ html.dark .pdfcrowd-menu-arrow {
  .pdfcrowd-stars:hover .pdfcrowd-star { color: #EA4C3A !important; }
  .pdfcrowd-stars .pdfcrowd-star:hover ~ .pdfcrowd-star { color: #ddd !important; }
 
+/* ── Rate Us inline expansion ──────────────────────────────── */
+#pcr-rateus-face {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+    height: 100%;
+    padding: 0 0.5rem;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+#pcr-rateus-face .pcr-rateus-star-icon {
+    font-size: 15px;
+    color: #EA4C3A;
+}
+#pdfcrowd-convert-main.pcr-stars-open {
+    height: auto;
+    min-height: 2.25rem;
+}
+#pcr-rateus-stars {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    width: 100%;
+    padding: 5px 8px 6px;
+}
+.pcr-inline-star-row {
+    display: flex;
+    gap: 3px;
+}
+.pcr-inline-star {
+    font-size: 18px;
+    cursor: pointer;
+    color: #ddd;
+    transition: color 0.1s;
+    line-height: 1;
+    user-select: none;
+}
+html.dark .pcr-inline-star { color: #555; }
+.pcr-inline-star-row:hover .pcr-inline-star { color: #EA4C3A !important; }
+.pcr-inline-star-row .pcr-inline-star:hover ~ .pcr-inline-star { color: #ddd !important; }
+html.dark .pcr-inline-star-row .pcr-inline-star:hover ~ .pcr-inline-star { color: #555 !important; }
+
  .pdfcrowd-loading-overlay {
      z-index: 10001;
      display: none;
@@ -1072,6 +1119,19 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
             <div class="pdfcrowd-flex pdfcrowd-justify-center pdfcrowd-items-center pdfcrowd-mr-4" style="height: 100%;">
                 <div class="pdfcrowd-spinner">
                 </div>
+            </div>
+        </div>
+        <div id="pcr-rateus-face">
+            <span class="pcr-rateus-star-icon">★</span>
+            <span>Rate us</span>
+        </div>
+        <div id="pcr-rateus-stars">
+            <div class="pcr-inline-star-row">
+                <span class="pcr-inline-star" data-n="1">★</span>
+                <span class="pcr-inline-star" data-n="2">★</span>
+                <span class="pcr-inline-star" data-n="3">★</span>
+                <span class="pcr-inline-star" data-n="4">★</span>
+                <span class="pcr-inline-star" data-n="5">★</span>
             </div>
         </div>
     </button>
@@ -2712,8 +2772,18 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
     */
 
     // ─────────────────────────────────────────────────────────────────────
+    // Rate Us state (lives here so convert() can read it)
+    let pcrRateUsMode = false;
+    let pcrStarsExpanded = false;
+    // ─────────────────────────────────────────────────────────────────────
 
     async function convert(event) {
+        // Rate Us intercept: show stars instead of exporting
+        if(pcrRateUsMode) {
+            if(!pcrStarsExpanded) pcrExpandStars();
+            return;
+        }
+
         document.getElementById('pdfcrowd-extra-btns').classList.add(
             'pdfcrowd-hidden');
 
@@ -3004,6 +3074,69 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
     }
 
     const pdfcrowd_block = addPdfcrowdBlock();
+
+    // ── Rate Us inline expansion ──────────────────────────────────────────
+    function pcrShowRateUs() {
+        pcrRateUsMode = true;
+        document.getElementById('pdfcrowd-btn-left').style.display = 'none';
+        document.getElementById('pdfcrowd-more').style.display = 'none';
+        document.getElementById('pcr-rateus-face').style.display = 'flex';
+    }
+
+    function pcrRevertToExport() {
+        pcrRateUsMode = false;
+        pcrStarsExpanded = false;
+        document.getElementById('pdfcrowd-btn-left').style.display = '';
+        document.getElementById('pdfcrowd-more').style.display = '';
+        document.getElementById('pcr-rateus-face').style.display = 'none';
+        document.getElementById('pcr-rateus-stars').style.display = 'none';
+        document.getElementById('pdfcrowd-convert-main').classList.remove('pcr-stars-open');
+    }
+
+    function pcrExpandStars() {
+        pcrStarsExpanded = true;
+        document.getElementById('pcr-rateus-face').style.display = 'none';
+        document.getElementById('pcr-rateus-stars').style.display = 'flex';
+        document.getElementById('pdfcrowd-convert-main').classList.add('pcr-stars-open');
+    }
+
+    // Hook into saveBlob — fires on every successful export
+    const _pcrOrigSaveBlob = pdfcrowdChatGPT.saveBlob;
+    pdfcrowdChatGPT.saveBlob = function(url, filename) {
+        _pcrOrigSaveBlob.call(this, url, filename);
+        chrome.storage.local.get('pcr_rated', function(r) {
+            if(!r.pcr_rated) pcrShowRateUs();
+        });
+    };
+
+    // Star click → open review URL, mark as rated, revert to Export
+    document.querySelectorAll('.pcr-inline-star').forEach(function(s) {
+        s.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const n = parseInt(s.dataset.n);
+            const url = n >= 4
+                ? (pdfcrowdShared.rateUsLink || '#')
+                : (pdfcrowdShared.feedbackFormLink || pdfcrowdShared.rateUsLink || '#');
+            chrome.storage.local.set({ pcr_rated: true });
+            pcrRevertToExport();
+            window.open(url, '_blank');
+        });
+    });
+
+    // Click outside button → revert to Export
+    document.addEventListener('click', function(e) {
+        if(!pcrStarsExpanded) return;
+        const btn = document.getElementById('pdfcrowd-convert-main');
+        if(btn && !btn.contains(e.target)) pcrRevertToExport();
+    });
+
+    // Esc → revert to Export
+    document.addEventListener('keydown', function(e) {
+        if(e.key === 'Escape' && (pcrRateUsMode || pcrStarsExpanded)) {
+            pcrRevertToExport();
+        }
+    });
+    // ─────────────────────────────────────────────────────────────────────
 
     const BUTTON_MARGIN = -2;
     const WIDTHS = [{
