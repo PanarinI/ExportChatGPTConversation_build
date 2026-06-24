@@ -1,5 +1,11 @@
 'use strict';
 
+// ── GA4 Measurement Protocol ──────────────────────────────────────────────────
+// fetch must go through background.js — ChatGPT CSP blocks requests from content scripts
+function sendGA4Event(eventName) {
+    chrome.runtime.sendMessage({ action: 'ga4Event', eventName: eventName });
+}
+
 const pdfcrowdChatGPT = {};
 
 pdfcrowdChatGPT.pdfcrowdAPI = 'https://api.pdfcrowd.com/convert/24.04/';
@@ -2926,10 +2932,13 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
                         '.no-scrollbar{display:flex !important;flex-direction:row !important;flex-wrap:nowrap !important;gap:8px !important;overflow:visible !important;margin-bottom:12px !important}',
                         '.no-scrollbar>div{width:200px !important;height:140px !important;min-width:0 !important;flex-shrink:0 !important;border:none !important;border-radius:10px !important;overflow:hidden !important;aspect-ratio:unset !important}',
                         '.no-scrollbar>div>div,.no-scrollbar button{width:100% !important;height:100% !important;display:block !important}',
-                        '.no-scrollbar img{width:100% !important;height:100% !important;object-fit:cover !important;border-radius:10px !important;border:none !important;display:block !important}'
+                        '.no-scrollbar img{width:100% !important;height:100% !important;object-fit:cover !important;border-radius:10px !important;border:none !important;display:block !important}',
+                        // ── Link preview images — constrain size ──────────
+                        'img:not([style*="width"]):not(.no-scrollbar img){max-width:32px !important;max-height:32px !important}'
                     ].concat(isDarkMode ? [
                         // ── Dark mode overrides ───────────────────────────
-                        'body,html{background:#212121 !important;color:#e8e8e8 !important}',
+                        'body,html{background:#212121 !important;color:#e8e8e8 !important;border:none !important;margin:0 !important}',
+                        'hr{border-top-color:#444 !important}',
                         'h1,h2,h3,h4,h5,h6{color:#ffffff !important}',
                         'p,li,span,div{color:#e8e8e8}',
                         'th{background:#2a2a2a !important;color:#ffffff !important;border-color:#3d3d3d !important}',
@@ -3274,22 +3283,32 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
             }
 
             // ── Welcome ripple: show rings once after install ──────────────
-            chrome.storage.local.get('pdfcrowdHighlightBtn', function(result) {
-                if(!result.pdfcrowdHighlightBtn) return;
-                chrome.storage.local.remove('pdfcrowdHighlightBtn');
-
+            function pcrTriggerWelcomeRipple() {
                 const wrap = pdfcrowd_block;
-                // Add three ring divs
+                if(!wrap) return;
                 const rings = [1, 2, 3].map(function() {
                     const r = document.createElement('div');
                     r.className = 'pdfcrowd-ring';
                     wrap.appendChild(r);
                     return r;
                 });
-                // Remove rings after 6 seconds (≈2 full animation cycles)
                 setTimeout(function() {
                     rings.forEach(function(r) { r.remove(); });
                 }, 6000);
+            }
+
+            // New tab: flag was set in storage before tab was created, read it on load
+            chrome.storage.local.get('pdfcrowdHighlightBtn', function(result) {
+                if(!result.pdfcrowdHighlightBtn) return;
+                chrome.storage.local.remove('pdfcrowdHighlightBtn');
+                pcrTriggerWelcomeRipple();
+            });
+
+            // Existing tab: background.js sends this message instead of reloading
+            chrome.runtime.onMessage.addListener(function(message) {
+                if(message.action === 'pcrHighlightBtn') {
+                    pcrTriggerWelcomeRipple();
+                }
             });
 
         } else if(validUrl) {
@@ -3604,6 +3623,7 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
 
     exportBtn.addEventListener('click', function() {
         if(selectedBids.size === 0) return;
+        sendGA4Event('export_selected_used');
 
         // Snapshot which bids to keep BEFORE detaching
         const bidsToKeep = new Set(selectedBids);
@@ -3749,7 +3769,7 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
 
             const body =
                 metaRow +
-                (metaRow ? '<hr style="border:none;border-top:2px solid #1a1a1a;margin:3px 0 5px">' : '') +
+                ('') +
                 `<h1 class="main-title" style="${h1Hidden}font-size:26px;font-weight:700;margin:6px 0;line-height:1.22">${displayTitle}</h1>` +
                 '<hr style="border:none;border-top:1px solid #d0d0d0;margin:5px 0 18px">' +
                 main_clone.outerHTML;
@@ -4243,6 +4263,7 @@ pdfcrowdChatGPT.showError = function(status, text, hideContact) {
 };
 
 pdfcrowdChatGPT.saveBlob = function(url, filename) {
+    sendGA4Event('export_completed');
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;

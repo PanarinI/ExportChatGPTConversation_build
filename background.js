@@ -1,3 +1,22 @@
+// Show uninstall feedback page when user removes the extension
+chrome.runtime.setUninstallURL('https://panarini.github.io/ExportChatGPTConversation/uninstall.html');
+
+// ── GA4 Measurement Protocol ──────────────────────────────────────────────────
+chrome.runtime.onMessage.addListener(function(message) {
+    if(message.action === 'ga4Event') {
+        fetch('https://www.google-analytics.com/mp/collect?measurement_id=G-LVYMZZ18SD&api_secret=OEp4iQgzQHmFupGP91uz1g', {
+            method: 'POST',
+            body: JSON.stringify({
+                client_id: 'extension_' + Math.random().toString(36).slice(2),
+                events: [{ name: message.eventName }]
+            })
+        }).catch(function() {});
+    }
+});
+
+// ── Gotenberg config ──────────────────────────────────────────────────────────
+const GOTENBERG_URL = 'http://89.167.13.19:3000/forms/chromium/convert/html';
+
 const sessions = {};
 
 function blobToDataURL(blob, callback) {
@@ -8,95 +27,91 @@ function blobToDataURL(blob, callback) {
     reader.readAsDataURL(blob);
 }
 
-function handleAPIResponse(response, sendResponse) {
-    if(response.status != 200) {
-        response.text().then(errorMessage => {
-            sendResponse({
-                status: response.status,
-                message: errorMessage
-            });
-        });
-    } else {
-        response.blob().then(blob => {
-            blobToDataURL(blob, url => {
-                sendResponse({
-                    status: 200,
-                    blob: blob,
-                    url: url
-                });
-            });
-        });
+function sendToGotenberg(htmlContent, params, sendResponse) {
+    // Inject custom_css into HTML <head> before sending to Gotenberg
+    if (params.custom_css) {
+        const css = typeof params.custom_css === 'string'
+            ? params.custom_css
+            : params.custom_css;
+        const styleTag = '<style>' + css + '</style>';
+        htmlContent = htmlContent.replace('</head>', styleTag + '</head>');
     }
-}
 
-function tryCompress(htmlContent) {
-    return new Promise((resolve, reject) => {
-        if(typeof CompressionStream === 'undefined') {
-            reject(new Error('CompressionStream not available'));
-            return;
-        }
+    // Inject background color for dark mode
+    if (params.page_background_color) {
+        const bgStyle = '<style>html,body{background:#' + params.page_background_color + ' !important}</style>';
+        htmlContent = htmlContent.replace('</head>', bgStyle + '</head>');
+    }
 
-        try {
-            const encoder = new TextEncoder();
-            const htmlBytes = encoder.encode(htmlContent);
-
-            const stream = new Blob([htmlBytes])
-                .stream()
-                .pipeThrough(new CompressionStream('gzip'));
-
-            new Response(stream).arrayBuffer()
-                .then(gzippedData => {
-                    const gzipped = new Uint8Array(gzippedData);
-                    const gzipBlob = new Blob(
-                        [gzipped],
-                        {type: 'application/gzip'}
-                    );
-                    resolve({
-                        blob: gzipBlob,
-                        filename: 'index.html.gz'
-                    });
-                })
-                .catch(reject);
-        } catch(error) {
-            reject(error);
-        }
-    });
-}
-
-function prepareFile(htmlContent) {
-    return tryCompress(htmlContent)
-        .then(result => result)
-        .catch(error => {
-            const htmlBlob = new Blob([htmlContent], {type: 'text/html'});
-            return {
-                blob: htmlBlob,
-                filename: 'index.html'
-            };
-        });
-}
-
-function sendToAPI(fileData, request, sendResponse) {
     const formData = new FormData();
 
-    for(let key in request.params) {
-        formData.append(key, request.params[key]);
-    }
-    formData.append('file', fileData.blob, fileData.filename);
+    // Gotenberg requires the HTML file to be named index.html
+    const htmlBlob = new Blob([htmlContent], {type: 'text/html'});
+    formData.append('files', htmlBlob, 'index.html');
 
-    fetch(request.url, {
+    // Paper size
+    if (params.page_size === 'letter') {
+        formData.append('paperWidth', '8.5');
+        formData.append('paperHeight', '11');
+    } else {
+        // A4 default
+        formData.append('paperWidth', '8.27');
+        formData.append('paperHeight', '11.69');
+    }
+
+    // Convert any unit to inches
+    function toInches(val) {
+        if (!val) return '0.4';
+        const s = String(val).trim();
+        if (s.endsWith('px')) return String((parseFloat(s) / 96).toFixed(4));
+        if (s.endsWith('cm')) return String((parseFloat(s) / 2.54).toFixed(4));
+        if (s.endsWith('mm')) return String((parseFloat(s) / 25.4).toFixed(4));
+        if (s.endsWith('in')) return String(parseFloat(s));
+        return String(parseFloat(s) || 0.4);
+    }
+
+    formData.append('marginTop',    toInches(params.margin_top    || '0.4in'));
+    formData.append('marginBottom', toInches(params.margin_bottom || '0.4in'));
+    formData.append('marginLeft',   toInches(params.margin_left   || '0.4in'));
+    formData.append('marginRight',  toInches(params.margin_right  || '0.4in'));
+
+    // Single page — very tall paper
+    if (params.single_page) {
+        formData.append('paperHeight', '200');
+    }
+
+    // Print background colors
+    formData.append('printBackground', 'true');
+
+    // Scale — PDFCrowd uses scale_factor (100 = 100%), Gotenberg uses scale (1.0 = 100%)
+    const scale = params.scale_factor || params.zoom || 100;
+    formData.append('scale', String(scale / 100));
+
+    fetch(GOTENBERG_URL, {
         method: 'POST',
-        body: formData,
-        responseType: 'blob',
-        headers: {
-            'Authorization': 'Basic ' + btoa(
-                request.username + ':' + request.apiKey
-            )
-        }
+        body: formData
     }).then(response => {
-        handleAPIResponse(response, sendResponse);
+        if (response.status !== 200) {
+            response.text().then(errorMessage => {
+                sendResponse({
+                    status: response.status,
+                    message: errorMessage
+                });
+            });
+        } else {
+            response.blob().then(blob => {
+                blobToDataURL(blob, url => {
+                    sendResponse({
+                        status: 200,
+                        blob: blob,
+                        url: url
+                    });
+                });
+            });
+        }
     }).catch(error => {
         sendResponse({
-            status: error.status || 'network-error',
+            status: 'network-error',
             message: error.toString()
         });
     });
@@ -146,16 +161,7 @@ chrome.runtime.onMessage.addListener(
             const htmlContent = session.chunks.join('');
             delete sessions[sessionId];
 
-            prepareFile(htmlContent)
-                .then(fileData => {
-                    sendToAPI(fileData, request, sendResponse);
-                })
-                .catch(error => {
-                    sendResponse({
-                        status: 'error',
-                        message: error.toString()
-                    });
-                });
+            sendToGotenberg(htmlContent, request.params, sendResponse);
 
             return true;
         }
@@ -184,13 +190,14 @@ chrome.runtime.onMessageExternal.addListener(function(message, sender, sendRespo
                         chrome.tabs.reload(target.id);
                     });
                 }
+                sendResponse({ok: true});
             });
         });
-        sendResponse({ok: true});
+        return true;
     }
 });
 
-// Clicking the extension icon navigates to ChatGPT and triggers the ripple animation
+// Clicking the extension icon navigates to ChatGPT
 chrome.action.onClicked.addListener(function() {
     chrome.storage.local.set({pdfcrowdHighlightBtn: true}, function() {
         chrome.tabs.query({url: ['*://chatgpt.com/*', '*://chat.com/*']}, function(tabs) {
@@ -211,9 +218,7 @@ chrome.action.onClicked.addListener(function() {
 
 chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
-        // Set highlight flag immediately so animation plays when user opens ChatGPT
         chrome.storage.local.set({pdfcrowdHighlightBtn: true});
-        // Open the welcome page (GitHub Pages standalone)
         chrome.tabs.create({
             url: 'https://panarini.github.io/ExportChatGPTConversation/'
         });
@@ -243,12 +248,10 @@ chrome.runtime.onInstalled.addListener((details) => {
             q_align: 'right',
             q_rounded: true
         };
-
         chrome.storage.sync.set({options: newUserDefaults});
     }
 
     if (details.reason === 'update' || details.reason === 'install') {
-        // Migrate settings: apply new defaults only if user still had old values
         chrome.storage.sync.get('options', function(data) {
             const opts = data.options;
             if(!opts) return;
@@ -264,7 +267,6 @@ chrome.runtime.onInstalled.addListener((details) => {
             if(opts.datetime_format === 'none' || opts.datetime_format === undefined) {
                 updated.datetime_format = 'date_only'; changed = true;
             }
-            // single_page was moved from menu to settings — default is off
             if(opts.single_page === undefined) {
                 updated.single_page = false; changed = true;
             }
