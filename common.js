@@ -1602,10 +1602,12 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
             'script, style, .absolute.z-0, .absolute.z-1, #AIPRM__sidebar'
         ).forEach(el => el.remove());
 
-        // solve expired images
+        // Mark only truly failed (not converted to base64) grid images as expired
         element.querySelectorAll('.grid img').forEach(img => {
-            img.setAttribute(
-                'alt', 'The image has expired. Refresh ChatGPT page and retry saving to PDF.');
+            if (!img.src.startsWith('data:')) {
+                img.setAttribute(
+                    'alt', 'The image has expired. Refresh ChatGPT page and retry saving to PDF.');
+            }
         });
 
         element.classList.add('chat-gpt-custom');
@@ -2203,7 +2205,7 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
                 ? 'chatgpt.com/c/' + m[1].slice(0, 8) + '...'
                 : url.replace(/^https?:\/\//, '').slice(0, 45) + '...';
             rightParts.push(
-                '<a href="' + url + '" style="color:#888;text-decoration:none">' +
+                '<a href="' + url + '" style="color:#888;text-decoration:underline">' +
                 display + '</a>'
             );
         }
@@ -2237,6 +2239,10 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
     // No page numbers (not available client-side).
     // Removes ChatGPT UI elements that should not appear in the PDF.
     function cleanupForPdf(clone) {
+        // DIAG: href check at START
+        var d0 = clone.querySelectorAll('a.decorated-link[href]').length;
+        var d0n = clone.querySelectorAll('a.decorated-link:not([href])').length;
+        console.log('[CLEANUP-START] deco href:', d0, '| no-href:', d0n);
 
         // ── 0. Remove accessibility-only elements (sr-only) that are hidden
         //       in browser via CSS but render as visible text in PDF.
@@ -2263,12 +2269,60 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
             el.remove();
         });
 
+        // ── 1. (no JS needed — +N badge hidden via CSS in custom_css) ──
+
+        // ── 2a. Style links ──────────────────────────────────────────────────────
+        // Gotenberg/Chromium renders link annotations correctly from Tailwind
+        // classes without needing pointer-events fixes in JS. Just ensure links
+        // themselves have visible text styling.
+        clone.querySelectorAll('a[href]').forEach(function(a) {
+            a.style.setProperty('color', 'inherit', 'important');
+            a.style.setProperty('text-decoration', 'underline', 'important');
+        });
+
+        // ── 2b. Neutralize favicon service images (they fail to load in Gotenberg) ──
+        // CRITICAL: removing an <img> that sits INSIDE an <a> collapses the link's
+        // inline box, and Chromium then drops the link's PDF click-annotation —
+        // this is what made every inline link non-clickable (working file had the
+        // favicons present, broken file had them removed). So for favicons inside a
+        // link we KEEP the element and just blank its src (kills the broken-image
+        // glyph while the box — and the annotation — stays intact). Favicons that
+        // are not inside a link can be removed safely.
+        var BLANK_PX = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+        clone.querySelectorAll('img').forEach(function(img) {
+            const src = img.getAttribute('src') || '';
+            if (/google\.com\/s2\/favicons|gstatic\.com\/faviconV2/.test(src)) {
+                if (img.closest('a')) {
+                    img.setAttribute('src', BLANK_PX);
+                } else {
+                    img.remove();
+                }
+            }
+        });
+
         // ── 3. All UI buttons outside markdown/pre ────────────────────────
-        // Removes: message action rows (copy/like/share/edit),
-        //          image edit buttons, and any other stray buttons.
+        // Removes: message action rows (copy/like/share/edit), image edit buttons.
+        // Exception: buttons wrapping DALL-E images (no aria-label) — unwrap those.
+        // Buttons with aria-label (e.g. "Источники") are removed entirely incl. their images.
         clone.querySelectorAll('button').forEach(function(el) {
             if(!el.closest('.markdown') && !el.closest('pre')) {
-                el.remove();
+                if(el.closest('.no-scrollbar')) {
+                    // Gallery image buttons — unwrap to keep the image
+                    const parent = el.parentElement;
+                    if(parent) {
+                        while(el.firstChild) parent.insertBefore(el.firstChild, el);
+                        el.remove();
+                    }
+                } else if(!el.getAttribute('aria-label') && el.querySelector('img')) {
+                    // DALL-E images are wrapped in unlabeled buttons — unwrap instead of remove
+                    const parent = el.parentElement;
+                    if(parent) {
+                        while(el.firstChild) parent.insertBefore(el.firstChild, el);
+                        el.remove();
+                    }
+                } else {
+                    el.remove();
+                }
             }
         });
 
@@ -2287,7 +2341,26 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
             }
         });
 
-        // ── 4b. Image gallery: remove aspect-ratio inline styles ─────────
+        // ── 4b. Image gallery: strip each cell down to just the img ─────────
+        // ChatGPT puts a grey skeleton placeholder div before the img inside each cell.
+        // Without Tailwind CSS, that placeholder renders visibly and hides the image.
+        clone.querySelectorAll('.no-scrollbar > *').forEach(function(cell) {
+            const img = cell.querySelector('img');
+            if (img) {
+                while (cell.firstChild) cell.removeChild(cell.firstChild);
+                cell.appendChild(img);
+                img.style.setProperty('display', 'block', 'important');
+                img.style.setProperty('width', '100%', 'important');
+                img.style.setProperty('height', '100%', 'important');
+                img.style.setProperty('object-fit', 'cover', 'important');
+                img.style.setProperty('position', 'static', 'important');
+                img.style.setProperty('border-radius', '10px', 'important');
+            } else {
+                cell.remove();
+            }
+        });
+
+        // ── 4c. Image gallery: remove aspect-ratio inline styles ─────────
         clone.querySelectorAll('.no-scrollbar [style*="aspect-ratio"]').forEach(
             function(el) {
                 el.style.removeProperty('aspect-ratio');
@@ -2333,10 +2406,6 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
         });
 
         // ── 9. Lock image dimensions from live DOM snapshot ───────────────
-        // ChatGPT's stylesheets (not exported) constrain inline icons/favicons
-        // to 16–20px. Without them, images render at natural/intrinsic size.
-        // We saved bounding-rect dimensions on the originals (data-pdfcrowd-w/h);
-        // apply them now as inline styles so the clone inherits them.
         clone.querySelectorAll('img[data-pdfcrowd-w]').forEach(function(img) {
             if(img.closest('.no-scrollbar')) return;
             const w = img.getAttribute('data-pdfcrowd-w');
@@ -2348,6 +2417,44 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
             }
             img.removeAttribute('data-pdfcrowd-w');
             img.removeAttribute('data-pdfcrowd-h');
+        });
+
+        // ── 10. Extract DALL-E images from complex ChatGPT containers ────
+        // Replace the entire ChatGPT image wrapper with a plain <img> block.
+        clone.querySelectorAll('img').forEach(function(img) {
+            const src = img.getAttribute('src') || '';
+            if (!src.startsWith('data:image/png') || src.length < 500000) return;
+            if (img.closest('.no-scrollbar')) return;
+
+            // Build a clean standalone image block
+            const figure = img.ownerDocument.createElement('div');
+            figure.style.cssText = 'display:block;width:100%;margin:16px 0;text-align:center';
+            const cleanImg = img.ownerDocument.createElement('img');
+            cleanImg.setAttribute('src', src);
+            cleanImg.style.cssText = 'display:block;max-width:100%;height:auto;margin:0 auto;border-radius:8px';
+            figure.appendChild(cleanImg);
+
+            // Walk up max 6 levels to find the outermost image-only wrapper
+            let container = img;
+            for (let d = 0; d < 6; d++) {
+                const p = container.parentElement;
+                if (!p) break;
+                // Stop if parent contains text or other non-image content
+                const hasText = p.childNodes && Array.from(p.childNodes).some(function(n) {
+                    return n.nodeType === 3 && n.textContent.trim().length > 0;
+                });
+                if (hasText) break;
+                if (p.classList.contains('markdown')) break;
+                if (p.hasAttribute('data-message-author-role')) break;
+                if (p.matches('main, article')) break;
+                container = p;
+            }
+
+            // Hide the original broken container, insert clean image before it
+            if (container.parentElement) {
+                container.parentElement.insertBefore(figure, container);
+                container.style.setProperty('display', 'none', 'important');
+            }
         });
     }
 
@@ -2379,7 +2486,7 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
             entries.push(
                 '<li style="list-style:none;padding:3px 0;display:flex;align-items:baseline;gap:8px">' +
                 marker +
-                '<a href="#' + id + '" style="text-decoration:none;' +
+                '<a href="#' + id + '" style="text-decoration:underline;' +
                 'color:#333;font-size:13px">' +
                 display.replace(/</g, '&lt;').replace(/>/g, '&gt;') +
                 '</a></li>'
@@ -2842,20 +2949,110 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
             main = main.length ? main[0] :
                 document.querySelector('div.grow');
 
-            // Lock computed image sizes from live DOM so icons/favicons
-            // keep their ChatGPT-rendered dimensions after CSS is stripped.
+            // Lock computed image sizes and convert external images to base64
+            const imgPromises = [];
             main.querySelectorAll('img').forEach(function(img) {
-                if(img.closest('.no-scrollbar')) return; // gallery handled separately
-                const rect = img.getBoundingClientRect();
-                if(rect.width > 0 && rect.height > 0) {
-                    img.setAttribute('data-pdfcrowd-w', Math.round(rect.width));
-                    img.setAttribute('data-pdfcrowd-h', Math.round(rect.height));
+                const isGallery = !!img.closest('.no-scrollbar');
+                if (!isGallery) {
+                    const rect = img.getBoundingClientRect();
+                    if(rect.width > 0 && rect.height > 0) {
+                        img.setAttribute('data-pdfcrowd-w', Math.round(rect.width));
+                        img.setAttribute('data-pdfcrowd-h', Math.round(rect.height));
+                    }
+                }
+                // DEBUG: log every image
+                console.log('[IMG]', img.src.substring(0, 80), '| complete:', img.complete, '| w:', img.naturalWidth, '| blob:', img.src.startsWith('blob:'));
+                // Convert to base64 so Gotenberg can render without auth
+                if (img.src && !img.src.startsWith('data:') && !img.src.startsWith('blob:')) {
+                    let needsBackgroundFetch = /oaiusercontent\.com|images\.openai\.com/.test(img.src);
+                    if (!needsBackgroundFetch && img.complete && img.naturalWidth > 0) {
+                        // Same-origin or already-loaded non-auth image: use canvas
+                        try {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = img.naturalWidth;
+                            canvas.height = img.naturalHeight;
+                            canvas.getContext('2d').drawImage(img, 0, 0);
+                            const dataUrl = canvas.toDataURL('image/png');
+                            img.setAttribute('src', dataUrl);
+                            console.log('[IMG] canvas OK, dataUrl len:', dataUrl.length);
+                        } catch(e) {
+                            // CORS tainted canvas — fetch via background with auth cookies
+                            needsBackgroundFetch = true;
+                            console.log('[IMG] canvas CORS fail, switching to background fetch');
+                        }
+                    } else if (!needsBackgroundFetch && (!img.complete || img.naturalWidth === 0)) {
+                        // Image isn't loaded — can't use canvas, try background fetch
+                        needsBackgroundFetch = true;
+                        console.log('[IMG] not loaded, switching to background fetch');
+                    }
+                    if (needsBackgroundFetch) {
+                        const capturedImg = img;
+                        const srcToFetch = capturedImg.getAttribute('src') || capturedImg.src;
+                        console.log('[IMG] background fetch:', srcToFetch.substring(0, 80));
+                        imgPromises.push(new Promise(function(resolve) {
+                            chrome.runtime.sendMessage({
+                                action: 'fetchImageAsBase64',
+                                src: srcToFetch
+                            }, function(response) {
+                                console.log('[IMG] background fetch result:', response && response.data ? 'OK (' + response.data.length + ' chars)' : 'FAILED');
+                                if (response && response.data) capturedImg.setAttribute('src', response.data);
+                                resolve();
+                            });
+                        }));
+                    }
                 }
             });
 
+            Promise.all(imgPromises).then(function() {
+
             const main_clone = prepareContent(main);
+            console.log("IMAGES IN CLONE", main_clone.querySelectorAll("img").length);
+
+            // Log all images in clone to check src
+            main_clone.querySelectorAll('img').forEach(function(img, i) {
+                const attr = img.getAttribute('src') || '';
+                console.log('[CLONE-IMG-' + i + '] attr len:', attr.length, 'starts:', attr.substring(0, 60));
+            });
+
             restoreVirtualizedTurns(main_clone, turnCache);
+
+            // Second-pass: convert any images that came in via virtualized turns
+            // (they were captured as raw HTML with original URLs, not base64)
+            const lateImgPromises = [];
+            main_clone.querySelectorAll('img').forEach(function(img) {
+                const src = img.getAttribute('src') || '';
+                if (!src || src.startsWith('data:') || src.startsWith('blob:')) return;
+                console.log('[LATE-IMG] needs conversion:', src.substring(0, 80));
+                const capturedImg = img;
+                lateImgPromises.push(new Promise(function(resolve) {
+                    chrome.runtime.sendMessage({
+                        action: 'fetchImageAsBase64',
+                        src: src
+                    }, function(response) {
+                        console.log('[LATE-IMG] result:', response && response.data ? 'OK (' + response.data.length + ')' : 'FAILED');
+                        if (response && response.data) capturedImg.setAttribute('src', response.data);
+                        resolve();
+                    });
+                }));
+            });
+
+            Promise.all(lateImgPromises).then(function() {
+
+            // DEBUG: check gallery images before cleanup
+            main_clone.querySelectorAll('.no-scrollbar img').forEach(function(img, i) {
+                const src = img.getAttribute('src') || '';
+                console.log('[GALLERY-' + i + '] src starts:', src.substring(0, 60), 'len:', src.length);
+            });
+            console.log('[GALLERY] total:', main_clone.querySelectorAll('.no-scrollbar img').length);
+
             cleanupForPdf(main_clone);
+
+            // DEBUG: check gallery images AFTER cleanup
+            main_clone.querySelectorAll('.no-scrollbar img').forEach(function(img, i) {
+                const src = img.getAttribute('src') || '';
+                console.log('[GALLERY-AFTER-' + i + '] src starts:', src.substring(0, 60), 'len:', src.length);
+            });
+            console.log('[GALLERY-AFTER] total:', main_clone.querySelectorAll('.no-scrollbar img').length);
 
             applyQuestionStyles(main_clone, options);
 
@@ -2933,11 +3130,18 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
                         '.no-scrollbar>div{width:200px !important;height:140px !important;min-width:0 !important;flex-shrink:0 !important;border:none !important;border-radius:10px !important;overflow:hidden !important;aspect-ratio:unset !important}',
                         '.no-scrollbar>div>div,.no-scrollbar button{width:100% !important;height:100% !important;display:block !important}',
                         '.no-scrollbar img{width:100% !important;height:100% !important;object-fit:cover !important;border-radius:10px !important;border:none !important;display:block !important}',
-                        // ── Link preview images — constrain size ──────────
-                        'img:not([style*="width"]):not(.no-scrollbar img){max-width:32px !important;max-height:32px !important}'
+                        // ── DALL-E image containers — remove aspect-ratio, ensure visible ──
+                        '[style*="aspect-ratio"]{aspect-ratio:unset !important;height:auto !important}',
+                        'img[src^="data:"]{display:block !important;max-width:100% !important;height:auto !important;visibility:visible !important;opacity:1 !important}',
+                        // ── Links — inherit text color, underline, ensure clickable ──
+                        'a{color:inherit !important;text-decoration:underline !important;pointer-events:auto !important}',
+                        // ── Favicon/citation images inside links — limit size ──
+                        'a img:not([src^="data:"]){max-width:20px !important;max-height:20px !important;width:auto !important;height:auto !important;display:inline !important;vertical-align:middle !important}'
                     ].concat(isDarkMode ? [
                         // ── Dark mode overrides ───────────────────────────
-                        'body,html{background:#212121 !important;color:#e8e8e8 !important;border:none !important;margin:0 !important}',
+                        'body,html{background:#212121 !important;color:#e8e8e8 !important;border:none !important;margin:0 !important;padding:0 !important}',
+                        '*{box-sizing:border-box}',
+                        'body>div,body>main{background:#212121 !important;border:none !important}',
                         'hr{border-top-color:#444 !important}',
                         'h1,h2,h3,h4,h5,h6{color:#ffffff !important}',
                         'p,li,span,div{color:#e8e8e8}',
@@ -2993,6 +3197,28 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
                     `<body class="${classes}" dir="${direction}">` +
                     `${body}</body>`;
 
+                // DEBUG: decorated-link href presence in FINAL html (live vs dead)
+                const decoTags = htmlContent.match(/<a [^>]*decorated-link[^>]*>/g) || [];
+                const decoNoHref = decoTags.filter(function(t){ return t.indexOf('href') === -1; });
+                console.log('[DECO] total decorated-link:', decoTags.length, '| WITHOUT href:', decoNoHref.length);
+                decoNoHref.slice(0, 6).forEach(function(t, i){ console.log('[DECO-NOHREF-' + i + ']', t.substring(0, 120)); });
+                decoTags.slice(0, 4).forEach(function(t, i){ console.log('[DECO-' + i + '] href=' + (t.indexOf('href')!==-1) + ' | ' + t.substring(0, 100)); });
+
+                console.log(
+                  "HAS_PNG_BASE64",
+                  htmlContent.includes("data:image/png;base64")
+                );
+
+                console.log(
+                  "HAS_JPEG_BASE64",
+                  htmlContent.includes("data:image/jpeg;base64")
+                );
+
+                console.log(
+                  "HTML_LENGTH",
+                  htmlContent.length
+                );
+
                 pdfcrowdChatGPT.doRequest(
                     htmlContent,
                     data,
@@ -3028,6 +3254,8 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
             } else {
                 doConvert();
             }
+            }); // closes lateImgPromises Promise.all
+            }); // closes imgPromises Promise.all
         });
     }
 
@@ -3430,7 +3658,11 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
         }
         visualEl.classList.add('pdfcrowd-block-sel');
 
-        const hasImages = !!el.querySelector('img, canvas, video');
+        // Images inside <a> tags are citation favicons — not real content images
+        const hasImages = !!(el.querySelector('canvas, video') ||
+            Array.from(el.querySelectorAll('img')).some(function(img) {
+                return !img.closest('a');
+            }));
         let selRow = null;
 
         if(hasImages) {
@@ -3753,7 +3985,8 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
                     '[data-message-author-role="user"]>div>div:first-child,[data-message-author-role="user"] .whitespace-pre-wrap{background:#f4f4f4 !important;border-radius:16px !important;padding:10px 16px !important;max-width:85% !important;display:inline-block !important}',
                     '.no-scrollbar{display:flex !important;flex-direction:row !important;flex-wrap:nowrap !important;gap:8px !important;overflow:visible !important;margin-bottom:12px !important}',
                     '.no-scrollbar>div{width:200px !important;height:140px !important;flex-shrink:0 !important;border:none !important;border-radius:10px !important;overflow:hidden !important;aspect-ratio:unset !important}',
-                    '.no-scrollbar img{width:100% !important;height:100% !important;object-fit:cover !important;border-radius:10px !important;border:none !important}'
+                    '.no-scrollbar img{width:100% !important;height:100% !important;object-fit:cover !important;border-radius:10px !important;border:none !important}',
+                    'a{color:inherit !important;text-decoration:underline !important;pointer-events:auto !important}'
                 ].join(' ')
             };
             applyMarginSettings(data, options);

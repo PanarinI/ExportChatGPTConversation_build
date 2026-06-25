@@ -27,21 +27,37 @@
     },
     "content_scripts": [
         {
-            "matches": ["*://chatgpt.com/*", "*://chat.com/*"],
-            "js": ["shared.js", "common.js", "request.js"]
+            "matches": [
+                "*://chatgpt.com/*",
+                "*://chat.com/*"
+            ],
+            "js": [
+                "shared.js",
+                "common.js",
+                "request.js"
+            ]
         }
     ],
     "options_ui": {
         "page": "options.html",
         "open_in_tab": true
     },
-    "permissions": ["storage", "tabs"],
+    "permissions": [
+        "storage",
+        "tabs",
+        "downloads"
+    ],
     "host_permissions": [
         "https://www.google-analytics.com/",
-        "http://89.167.13.19/*"
+        "http://89.167.13.19/*",
+        "*://*.oaiusercontent.com/*",
+        "*://files.oaiusercontent.com/*",
+        "*://images.openai.com/*"
     ],
     "minimum_chrome_version": "100",
     "externally_connectable": {
-        "matches": ["https://panarini.github.io/*"]
+        "matches": [
+            "https://panarini.github.io/*"
+        ]
     }
 }
