@@ -46,65 +46,6 @@ if (typeof GM_info !== 'undefined') {
     pdfcrowdShared.rateUsLink = 'https://addons.mozilla.org/en-US/firefox/addon/save-chatgpt-as-pdf/reviews/';
 }
 
-pdfcrowdShared.helpContent = `
-<div class="pdfcrowd-help-content">
-<div class="pdfcrowd-category-title">
-    Support
-</div>
-
-<div style="line-height:1.5">
-    Feel free to contact us with any questions or for assistance. We're always happy to help!
-    <br>
-    Email us at <strong>panarin2005@gmail.com</strong>.
-    <br>
-    <span class="popup-hidden">
-    Please <a href="${pdfcrowdShared.rateUsLink}">rate us</a> if you like the extension. It helps a lot!
-    </span>
-</div>
-
-<div class="pdfcrowd-category">
-  <div class="pdfcrowd-category-title">
-    Note
-  </div>
-  <div>
-    All generated PDFs include a banner which cannot be removed.
-    <br>
-    This is a limitation of the free conversion tier.
-  </div>
-</div>
-
-
-<div class="pdfcrowd-category">
-    <div class="pdfcrowd-category-title">
-        Tips
-    </div>
-    <ul>
-        <li>
-            You can download a specific part of the chat by selecting it.
-        </li>
-        <li>
-            If images are missing in the PDF, reload the page and try downloading the PDF again.
-        </li>
-        <li>
-            Customize the PDF file via addon
-            <a class="options-link">options</a>.
-        </li>
-    </ul>
-</div>
-
-<div class="pdfcrowd-category">
-    <div class="pdfcrowd-category-title">
-        Links
-    </div>
-    <ul>
-        <li>
-            <a href="https://panarini.github.io/ExportChatGPTConversation/" target="_blank">Export ChatGPT Conversation homepage</a>
-        </li>
-    </ul>
-</div>
-</div>
-`;
-
 pdfcrowdShared.getOptions = function(callback) {
     if(typeof chrome === 'undefined') {
         callback(pdfcrowdShared.defaultOptions);
@@ -124,17 +65,3 @@ pdfcrowdShared.getOptions = function(callback) {
         }
     }
 }
-
-function init() {
-    let elem = document.getElementById('version');
-    if(elem) {
-        elem.innerHTML = pdfcrowdShared.version;
-    }
-
-    elem = document.getElementById('help');
-    if(elem) {
-        elem.innerHTML = pdfcrowdShared.helpContent;
-    }
-}
-
-document.addEventListener('DOMContentLoaded', init);

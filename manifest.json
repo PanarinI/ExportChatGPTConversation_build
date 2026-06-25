@@ -33,15 +33,14 @@
             ],
             "js": [
                 "shared.js",
+                "templates.js",
+                "helpers.js",
+                "theme.js",
                 "common.js",
                 "request.js"
             ]
         }
     ],
-    "options_ui": {
-        "page": "options.html",
-        "open_in_tab": true
-    },
     "permissions": [
         "storage",
         "tabs",

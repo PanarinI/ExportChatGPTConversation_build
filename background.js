@@ -194,9 +194,6 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
         return true;
     }
 });
-chrome.runtime.onMessage.addListener(function(message) {
-    if (message.action === "open_options_page") chrome.runtime.openOptionsPage();
-});
 
 chrome.runtime.onMessageExternal.addListener(function(message, sender, sendResponse) {
     if (message.action === 'openChatGPT') {
