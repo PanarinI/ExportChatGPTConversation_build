@@ -79,7 +79,6 @@ function sendToGotenberg(htmlContent, params, sendResponse) {
         );
     }
 
-    console.log('[PARAMS]', JSON.stringify(params));
     const formData = new FormData();
     formData.append('files', new Blob([htmlContent], {type: 'text/html'}), 'index.html');
 
@@ -130,26 +129,6 @@ function sendToGotenberg(htmlContent, params, sendResponse) {
 
     formData.append('waitDelay', '10s');
 
-    console.log("FINAL_HTML_SIZE", htmlContent.length);
-
-    console.log(
-      "COUNT_1536",
-      (htmlContent.match(/width="1536"/g) || []).length
-    );
-
-    console.log(
-      "COUNT_PNG_BASE64",
-      (htmlContent.match(/data:image\/png;base64/g) || []).length
-    );
-
-    const pos = htmlContent.indexOf('data:image/png;base64');
-
-    console.log('PNG_POS', pos);
-
-    console.log(
-        htmlContent.substring(pos - 300, pos + 300)
-    );
-
     fetch(GOTENBERG_URL, { method: 'POST', body: formData })
         .then(response => {
             if (response.status !== 200) {
@@ -190,7 +169,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
     if (message.action === 'fetchImageAsBase64') {
-        console.log('fetchImageAsBase64 called:', message.src.substring(0, 80));
         const timeoutPromise = new Promise((_, reject) =>
                     setTimeout(() => reject(new Error('timeout')), 5000)
                 );
@@ -211,7 +189,6 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
                         reader.readAsDataURL(blob);
                     })
                     .catch((e) => {
-                        console.log('fetch FAILED:', e.toString());
                         sendResponse({ data: null });
                     });
         return true;

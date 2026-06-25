@@ -8,10 +8,6 @@ function sendGA4Event(eventName) {
 
 const pdfcrowdChatGPT = {};
 
-pdfcrowdChatGPT.pdfcrowdAPI = 'https://api.pdfcrowd.com/convert/24.04/';
-pdfcrowdChatGPT.username = 'EgorFanar'; // chat-gpt -- EgorFanar
-pdfcrowdChatGPT.apiKey = '81c872c903db8eccc84d622e3eb2966a'; // 29d211b1f6924c22b7a799b4e8fecb7e - chat-gpt -- 81c872c903db8eccc84d622e3eb2966a - EgorFanar
-
 pdfcrowdChatGPT.init = function() {
     if(document.querySelectorAll('.pdfcrowd-convert').length > 0) {
         // avoid double init
@@ -1190,7 +1186,6 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
             </span>
         </button>
 
-
         <div class="pdfcrowd-divider"></div>
 
         <a
@@ -2239,10 +2234,6 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
     // No page numbers (not available client-side).
     // Removes ChatGPT UI elements that should not appear in the PDF.
     function cleanupForPdf(clone) {
-        // DIAG: href check at START
-        var d0 = clone.querySelectorAll('a.decorated-link[href]').length;
-        var d0n = clone.querySelectorAll('a.decorated-link:not([href])').length;
-        console.log('[CLEANUP-START] deco href:', d0, '| no-href:', d0n);
 
         // ── 0. Remove accessibility-only elements (sr-only) that are hidden
         //       in browser via CSS but render as visible text in PDF.
@@ -2566,7 +2557,6 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
         return '';
     }
 
-
     // ── Virtualized-scroll harvest (ports original PDFCrowd approach) ────────
 
     function findVirtualizedScroller() {
@@ -2730,168 +2720,6 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
         });
     }
 
-    // ── DISABLED old attempt (kept for reference) ─────────────────────────
-    /*
-    function findScrollContainer(root) {
-        const msg = document.querySelector('[data-message-author-role]');
-        const candidates = [];
-
-        if (msg) {
-            // Collect all scrollable ancestors of the first message node
-            let el = msg.parentElement;
-            while (el && el !== document.documentElement) {
-                const ov = window.getComputedStyle(el).overflowY;
-                const scrollable = (ov === 'scroll' || ov === 'auto') &&
-                    el.scrollHeight > el.clientHeight + 30;
-                if (scrollable) {
-                    candidates.push(el);
-                }
-                el = el.parentElement;
-            }
-        }
-
-        // Also check root's direct scrollable children (fallback)
-        if (candidates.length === 0) {
-            const divs = root.querySelectorAll('div');
-            for (let i = 0; i < divs.length; i++) {
-                const el = divs[i];
-                const ov = window.getComputedStyle(el).overflowY;
-                if ((ov === 'scroll' || ov === 'auto') &&
-                        el.scrollHeight > el.clientHeight + 30) {
-                    candidates.push(el);
-                    if (candidates.length >= 5) break;
-                }
-            }
-        }
-
-        if (candidates.length === 0) return root;
-
-        // Prefer the candidate with the highest scrollTop (most scrolled),
-        // or if all are 0, the one with the largest scrollHeight ratio
-        let best = candidates[0];
-        for (let i = 1; i < candidates.length; i++) {
-            const c = candidates[i];
-            if (c.scrollTop > best.scrollTop) { best = c; continue; }
-            if (c.scrollTop === best.scrollTop &&
-                    c.scrollHeight / (c.clientHeight || 1) >
-                    best.scrollHeight / (best.clientHeight || 1)) {
-                best = c;
-            }
-        }
-
-        console.log('[pdfcrowd] scroll container:', best,
-            'scrollTop:', best.scrollTop,
-            'scrollHeight:', best.scrollHeight,
-            'clientHeight:', best.clientHeight);
-        return best;
-    }
-
-    // Scroll to the top of the conversation so ChatGPT loads all older
-    // messages into the DOM, then call onDone(). prepareContent() clones
-    // the full DOM tree so scroll position at capture time doesn't matter —
-    // we just need all message nodes to exist.
-    //
-    // Strategy:
-    //   1. Snap to scrollTop=0 so older messages get injected into DOM.
-    //   2. Poll [data-message-author-role] count; once stable for 1 s → done.
-    //   3. Hard safety cutoff at 25 s.
-    //   4. If the chat is already at the top AND count never grows → done in ~1 s.
-    function autoScrollAndCapture(main, onDone) {
-        const scrollEl = findScrollContainer(main);
-        const savedPos = scrollEl.scrollTop;
-        const hasScrollableContent =
-            scrollEl.scrollHeight > scrollEl.clientHeight + 100;
-
-        console.log('[pdfcrowd] autoScroll: savedPos=' + savedPos +
-            ' hasScrollableContent=' + hasScrollableContent);
-
-        // No real scroll container found — proceed immediately
-        if (!hasScrollableContent) {
-            onDone();
-            return;
-        }
-
-        // Already at (or very near) the top — do a quick 1 s poll to check
-        // whether new messages appear; if not, proceed right away.
-        const alreadyAtTop = savedPos < 50;
-
-        // Semi-transparent overlay hides the scroll jump from the user
-        const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;inset:0;' +
-            'z-index:2147483640;background:rgba(255,255,255,0.55);' +
-            'pointer-events:none;transition:opacity 0.3s';
-        document.body.appendChild(overlay);
-
-        // Toast for long chats (shown after 5 s) — skipped if already at top
-        let toast = null;
-        const isRu = (navigator.language || '').toLowerCase().startsWith('ru');
-        const toastTimer = alreadyAtTop ? null : setTimeout(function() {
-            toast = document.createElement('div');
-            toast.style.cssText = 'position:fixed;bottom:80px;left:50%;' +
-                'transform:translateX(-50%);background:rgba(30,30,30,0.88);' +
-                'color:#fff;font-size:14px;line-height:1.5;' +
-                'padding:12px 22px;border-radius:10px;' +
-                'z-index:2147483647;pointer-events:none;white-space:nowrap';
-            toast.textContent = isRu
-                ? 'Загружаем чат полностью, подождите…'
-                : 'Loading the full chat, please wait…';
-            document.body.appendChild(toast);
-        }, 5000);
-
-        let finished = false;
-        // Short timeout if already at top (2 s), full timeout otherwise (25 s)
-        const safetyTimer = setTimeout(
-            function() { finish(); },
-            alreadyAtTop ? 2000 : 25000
-        );
-
-        function finish() {
-            if (finished) return;
-            finished = true;
-            clearTimeout(safetyTimer);
-            if (toastTimer) clearTimeout(toastTimer);
-            if (toast) { toast.remove(); toast = null; }
-            overlay.style.opacity = '0';
-            setTimeout(function() { overlay.remove(); }, 300);
-            console.log('[pdfcrowd] autoScroll done, msg count:',
-                document.querySelectorAll('[data-message-author-role]').length);
-            onDone();
-        }
-
-        // Jump to top — triggers ChatGPT to prepend older messages
-        scrollEl.scrollTop = 0;
-
-        // Poll until the DOM message count stops growing
-        let lastCount = document.querySelectorAll(
-            '[data-message-author-role]').length;
-        let stableTicks = 0;
-        // Need 4 consecutive stable ticks (1 s) to declare "done"
-        const STABLE_NEEDED = 4;
-
-        console.log('[pdfcrowd] initial msg count:', lastCount);
-
-        function waitForStable() {
-            const count = document.querySelectorAll(
-                '[data-message-author-role]').length;
-            if (count !== lastCount) {
-                lastCount = count;
-                stableTicks = 0;
-                console.log('[pdfcrowd] msg count grew to', count);
-            } else {
-                stableTicks++;
-            }
-            if (stableTicks >= STABLE_NEEDED) {
-                finish();
-            } else {
-                setTimeout(waitForStable, 250);
-            }
-        }
-
-        // Give ChatGPT a moment to start loading before we begin polling
-        setTimeout(waitForStable, 350);
-    }
-    */
-
     // ─────────────────────────────────────────────────────────────────────
     // Rate Us state
     let pcrRateUsMode = false;
@@ -2960,8 +2788,6 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
                         img.setAttribute('data-pdfcrowd-h', Math.round(rect.height));
                     }
                 }
-                // DEBUG: log every image
-                console.log('[IMG]', img.src.substring(0, 80), '| complete:', img.complete, '| w:', img.naturalWidth, '| blob:', img.src.startsWith('blob:'));
                 // Convert to base64 so Gotenberg can render without auth
                 if (img.src && !img.src.startsWith('data:') && !img.src.startsWith('blob:')) {
                     let needsBackgroundFetch = /oaiusercontent\.com|images\.openai\.com/.test(img.src);
@@ -2974,27 +2800,22 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
                             canvas.getContext('2d').drawImage(img, 0, 0);
                             const dataUrl = canvas.toDataURL('image/png');
                             img.setAttribute('src', dataUrl);
-                            console.log('[IMG] canvas OK, dataUrl len:', dataUrl.length);
                         } catch(e) {
                             // CORS tainted canvas — fetch via background with auth cookies
                             needsBackgroundFetch = true;
-                            console.log('[IMG] canvas CORS fail, switching to background fetch');
                         }
                     } else if (!needsBackgroundFetch && (!img.complete || img.naturalWidth === 0)) {
                         // Image isn't loaded — can't use canvas, try background fetch
                         needsBackgroundFetch = true;
-                        console.log('[IMG] not loaded, switching to background fetch');
                     }
                     if (needsBackgroundFetch) {
                         const capturedImg = img;
                         const srcToFetch = capturedImg.getAttribute('src') || capturedImg.src;
-                        console.log('[IMG] background fetch:', srcToFetch.substring(0, 80));
                         imgPromises.push(new Promise(function(resolve) {
                             chrome.runtime.sendMessage({
                                 action: 'fetchImageAsBase64',
                                 src: srcToFetch
                             }, function(response) {
-                                console.log('[IMG] background fetch result:', response && response.data ? 'OK (' + response.data.length + ' chars)' : 'FAILED');
                                 if (response && response.data) capturedImg.setAttribute('src', response.data);
                                 resolve();
                             });
@@ -3006,12 +2827,10 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
             Promise.all(imgPromises).then(function() {
 
             const main_clone = prepareContent(main);
-            console.log("IMAGES IN CLONE", main_clone.querySelectorAll("img").length);
 
             // Log all images in clone to check src
             main_clone.querySelectorAll('img').forEach(function(img, i) {
                 const attr = img.getAttribute('src') || '';
-                console.log('[CLONE-IMG-' + i + '] attr len:', attr.length, 'starts:', attr.substring(0, 60));
             });
 
             restoreVirtualizedTurns(main_clone, turnCache);
@@ -3022,14 +2841,12 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
             main_clone.querySelectorAll('img').forEach(function(img) {
                 const src = img.getAttribute('src') || '';
                 if (!src || src.startsWith('data:') || src.startsWith('blob:')) return;
-                console.log('[LATE-IMG] needs conversion:', src.substring(0, 80));
                 const capturedImg = img;
                 lateImgPromises.push(new Promise(function(resolve) {
                     chrome.runtime.sendMessage({
                         action: 'fetchImageAsBase64',
                         src: src
                     }, function(response) {
-                        console.log('[LATE-IMG] result:', response && response.data ? 'OK (' + response.data.length + ')' : 'FAILED');
                         if (response && response.data) capturedImg.setAttribute('src', response.data);
                         resolve();
                     });
@@ -3038,21 +2855,15 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
 
             Promise.all(lateImgPromises).then(function() {
 
-            // DEBUG: check gallery images before cleanup
             main_clone.querySelectorAll('.no-scrollbar img').forEach(function(img, i) {
                 const src = img.getAttribute('src') || '';
-                console.log('[GALLERY-' + i + '] src starts:', src.substring(0, 60), 'len:', src.length);
             });
-            console.log('[GALLERY] total:', main_clone.querySelectorAll('.no-scrollbar img').length);
 
             cleanupForPdf(main_clone);
 
-            // DEBUG: check gallery images AFTER cleanup
             main_clone.querySelectorAll('.no-scrollbar img').forEach(function(img, i) {
                 const src = img.getAttribute('src') || '';
-                console.log('[GALLERY-AFTER-' + i + '] src starts:', src.substring(0, 60), 'len:', src.length);
             });
-            console.log('[GALLERY-AFTER] total:', main_clone.querySelectorAll('.no-scrollbar img').length);
 
             applyQuestionStyles(main_clone, options);
 
@@ -3196,28 +3007,6 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
                     `<meta charSet="utf-8"/></head>` +
                     `<body class="${classes}" dir="${direction}">` +
                     `${body}</body>`;
-
-                // DEBUG: decorated-link href presence in FINAL html (live vs dead)
-                const decoTags = htmlContent.match(/<a [^>]*decorated-link[^>]*>/g) || [];
-                const decoNoHref = decoTags.filter(function(t){ return t.indexOf('href') === -1; });
-                console.log('[DECO] total decorated-link:', decoTags.length, '| WITHOUT href:', decoNoHref.length);
-                decoNoHref.slice(0, 6).forEach(function(t, i){ console.log('[DECO-NOHREF-' + i + ']', t.substring(0, 120)); });
-                decoTags.slice(0, 4).forEach(function(t, i){ console.log('[DECO-' + i + '] href=' + (t.indexOf('href')!==-1) + ' | ' + t.substring(0, 100)); });
-
-                console.log(
-                  "HAS_PNG_BASE64",
-                  htmlContent.includes("data:image/png;base64")
-                );
-
-                console.log(
-                  "HAS_JPEG_BASE64",
-                  htmlContent.includes("data:image/jpeg;base64")
-                );
-
-                console.log(
-                  "HTML_LENGTH",
-                  htmlContent.length
-                );
 
                 pdfcrowdChatGPT.doRequest(
                     htmlContent,
@@ -4020,7 +3809,6 @@ html.dark #pcr-preview-label { color: rgba(255,255,255,0.28); }
         });
     });
 })();
-
 
 const singlePageBtn = document.getElementById('pdfcrowd-single-page');
 

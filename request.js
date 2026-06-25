@@ -31,9 +31,6 @@ pdfcrowdChatGPT.sendChunkedData = function(
             chrome.runtime.sendMessage({
                 contentScriptQuery: 'processData',
                 sessionId: sessionId,
-                url: pdfcrowdChatGPT.pdfcrowdAPI,
-                username: pdfcrowdChatGPT.username,
-                apiKey: pdfcrowdChatGPT.apiKey,
                 params: params,
                 fileName: fileName
             }, response => {
