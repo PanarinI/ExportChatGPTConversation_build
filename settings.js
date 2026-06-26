@@ -1,133 +1,133 @@
 'use strict';
 
 // In-page settings modal: schema-backed controls (segments, swatches, theme
-// cards, live preview) + persistence. Uses EXPORT_THEMES, isLight, pdfcrowdShared.
+// cards, live preview) + persistence. Uses EXPORT_THEMES, isLight, gptpdfShared.
 
 // ===== Settings Modal Logic =====
-function pcrOpenSettings() {
-    const overlay = document.getElementById('pdfcrowd-settings-overlay');
+function gptpdfOpenSettings() {
+    const overlay = document.getElementById('gptpdf-settings-overlay');
     overlay.style.display = 'flex';
-    pdfcrowdShared.getOptions(function(opts) {
-        pcrLoadSettings(opts);
-        pcrUpdatePreview(opts);
+    gptpdfShared.getOptions(function(opts) {
+        gptpdfLoadSettings(opts);
+        gptpdfUpdatePreview(opts);
     });
 }
 
-function pcrCloseSettings() {
-    document.getElementById('pdfcrowd-settings-overlay').style.display = 'none';
+function gptpdfCloseSettings() {
+    document.getElementById('gptpdf-settings-overlay').style.display = 'none';
 }
 
-function pcrSetSegment(id, value) {
+function gptpdfSetSegment(id, value) {
     const el = document.getElementById(id);
     if(!el) return;
-    el.querySelectorAll('.pcr-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === value));
+    el.querySelectorAll('.gptpdf-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === value));
 }
 
-function pcrGetSegment(id) {
+function gptpdfGetSegment(id) {
     const el = document.getElementById(id);
     if(!el) return '';
-    const a = el.querySelector('.pcr-seg-btn.active');
+    const a = el.querySelector('.gptpdf-seg-btn.active');
     return a ? a.dataset.value : '';
 }
 
-function pcrSetSwatch(id, value) {
+function gptpdfSetSwatch(id, value) {
     const el = document.getElementById(id);
     if(!el) return;
-    el.querySelectorAll('.pcr-swatch').forEach(b => b.classList.toggle('active', b.dataset.value === value));
+    el.querySelectorAll('.gptpdf-swatch').forEach(b => b.classList.toggle('active', b.dataset.value === value));
 }
 
-function pcrGetSwatch(id) {
+function gptpdfGetSwatch(id) {
     const el = document.getElementById(id);
     if(!el) return 'default';
-    const a = el.querySelector('.pcr-swatch.active');
+    const a = el.querySelector('.gptpdf-swatch.active');
     return a ? a.dataset.value : 'default';
 }
 
 // Expand 3-digit hex (#rgb) to 6-digit (#rrggbb) required by <input type="color">
-function pcrNormalizeColor(color, fallback) {
+function gptpdfNormalizeColor(color, fallback) {
     if(!color) return fallback || '#000000';
     return color.replace(/^#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])$/, '#$1$1$2$2$3$3');
 }
 
-function pcrSetTheme(value) {
-    const el = document.getElementById('pcr-theme');
+function gptpdfSetTheme(value) {
+    const el = document.getElementById('gptpdf-theme');
     if(!el) return;
-    el.querySelectorAll('.pcr-theme-card').forEach(c => c.classList.toggle('active', c.dataset.value === value));
+    el.querySelectorAll('.gptpdf-theme-card').forEach(c => c.classList.toggle('active', c.dataset.value === value));
 }
 
-function pcrGetTheme() {
-    const el = document.getElementById('pcr-theme');
+function gptpdfGetTheme() {
+    const el = document.getElementById('gptpdf-theme');
     if(!el) return '';
-    const a = el.querySelector('.pcr-theme-card.active');
+    const a = el.querySelector('.gptpdf-theme-card.active');
     return a ? a.dataset.value : '';
 }
 
-function pcrLoadSettings(opts) {
-    pcrSetSegment('pcr-page-size', opts.page_size || 'a4');
-    pcrSetSegment('pcr-orientation', opts.orientation || '');
-    pcrSetTheme(opts.theme !== undefined ? opts.theme : '');
+function gptpdfLoadSettings(opts) {
+    gptpdfSetSegment('gptpdf-page-size', opts.page_size || 'a4');
+    gptpdfSetSegment('gptpdf-orientation', opts.orientation || '');
+    gptpdfSetTheme(opts.theme !== undefined ? opts.theme : '');
     const zoom = opts.zoom || 100;
-    document.getElementById('pcr-zoom').value = zoom;
-    document.getElementById('pcr-zoom-value').textContent = zoom + '%';
-    pcrSetSegment('pcr-margins', opts.margins || '');
-    document.getElementById('pcr-margin-top').value = opts.margin_top || '0.4in';
-    document.getElementById('pcr-margin-bottom').value = opts.margin_bottom || '0.4in';
-    document.getElementById('pcr-margin-left').value = opts.margin_left || '0.4in';
-    document.getElementById('pcr-margin-right').value = opts.margin_right || '0.4in';
-    const customMargins = document.getElementById('pcr-margins-custom');
+    document.getElementById('gptpdf-zoom').value = zoom;
+    document.getElementById('gptpdf-zoom-value').textContent = zoom + '%';
+    gptpdfSetSegment('gptpdf-margins', opts.margins || '');
+    document.getElementById('gptpdf-margin-top').value = opts.margin_top || '0.4in';
+    document.getElementById('gptpdf-margin-bottom').value = opts.margin_bottom || '0.4in';
+    document.getElementById('gptpdf-margin-left').value = opts.margin_left || '0.4in';
+    document.getElementById('gptpdf-margin-right').value = opts.margin_right || '0.4in';
+    const customMargins = document.getElementById('gptpdf-margins-custom');
     if(customMargins) customMargins.style.display = opts.margins === 'custom' ? 'flex' : 'none';
-    pcrSetSegment('pcr-page-break', opts.page_break || '');
-    const pageBreakRow = document.getElementById('pcr-page-break') && document.getElementById('pcr-page-break').closest('.pcr-row');
+    gptpdfSetSegment('gptpdf-page-break', opts.page_break || '');
+    const pageBreakRow = document.getElementById('gptpdf-page-break') && document.getElementById('gptpdf-page-break').closest('.gptpdf-row');
     if(pageBreakRow) pageBreakRow.style.display = opts.single_page ? 'none' : '';
     // Theme palette
     const savedTheme = opts.q_color || 'default';
-    const qColorInput = document.getElementById('pcr-q-color-value');
+    const qColorInput = document.getElementById('gptpdf-q-color-value');
     if(qColorInput) qColorInput.value = savedTheme;
-    document.querySelectorAll('#pcr-q-palette .pcr-palette-btn').forEach(function(btn) {
+    document.querySelectorAll('#gptpdf-q-palette .gptpdf-palette-btn').forEach(function(btn) {
         const isActive = btn.getAttribute('data-color') === savedTheme;
         btn.style.outline = isActive ? '2px solid #EA4C3A' : 'none';
         btn.style.outlineOffset = isActive ? '2px' : '';
     });
-    const sp = document.getElementById('pcr-single-page'); if(sp) sp.checked = !!opts.single_page;
-    pcrSetSegment('pcr-title-mode', opts.title_mode || '');
-    pcrSetSegment('pcr-datetime', opts.datetime_format || 'none');
-    pcrSetSegment('pcr-toc', opts.toc || '');
-    const mn = document.getElementById('pcr-model-name'); if(mn) mn.checked = !!opts.model_name;
-    const sl = document.getElementById('pcr-source-link'); if(sl) sl.checked = !!opts.source_link;
+    const sp = document.getElementById('gptpdf-singlepage-toggle'); if(sp) sp.checked = !!opts.single_page;
+    gptpdfSetSegment('gptpdf-title-mode', opts.title_mode || '');
+    gptpdfSetSegment('gptpdf-datetime', opts.datetime_format || 'none');
+    gptpdfSetSegment('gptpdf-toc', opts.toc || '');
+    const mn = document.getElementById('gptpdf-model-name'); if(mn) mn.checked = !!opts.model_name;
+    const sl = document.getElementById('gptpdf-source-link'); if(sl) sl.checked = !!opts.source_link;
 }
 
-function pcrGetSettings() {
+function gptpdfGetSettings() {
     return {
-        page_size: pcrGetSegment('pcr-page-size') || 'a4',
-        orientation: pcrGetSegment('pcr-orientation'),
-        theme: pcrGetTheme(),
-        zoom: parseInt(document.getElementById('pcr-zoom').value) || 100,
-        margins: pcrGetSegment('pcr-margins'),
-        margin_top: document.getElementById('pcr-margin-top').value,
-        margin_bottom: document.getElementById('pcr-margin-bottom').value,
-        margin_left: document.getElementById('pcr-margin-left').value,
-        margin_right: document.getElementById('pcr-margin-right').value,
-        page_break: pcrGetSegment('pcr-page-break'),
-        q_color: (document.getElementById('pcr-q-color-value') || {value: 'default'}).value || 'default',
+        page_size: gptpdfGetSegment('gptpdf-page-size') || 'a4',
+        orientation: gptpdfGetSegment('gptpdf-orientation'),
+        theme: gptpdfGetTheme(),
+        zoom: parseInt(document.getElementById('gptpdf-zoom').value) || 100,
+        margins: gptpdfGetSegment('gptpdf-margins'),
+        margin_top: document.getElementById('gptpdf-margin-top').value,
+        margin_bottom: document.getElementById('gptpdf-margin-bottom').value,
+        margin_left: document.getElementById('gptpdf-margin-left').value,
+        margin_right: document.getElementById('gptpdf-margin-right').value,
+        page_break: gptpdfGetSegment('gptpdf-page-break'),
+        q_color: (document.getElementById('gptpdf-q-color-value') || {value: 'default'}).value || 'default',
         q_color_picker: '#f4f4f4',
         q_fg_color: 'default',
         q_fg_color_picker: '#333333',
         q_align: 'right',
         q_rounded: true,
         no_icons: true,
-        title_mode: pcrGetSegment('pcr-title-mode'),
-        datetime_format: pcrGetSegment('pcr-datetime'),
-        single_page: !!(document.getElementById('pcr-single-page') || {}).checked,
-        toc: pcrGetSegment('pcr-toc'),
-        model_name: !!(document.getElementById('pcr-model-name') || {}).checked,
-        source_link: !!(document.getElementById('pcr-source-link') || {}).checked,
+        title_mode: gptpdfGetSegment('gptpdf-title-mode'),
+        datetime_format: gptpdfGetSegment('gptpdf-datetime'),
+        single_page: !!(document.getElementById('gptpdf-singlepage-toggle') || {}).checked,
+        toc: gptpdfGetSegment('gptpdf-toc'),
+        model_name: !!(document.getElementById('gptpdf-model-name') || {}).checked,
+        source_link: !!(document.getElementById('gptpdf-source-link') || {}).checked,
     };
 }
 
-function pcrUpdatePreview(opts) {
-    const doc = document.getElementById('pcr-preview-doc');
+function gptpdfUpdatePreview(opts) {
+    const doc = document.getElementById('gptpdf-preview-doc');
     if(!doc) return;
-    const o = opts || pcrGetSettings();
+    const o = opts || gptpdfGetSettings();
 
     // Theme: light / dark
     const isDark = o.theme === 'dark' || (o.theme === '' && !isLight(document.body));
@@ -160,11 +160,11 @@ function pcrUpdatePreview(opts) {
     const scale = zoom / 100;
     const lineH = Math.max(2, Math.round(3 * (0.6 + scale * 0.4))) + 'px';
     const gap   = Math.max(2, Math.round(2 + scale * 2)) + 'px';
-    doc.querySelectorAll('.pcr-prev-line').forEach(l => { l.style.height = lineH; });
-    doc.querySelectorAll('.pcr-prev-ai, .pcr-prev-user').forEach(b => { b.style.gap = gap; });
+    doc.querySelectorAll('.gptpdf-prev-line').forEach(l => { l.style.height = lineH; });
+    doc.querySelectorAll('.gptpdf-prev-ai, .gptpdf-prev-user').forEach(b => { b.style.gap = gap; });
 
     // User prompt background (theme-aware)
-    const users = doc.querySelectorAll('.pcr-prev-user');
+    const users = doc.querySelectorAll('.gptpdf-prev-user');
     let userBg;
     const themeData = EXPORT_THEMES[o.q_color];
     if(o.q_color === 'none') userBg = 'transparent';
@@ -174,7 +174,7 @@ function pcrUpdatePreview(opts) {
         : (isDark ? 'rgba(255,255,255,0.08)' : '#f0f4f8');
 
     // Blockquote stripe color
-    const bqBar = doc.querySelector('.pcr-prev-bq-bar');
+    const bqBar = doc.querySelector('.gptpdf-prev-bq-bar');
     if(bqBar) {
         bqBar.style.background = themeData ? themeData.blockquote : '#d0d0d0';
     }
@@ -185,7 +185,7 @@ function pcrUpdatePreview(opts) {
 
     // Text color: tint user-block lines with custom colour
     users.forEach(u => {
-        u.querySelectorAll('.pcr-prev-line').forEach(l => {
+        u.querySelectorAll('.gptpdf-prev-line').forEach(l => {
             if(o.q_fg_color === 'custom' && o.q_fg_color_picker) {
                 l.style.background = o.q_fg_color_picker + 'bb';
             } else {
@@ -197,7 +197,7 @@ function pcrUpdatePreview(opts) {
     // Alignment: shift user-block lines
     const align = o.q_align || 'justified';
     users.forEach(u => {
-        u.querySelectorAll('.pcr-prev-line').forEach(l => {
+        u.querySelectorAll('.gptpdf-prev-line').forEach(l => {
             if(align === 'center') {
                 l.style.marginLeft = 'auto';
                 l.style.marginRight = 'auto';
@@ -212,41 +212,41 @@ function pcrUpdatePreview(opts) {
     });
 
     // Page break
-    const breakEl = document.getElementById('pcr-prev-break');
+    const breakEl = document.getElementById('gptpdf-prev-break');
     if(breakEl) breakEl.style.display = o.page_break === 'after' ? 'block' : 'none';
 
     // Title
-    const titleEl = doc.querySelector('.pcr-prev-title');
+    const titleEl = doc.querySelector('.gptpdf-prev-title');
     if(titleEl) titleEl.style.display = o.title_mode === 'none' ? 'none' : 'block';
 
     // Creation date indicator
-    const dateEl = doc.querySelector('.pcr-prev-date');
+    const dateEl = doc.querySelector('.gptpdf-prev-date');
     if(dateEl) {
         dateEl.style.display = (o.datetime_format && o.datetime_format !== 'none') ? 'block' : 'none';
         dateEl.style.background = isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.15)';
     }
 
     // Model name indicator
-    const modelEl = doc.querySelector('.pcr-prev-model');
+    const modelEl = doc.querySelector('.gptpdf-prev-model');
     if(modelEl) {
         modelEl.style.display = o.model_name ? 'block' : 'none';
         modelEl.style.background = isDark ? 'rgba(120,180,255,0.35)' : 'rgba(74,144,217,0.3)';
     }
 
     // Source link indicator
-    const sourceEl = doc.querySelector('.pcr-prev-source');
+    const sourceEl = doc.querySelector('.gptpdf-prev-source');
     if(sourceEl) {
         sourceEl.style.display = o.source_link ? 'block' : 'none';
         sourceEl.style.background = isDark ? 'rgba(120,180,255,0.25)' : 'rgba(74,144,217,0.22)';
     }
 
     // TOC indicator
-    const tocEl = doc.querySelector('.pcr-prev-toc');
+    const tocEl = doc.querySelector('.gptpdf-prev-toc');
     if(tocEl) {
         tocEl.style.display = o.toc ? 'flex' : 'none';
         const tocBlue = isDark ? '99,175,255' : '74,144,217';
         const isNumbered = o.toc === 'numbering';
-        tocEl.querySelectorAll('.pcr-toc-dot').forEach((el, i) => {
+        tocEl.querySelectorAll('.gptpdf-toc-dot').forEach((el, i) => {
             const color = `rgba(${tocBlue},${i === 0 ? '0.9' : '0.65'})`;
             if(isNumbered) {
                 // Replace dot with tiny number — keep same fixed size so rows don't shift
@@ -273,16 +273,16 @@ function pcrUpdatePreview(opts) {
                 el.style.background = color;
             }
         });
-        tocEl.querySelectorAll('.pcr-toc-line').forEach((el, i) => {
+        tocEl.querySelectorAll('.gptpdf-toc-line').forEach((el, i) => {
             el.style.background = i === 0 ? `rgba(${tocBlue},0.6)` : `rgba(${tocBlue},0.42)`;
         });
-        tocEl.querySelectorAll('.pcr-toc-pg').forEach(el => {
+        tocEl.querySelectorAll('.gptpdf-toc-pg').forEach(el => {
             el.style.background = `rgba(${tocBlue},0.3)`;
         });
     }
 
     // User avatar dots
-    doc.querySelectorAll('.pcr-prev-avatar').forEach(av => {
+    doc.querySelectorAll('.gptpdf-prev-avatar').forEach(av => {
         av.style.display = o.no_icons ? 'none' : 'block';
         av.style.background = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.22)';
     });
@@ -293,42 +293,42 @@ function pcrUpdatePreview(opts) {
 // injected into the page, so the event targets exist.
 function wireSettings() {
     // Close on backdrop click or X
-    document.getElementById('pdfcrowd-settings-overlay').addEventListener('click', function(e) {
-        if(e.target === this) pcrCloseSettings();
+    document.getElementById('gptpdf-settings-overlay').addEventListener('click', function(e) {
+        if(e.target === this) gptpdfCloseSettings();
     });
-    document.getElementById('pdfcrowd-settings-close').addEventListener('click', pcrCloseSettings);
+    document.getElementById('gptpdf-settings-close').addEventListener('click', gptpdfCloseSettings);
 
     // Segment buttons
-    document.querySelectorAll('#pdfcrowd-settings-modal .pcr-segment').forEach(function(container) {
-        container.querySelectorAll('.pcr-seg-btn').forEach(function(btn) {
+    document.querySelectorAll('#gptpdf-settings-modal .gptpdf-segment').forEach(function(container) {
+        container.querySelectorAll('.gptpdf-seg-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
-                container.querySelectorAll('.pcr-seg-btn').forEach(b => b.classList.remove('active'));
+                container.querySelectorAll('.gptpdf-seg-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-                if(container.id === 'pcr-margins') {
-                    const customMargins = document.getElementById('pcr-margins-custom');
+                if(container.id === 'gptpdf-margins') {
+                    const customMargins = document.getElementById('gptpdf-margins-custom');
                     if(customMargins) customMargins.style.display = this.dataset.value === 'custom' ? 'flex' : 'none';
                 }
-                pcrUpdatePreview(null);
+                gptpdfUpdatePreview(null);
             });
         });
     });
 
     // Theme cards
-    document.querySelectorAll('#pcr-theme .pcr-theme-card').forEach(function(card) {
+    document.querySelectorAll('#gptpdf-theme .gptpdf-theme-card').forEach(function(card) {
         card.addEventListener('click', function() {
-            document.querySelectorAll('#pcr-theme .pcr-theme-card').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('#gptpdf-theme .gptpdf-theme-card').forEach(c => c.classList.remove('active'));
             this.classList.add('active');
-            pcrUpdatePreview(null);
+            gptpdfUpdatePreview(null);
         });
     });
 
     // Build theme palette from EXPORT_THEMES
-    const qPalette = document.getElementById('pcr-q-palette');
+    const qPalette = document.getElementById('gptpdf-q-palette');
     if(qPalette) {
         Object.keys(EXPORT_THEMES).forEach(function(key) {
             const t = EXPORT_THEMES[key];
             const btn = document.createElement('button');
-            btn.className = 'pcr-palette-btn';
+            btn.className = 'gptpdf-palette-btn';
             btn.setAttribute('data-color', key);
             btn.setAttribute('title', t.label);
             const border = key === 'none' ? '1.5px dashed #ccc' : '1.5px solid rgba(0,0,0,0.1)';
@@ -340,50 +340,50 @@ function wireSettings() {
 
     // Unified palette clicks
     if(qPalette) {
-        qPalette.querySelectorAll('.pcr-palette-btn').forEach(function(btn) {
+        qPalette.querySelectorAll('.gptpdf-palette-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
-                qPalette.querySelectorAll('.pcr-palette-btn').forEach(function(b) {
+                qPalette.querySelectorAll('.gptpdf-palette-btn').forEach(function(b) {
                     b.style.outline = 'none';
                     b.style.outlineOffset = '';
                 });
                 this.style.outline = '2px solid #EA4C3A';
                 this.style.outlineOffset = '2px';
-                const inp = document.getElementById('pcr-q-color-value');
+                const inp = document.getElementById('gptpdf-q-color-value');
                 if(inp) inp.value = this.getAttribute('data-color');
-                pcrUpdatePreview(null);
+                gptpdfUpdatePreview(null);
             });
         });
     }
 
     // Slider
-    const zoomSlider = document.getElementById('pcr-zoom');
+    const zoomSlider = document.getElementById('gptpdf-zoom');
     if(zoomSlider) zoomSlider.addEventListener('input', function() {
-        document.getElementById('pcr-zoom-value').textContent = this.value + '%';
-        pcrUpdatePreview(null);
+        document.getElementById('gptpdf-zoom-value').textContent = this.value + '%';
+        gptpdfUpdatePreview(null);
     });
 
     // Toggles
-    document.querySelectorAll('#pdfcrowd-settings-modal .pcr-toggle input').forEach(function(cb) {
-        cb.addEventListener('change', function() { pcrUpdatePreview(null); });
+    document.querySelectorAll('#gptpdf-settings-modal .gptpdf-toggle input').forEach(function(cb) {
+        cb.addEventListener('change', function() { gptpdfUpdatePreview(null); });
     });
 
     // Apply
-    document.getElementById('pdfcrowd-settings-apply').addEventListener('click', function() {
-        pcrCloseSettings(); // Close first — don't depend on async callback
+    document.getElementById('gptpdf-settings-apply').addEventListener('click', function() {
+        gptpdfCloseSettings(); // Close first — don't depend on async callback
         try {
-            const newOpts = pcrGetSettings();
-            pdfcrowdShared.getOptions(function(existing) {
+            const newOpts = gptpdfGetSettings();
+            gptpdfShared.getOptions(function(existing) {
                 newOpts.no_questions = existing.no_questions;
                 chrome.storage.sync.set({options: newOpts});
             });
         } catch(e) {
-            console.error('pdfcrowd settings save error:', e);
+            console.error('gptpdf settings save error:', e);
         }
     });
 
     // Reset
-    document.getElementById('pdfcrowd-settings-reset').addEventListener('click', function() {
-        pcrLoadSettings(pdfcrowdShared.defaultOptions);
-        pcrUpdatePreview(pdfcrowdShared.defaultOptions);
+    document.getElementById('gptpdf-settings-reset').addEventListener('click', function() {
+        gptpdfLoadSettings(gptpdfShared.defaultOptions);
+        gptpdfUpdatePreview(gptpdfShared.defaultOptions);
     });
 }

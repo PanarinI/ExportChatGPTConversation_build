@@ -65,19 +65,19 @@ function requestHarvestCancel() {
 
 function showLoadingOverlay() {
     harvestCancelled = false;
-    const ov = document.getElementById('pdfcrowd-loading-overlay');
+    const ov = document.getElementById('gptpdf-loading-overlay');
     if(!ov) {
         return;
     }
-    ov.classList.toggle('pdfcrowd-dark', !isLight(document.body));
+    ov.classList.toggle('gptpdf-dark', !isLight(document.body));
     ov.style.display = 'flex';
     // Cancel belongs to the harvest phase; ensure visible (generation hides it).
-    const _cancel = document.getElementById('pdfcrowd-cancel-loading');
+    const _cancel = document.getElementById('gptpdf-cancel-loading');
     if(_cancel) _cancel.style.display = '';
 }
 
 function hideLoadingOverlay() {
-    const ov = document.getElementById('pdfcrowd-loading-overlay');
+    const ov = document.getElementById('gptpdf-loading-overlay');
     if(ov) {
         ov.style.display = 'none';
     }
@@ -98,7 +98,7 @@ async function harvestVirtualizedTurns() {
     const origScroll = scroller.scrollTop;
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
     showLoadingOverlay();
-    const _ltext = document.querySelector('#pdfcrowd-loading-overlay .pdfcrowd-loading-text');
+    const _ltext = document.querySelector('#gptpdf-loading-overlay .gptpdf-loading-text');
     if(_ltext) _ltext.textContent = 'Loading conversation...';
     const _longWait = setTimeout(function() {
         if(_ltext) _ltext.textContent = 'Loading a long conversation, please wait...';
@@ -215,6 +215,6 @@ function restoreVirtualizedTurns(clone, cache) {
 
 // ─────────────────────────────────────────────────────────────────────
 // Rate Us state
-let pcrRateUsMode = false;
-let pcrDropdownOpen = false;
+let gptpdfRateUsMode = false;
+let gptpdfDropdownOpen = false;
 // ─────────────────────────────────────────────────────────────────────

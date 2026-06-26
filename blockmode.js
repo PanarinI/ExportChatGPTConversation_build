@@ -5,11 +5,11 @@
 // helpers + the request transport. init() calls setupBlockMode() after markup.
 
 function setupBlockMode() {
-    const blocksBtn = document.getElementById('pdfcrowd-blocks');
-    const bar       = document.getElementById('pdfcrowd-blocks-bar');
-    const countEl   = document.getElementById('pdfcrowd-blocks-count');
-    const exportBtn = document.getElementById('pdfcrowd-blocks-export');
-    const cancelBtn = document.getElementById('pdfcrowd-blocks-cancel');
+    const blocksBtn = document.getElementById('gptpdf-blocks');
+    const bar       = document.getElementById('gptpdf-blocks-bar');
+    const countEl   = document.getElementById('gptpdf-blocks-count');
+    const exportBtn = document.getElementById('gptpdf-blocks-export');
+    const cancelBtn = document.getElementById('gptpdf-blocks-cancel');
     if(!blocksBtn || !bar) return;
 
     let inBlockMode    = false;
@@ -52,15 +52,42 @@ function setupBlockMode() {
             }
             // AI turn: drill into .markdown container
             const markdown = turn.querySelector('.markdown');
-            if(!markdown) return;
-            Array.from(markdown.children).forEach(function(child) {
-                const tag = child.tagName;
-                if(!tag) return;
-                if(tag === 'HR' || tag === 'SCRIPT' || tag === 'STYLE') return;
-                // Skip our own injected UI elements
-                if(child.classList.contains('pdfcrowd-img-sel-row')) return;
-                if(child.hasAttribute('data-pdfcrowd-bid')) return;
-                result.push(child);
+            if(markdown) {
+                Array.from(markdown.children).forEach(function(child) {
+                    const tag = child.tagName;
+                    if(!tag) return;
+                    if(tag === 'HR' || tag === 'SCRIPT' || tag === 'STYLE') return;
+                    // Skip our own injected UI elements
+                    if(child.classList.contains('gptpdf-img-sel-row')) return;
+                    if(child.hasAttribute('data-gptpdf-bid')) return;
+                    result.push(child);
+                });
+            }
+            // Generated/uploaded images (e.g. DALL-E) often live OUTSIDE .markdown
+            // in their own container — make them selectable blocks too.
+            turn.querySelectorAll('img').forEach(function(img) {
+                const src = img.getAttribute('src') || '';
+                // Recognise a generated/uploaded image 3 ways, so detection is
+                // robust to the src changing. The export converts the live <img>
+                // to a base64 src, so a URL-only check would STOP matching it after
+                // the first export — and the checkbox would vanish (the reported bug).
+                const isGenImg = !!img.closest('[class*="imagegen"]');
+                const isProtectedUrl = src.indexOf('/backend-api/') !== -1 ||
+                                       src.indexOf('oaiusercontent') !== -1 ||
+                                       src.indexOf('images.openai') !== -1;
+                const isBigData = src.startsWith('data:image/') && src.length > 50000;
+                if(!isGenImg && !isProtectedUrl && !isBigData) return;
+                if(markdown && markdown.contains(img)) return;
+                let container = img;
+                while(container.parentElement && container.parentElement !== turn) {
+                    container = container.parentElement;
+                }
+                if(container !== turn && container.tagName &&
+                   !container.classList.contains('gptpdf-img-sel-row') &&
+                   !container.hasAttribute('data-gptpdf-bid') &&
+                   result.indexOf(container) === -1) {
+                    result.push(container);
+                }
             });
         });
         return result;
@@ -70,7 +97,7 @@ function setupBlockMode() {
 
     function attachBlock(el) {
         const bid = String(++bidCounter);
-        el.setAttribute('data-pdfcrowd-bid', bid);
+        el.setAttribute('data-gptpdf-bid', bid);
 
         // For table containers: outer div is 100% wide but the inner
         // tableWrapper is content-width. Apply visual highlight to inner only
@@ -81,7 +108,7 @@ function setupBlockMode() {
                 ':scope > .TyagGW_tableWrapper, :scope > [class*="tableWrapper"]');
             if(tableInner) visualEl = tableInner;
         }
-        visualEl.classList.add('pdfcrowd-block-sel');
+        visualEl.classList.add('gptpdf-block-sel');
 
         // Images inside <a> tags are citation favicons — not real content images
         const hasImages = !!(el.querySelector('canvas, video') ||
@@ -94,8 +121,8 @@ function setupBlockMode() {
             // For image blocks: insert a dedicated selection row BEFORE the
             // block as a sibling — completely outside the image buttons area.
             selRow = document.createElement('div');
-            selRow.className = 'pdfcrowd-img-sel-row';
-            selRow.setAttribute('data-pdfcrowd-sel-row', bid);
+            selRow.className = 'gptpdf-img-sel-row';
+            selRow.setAttribute('data-gptpdf-sel-row', bid);
             selRow.innerHTML =
                 '<span style="font-size:13px;color:#EA4C3A;font-weight:500;' +
                 'user-select:none;pointer-events:none">' +
@@ -112,7 +139,7 @@ function setupBlockMode() {
         let cb;
         if(!hasImages) {
             const cbWrap = document.createElement('div');
-            cbWrap.className = 'pdfcrowd-block-cb';
+            cbWrap.className = 'gptpdf-block-cb';
             cb = document.createElement('input');
             cb.type = 'checkbox';
             cbWrap.appendChild(cb);
@@ -124,8 +151,8 @@ function setupBlockMode() {
 
         function toggle(checked) {
             cb.checked = checked;
-            visualEl.classList.toggle('pdfcrowd-block-checked', checked);
-            if(selRow) selRow.classList.toggle('pdfcrowd-img-sel-checked', checked);
+            visualEl.classList.toggle('gptpdf-block-checked', checked);
+            if(selRow) selRow.classList.toggle('gptpdf-img-sel-checked', checked);
             if(checked) selectedBids.add(bid);
             else         selectedBids.delete(bid);
             // Snapshot the whole message NOW (while mounted) so the selection
@@ -161,9 +188,9 @@ function setupBlockMode() {
             const el      = info.el;
             const visualEl = info.visualEl;
             info.clickTarget.removeEventListener('click', info.clickHandler);
-            el.removeAttribute('data-pdfcrowd-bid');
-            visualEl.classList.remove('pdfcrowd-block-sel', 'pdfcrowd-block-checked');
-            const cbWrap = visualEl.querySelector('.pdfcrowd-block-cb');
+            el.removeAttribute('data-gptpdf-bid');
+            visualEl.classList.remove('gptpdf-block-sel', 'gptpdf-block-checked');
+            const cbWrap = visualEl.querySelector('.gptpdf-block-cb');
             if(cbWrap) cbWrap.remove();
             if(info.selRow && info.selRow.parentElement) {
                 info.selRow.remove();
@@ -183,17 +210,17 @@ function setupBlockMode() {
     function attachVisible() {
         if(!inBlockMode) return; // guard: don't attach if mode was cancelled
         findBlocks().forEach(function(el) {
-            if(!el.hasAttribute('data-pdfcrowd-bid')) attachBlock(el);
+            if(!el.hasAttribute('data-gptpdf-bid')) attachBlock(el);
         });
         updateBar();
     }
 
-    const mainBtn    = document.getElementById('pdfcrowd-convert-main');
-    const exitSelBtn = document.getElementById('pdfcrowd-exit-select');
+    const mainBtn    = document.getElementById('gptpdf-convert-main');
+    const exitSelBtn = document.getElementById('gptpdf-exit-select');
 
     // Update the Export button label in selection mode
     function updateMainBtnLabel() {
-        const btnLabel = mainBtn && mainBtn.querySelector('.pdfcrowd-lg');
+        const btnLabel = mainBtn && mainBtn.querySelector('.gptpdf-lg');
         if(!btnLabel) return;
         if(inBlockMode) {
             const n = selectedBids.size;
@@ -213,8 +240,8 @@ function setupBlockMode() {
     blocksBtn.addEventListener('click', async function() {
         if(inBlockMode) return;
 
-        document.getElementById('pdfcrowd-extra-btns')
-            .classList.add('pdfcrowd-hidden');
+        document.getElementById('gptpdf-extra-btns')
+            .classList.add('gptpdf-hidden');
 
         // 1. Harvest
         try { await harvestVirtualizedTurns(); } catch(e) {}
@@ -260,7 +287,7 @@ function setupBlockMode() {
             blockModeObserver = null;
         }
         detachAll();
-        bar.classList.remove('pdfcrowd-active');
+        bar.classList.remove('gptpdf-active');
         if(exitSelBtn) exitSelBtn.style.display = 'none';
         updateMainBtnLabel();
     }
@@ -291,56 +318,88 @@ function setupBlockMode() {
         // Snapshot which bids to keep BEFORE detaching
         const bidsToKeep = new Set(selectedBids);
 
-        // Bug #2: show loading overlay during PDF generation
-        const ovDiv = document.querySelector('#pdfcrowd-loading-overlay .pdfcrowd-loading-text');
-        if(ovDiv) ovDiv.textContent = isRuLang ? 'Создаём PDF, подождите…' : 'Creating PDF, please wait…';
-        showLoadingOverlay();
-        const _cancelBtn = document.getElementById('pdfcrowd-cancel-loading');
-        if(_cancelBtn) _cancelBtn.style.display = 'none'; // nothing to cancel during generation
+        // In-button spinner (unified with the full export — no separate modal)
+        startExportSpinner();
 
-        // Hide UI but keep data-pdfcrowd-bid attrs alive for the clone step
-        bar.classList.remove('pdfcrowd-active');
-        document.querySelectorAll('.pdfcrowd-block-cb').forEach(
+        // Hide UI but keep data-gptpdf-bid attrs alive for the clone step
+        bar.classList.remove('gptpdf-active');
+        document.querySelectorAll('.gptpdf-block-cb').forEach(
             function(w) { w.style.display = 'none'; });
-        document.querySelectorAll('.pdfcrowd-block-sel').forEach(function(el) {
-            el.classList.remove('pdfcrowd-block-sel', 'pdfcrowd-block-checked');
+        document.querySelectorAll('.gptpdf-block-sel').forEach(function(el) {
+            el.classList.remove('gptpdf-block-sel', 'gptpdf-block-checked');
         });
 
-        pdfcrowdShared.getOptions(function(options) {
+        gptpdfShared.getOptions(function(options) {
             let main = document.getElementsByTagName('main');
             main = main.length ? main[0] : document.querySelector('div.grow');
 
-            // Lock computed image sizes (same as main export path — see step 9 in cleanupForPdf)
+            // Convert images to base64 (canvas; with a background-fetch fallback for
+            // CORS-tainted / auth-protected images like DALL-E) so Gotenberg renders them
+            // — same as the full export path; otherwise they show only their alt text.
+            const imgPromises = [];
             main.querySelectorAll('img').forEach(function(img) {
-                if(img.closest('.no-scrollbar')) return;
-                const rect = img.getBoundingClientRect();
-                if(rect.width > 0 && rect.height > 0) {
-                    img.setAttribute('data-pdfcrowd-w', Math.round(rect.width));
-                    img.setAttribute('data-pdfcrowd-h', Math.round(rect.height));
+                if(!img.closest('.no-scrollbar')) {
+                    const rect = img.getBoundingClientRect();
+                    if(rect.width > 0 && rect.height > 0) {
+                        img.setAttribute('data-gptpdf-w', Math.round(rect.width));
+                        img.setAttribute('data-gptpdf-h', Math.round(rect.height));
+                    }
+                }
+                if(img.src && !img.src.startsWith('data:') && !img.src.startsWith('blob:')) {
+                    let needsBg = /oaiusercontent\.com|images\.openai\.com/.test(img.src);
+                    if(!needsBg && img.complete && img.naturalWidth > 0) {
+                        try {
+                            const cv = document.createElement('canvas');
+                            cv.width = img.naturalWidth;
+                            cv.height = img.naturalHeight;
+                            cv.getContext('2d').drawImage(img, 0, 0);
+                            img.setAttribute('src', cv.toDataURL('image/png'));
+                        } catch(e) { needsBg = true; }
+                    } else if(!needsBg && (!img.complete || img.naturalWidth === 0)) {
+                        needsBg = true;
+                    }
+                    if(needsBg) {
+                        const cap = img;
+                        const srcToFetch = cap.getAttribute('src') || cap.src;
+                        imgPromises.push(new Promise(function(resolve) {
+                            chrome.runtime.sendMessage(
+                                { action: 'fetchImageAsBase64', src: srcToFetch },
+                                function(response) {
+                                    if(response && response.data) cap.setAttribute('src', response.data);
+                                    resolve();
+                                });
+                        }));
+                    }
                 }
             });
 
+            Promise.all(imgPromises).then(function() {
+
             const main_clone = prepareContent(main);
             // turnCache is null — harvest already ran in enterBlockMode
-            // Restore every selected message from its snapshot (incl. ones that
-            // scrolled out and unmounted) so their selection marks are present.
+            // Restore selected messages from their snapshots — but ONLY ones that
+            // unmounted (empty in the clone). A mounted turn keeps its LIVE clone,
+            // which carries the base64-converted images; the snapshot was taken at
+            // click time with the old image src and would otherwise overwrite (and
+            // break) DALL-E / uploaded images. Unmounted turns still come from the
+            // snapshot, so cross-message selection keeps working.
             turnSnapshots.forEach(function(html, turnId) {
                 const t = main_clone.querySelector('[data-testid="' + turnId + '"]');
-                if(t) t.outerHTML = html;
+                if(t && t.innerHTML.trim().length === 0) t.outerHTML = html;
             });
 
             // Remove checkbox/selection UI that got cloned
-            main_clone.querySelectorAll('.pdfcrowd-block-cb').forEach(
+            main_clone.querySelectorAll('.gptpdf-block-cb').forEach(
                 function(w) { w.remove(); });
-            main_clone.querySelectorAll('.pdfcrowd-img-sel-row').forEach(
+            main_clone.querySelectorAll('.gptpdf-img-sel-row').forEach(
                 function(w) { w.remove(); });
 
             // Bug #1 fix: mark turns that have at least one selected block
             // BEFORE removing anything (so we can sweep correctly afterward)
             const turnsWithSelection = new Set();
-            main_clone.querySelectorAll('[data-pdfcrowd-bid]').forEach(
+            main_clone.querySelectorAll('[data-gptpdf-bid]').forEach(
                 function(el) {
-                    if(bidsToKeep.has(el.getAttribute('data-pdfcrowd-bid'))) {
+                    if(bidsToKeep.has(el.getAttribute('data-gptpdf-bid'))) {
                         let node = el.parentElement;
                         while(node) {
                             if(node.matches &&
@@ -354,11 +413,37 @@ function setupBlockMode() {
                 }
             );
 
-            // Remove non-selected blocks
-            main_clone.querySelectorAll('[data-pdfcrowd-bid]').forEach(
+            // Stripes fix: within each kept turn, drop everything in the message
+            // body that isn't a selected block (or part of one). A turn is kept
+            // whole if it has ANY selection, and the bid-sweep below only removes
+            // elements that carry a bid — so un-bidded leftovers (e.g. <hr>
+            // separators, or the frame of an unselected table/list whose own
+            // children were bidded) used to survive and render as a stack of
+            // empty horizontal lines where the unselected content used to be.
+            const keptBlocks = [];
+            main_clone.querySelectorAll('[data-gptpdf-bid]').forEach(
                 function(el) {
-                    const bid = el.getAttribute('data-pdfcrowd-bid');
-                    el.removeAttribute('data-pdfcrowd-bid');
+                    if(bidsToKeep.has(el.getAttribute('data-gptpdf-bid'))) {
+                        keptBlocks.push(el);
+                    }
+                }
+            );
+            turnsWithSelection.forEach(function(turn) {
+                const md = turn.querySelector('.markdown');
+                if(!md) return;
+                Array.from(md.children).forEach(function(child) {
+                    const kept = keptBlocks.some(function(k) {
+                        return k === child || child.contains(k) || k.contains(child);
+                    });
+                    if(!kept) child.remove();
+                });
+            });
+
+            // Remove non-selected blocks
+            main_clone.querySelectorAll('[data-gptpdf-bid]').forEach(
+                function(el) {
+                    const bid = el.getAttribute('data-gptpdf-bid');
+                    el.removeAttribute('data-gptpdf-bid');
                     if(!bidsToKeep.has(bid)) el.remove();
                 }
             );
@@ -420,6 +505,10 @@ function setupBlockMode() {
             const metaRow = buildNewspaperHeader(options);
             const direction  = document.documentElement.getAttribute('dir') || 'ltr';
 
+            // Extract DALL-E images (same step as the full-export cleanup) so the
+            // absolute image box becomes a clean, visible <img> block in the PDF.
+            extractDalleImages(main_clone);
+
             const body =
                 metaRow +
                 ('') +
@@ -432,11 +521,12 @@ function setupBlockMode() {
                 `<body class="${classes}" dir="${direction}">` +
                 `${body}</body>`;
 
-            pdfcrowdChatGPT.doRequest(
+            gptpdfChatGPT.doRequest(
                 htmlContent, data, addPdfExtension(title), function() {
-                    hideLoadingOverlay(); // Bug #2: hide when done
+                    stopExportSpinner();
                 }
             );
+            }); // close the image-conversion Promise.all().then
         });
     });
 }

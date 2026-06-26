@@ -1,8 +1,8 @@
 'use strict';
 
-const pdfcrowdShared = {};
+const gptpdfShared = {};
 
-pdfcrowdShared.defaultOptions = {
+gptpdfShared.defaultOptions = {
     margins: '',
     theme: '',
     zoom: 100,
@@ -29,31 +29,31 @@ pdfcrowdShared.defaultOptions = {
     single_page: false
 }
 
-pdfcrowdShared.version = 'v3.9';
+gptpdfShared.version = 'v3.9';
 
-pdfcrowdShared.rateUsLink = '#';
+gptpdfShared.rateUsLink = '#';
 // For 1–3 stars: redirect to private feedback form instead of public CWS review
-pdfcrowdShared.feedbackFormLink = 'https://forms.gle/tXvfsrDsYbMprwiR7';
-pdfcrowdShared.hasOptions = true;
+gptpdfShared.feedbackFormLink = 'https://forms.gle/tXvfsrDsYbMprwiR7';
+gptpdfShared.hasOptions = true;
 if (typeof GM_info !== 'undefined') {
-    pdfcrowdShared.rateUsLink = 'https://greasyfork.org/en/scripts/484463-save-chatgpt-as-pdf/feedback#post-discussion';
-    pdfcrowdShared.hasOptions = false;
+    gptpdfShared.rateUsLink = 'https://greasyfork.org/en/scripts/484463-save-chatgpt-as-pdf/feedback#post-discussion';
+    gptpdfShared.hasOptions = false;
 } else if (navigator.userAgent.includes('Edg/')) {
-    pdfcrowdShared.rateUsLink = 'https://microsoftedge.microsoft.com/addons/detail/save-chatgpt-as-pdf/fjlfcopnobjbkjiclieaopipchijelmj';
+    gptpdfShared.rateUsLink = 'https://microsoftedge.microsoft.com/addons/detail/save-chatgpt-as-pdf/fjlfcopnobjbkjiclieaopipchijelmj';
 } else if (navigator.userAgent.includes("Chrome")) {
-    pdfcrowdShared.rateUsLink = 'https://chromewebstore.google.com/detail/aighdeikamhkemngfanhnamdlpoceimo/reviews';
+    gptpdfShared.rateUsLink = 'https://chromewebstore.google.com/detail/aighdeikamhkemngfanhnamdlpoceimo/reviews';
 } else if (navigator.userAgent.includes("Firefox")) {
-    pdfcrowdShared.rateUsLink = 'https://addons.mozilla.org/en-US/firefox/addon/save-chatgpt-as-pdf/reviews/';
+    gptpdfShared.rateUsLink = 'https://addons.mozilla.org/en-US/firefox/addon/save-chatgpt-as-pdf/reviews/';
 }
 
-pdfcrowdShared.getOptions = function(callback) {
+gptpdfShared.getOptions = function(callback) {
     if(typeof chrome === 'undefined') {
-        callback(pdfcrowdShared.defaultOptions);
+        callback(gptpdfShared.defaultOptions);
     } else {
         try {
             chrome.storage.sync.get('options', function(obj) {
                 let rv = {};
-                Object.assign(rv, pdfcrowdShared.defaultOptions);
+                Object.assign(rv, gptpdfShared.defaultOptions);
                 if(obj.options) {
                     Object.assign(rv, obj.options);
                 }
@@ -61,7 +61,7 @@ pdfcrowdShared.getOptions = function(callback) {
             });
         } catch(error) {
             console.error(error);
-            callback(pdfcrowdShared.defaultOptions);
+            callback(gptpdfShared.defaultOptions);
         }
     }
 }

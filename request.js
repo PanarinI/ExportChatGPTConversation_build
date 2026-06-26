@@ -1,6 +1,6 @@
-pdfcrowdChatGPT.CHUNK_SIZE = 10 * 1024 * 1024;
+gptpdfChatGPT.CHUNK_SIZE = 10 * 1024 * 1024;
 
-pdfcrowdChatGPT.sendChunkedData = function(
+gptpdfChatGPT.sendChunkedData = function(
     htmlContent,
     params,
     fileName,
@@ -8,7 +8,7 @@ pdfcrowdChatGPT.sendChunkedData = function(
 ) {
     const sessionId = 'session_' + Date.now() + '_' + Math.random();
     const chunks = [];
-    const chunkSize = pdfcrowdChatGPT.CHUNK_SIZE;
+    const chunkSize = gptpdfChatGPT.CHUNK_SIZE;
 
     for (let i = 0; i < htmlContent.length; i += chunkSize) {
         chunks.push(htmlContent.substring(i, i + chunkSize));
@@ -20,7 +20,7 @@ pdfcrowdChatGPT.sendChunkedData = function(
     const sendNextChunk = function() {
         if (!chrome.runtime?.id) {
             fnCleanup();
-            pdfcrowdChatGPT.showError(
+            gptpdfChatGPT.showError(
                 null,
                 "Extension was updated. Please refresh the page."
             );
@@ -36,12 +36,12 @@ pdfcrowdChatGPT.sendChunkedData = function(
             }, response => {
                 fnCleanup();
                 if (response.status != 200) {
-                    pdfcrowdChatGPT.showError(
+                    gptpdfChatGPT.showError(
                         response.status,
                         response.message
                     );
                 } else {
-                    pdfcrowdChatGPT.saveBlob(response.url, fileName);
+                    gptpdfChatGPT.saveBlob(response.url, fileName);
                 }
             });
             return;
@@ -59,7 +59,7 @@ pdfcrowdChatGPT.sendChunkedData = function(
                 sendNextChunk();
             } else {
                 fnCleanup();
-                pdfcrowdChatGPT.showError(
+                gptpdfChatGPT.showError(
                     null,
                     "Failed to upload chunk " + currentChunk +
                     `<br><small>${response.error}</small>`
@@ -72,7 +72,7 @@ pdfcrowdChatGPT.sendChunkedData = function(
         sendNextChunk();
     } catch(error) {
         fnCleanup();
-        pdfcrowdChatGPT.showError(
+        gptpdfChatGPT.showError(
             null,
             "Failed to send data: " +
             `<br><small>${error}</small>`
@@ -80,13 +80,13 @@ pdfcrowdChatGPT.sendChunkedData = function(
     }
 };
 
-pdfcrowdChatGPT.doRequest = function(
+gptpdfChatGPT.doRequest = function(
     htmlContent,
     params,
     fileName,
     fnCleanup
 ) {
-    pdfcrowdChatGPT.sendChunkedData(
+    gptpdfChatGPT.sendChunkedData(
         htmlContent,
         params,
         fileName,
@@ -94,4 +94,4 @@ pdfcrowdChatGPT.doRequest = function(
     );
 };
 
-pdfcrowdChatGPT.init();
+gptpdfChatGPT.init();

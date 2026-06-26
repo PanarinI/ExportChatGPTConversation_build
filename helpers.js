@@ -29,7 +29,7 @@ function addImgBase64Src(element) {
 
         if (!src ||
             !src.startsWith('https://chatgpt.com/backend-api/') ||
-            img.hasAttribute('data-pdfcrowd-img-src')) {
+            img.hasAttribute('data-gptpdf-img-src')) {
             continue;
         }
 
@@ -39,7 +39,7 @@ function addImgBase64Src(element) {
         }
 
         const canvas = document.createElement('canvas');
-        canvas.classList.add('pdfcrowd-img-canvas');
+        canvas.classList.add('gptpdf-img-canvas');
         canvas.style.setProperty('display', 'none', 'important');
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
@@ -47,16 +47,16 @@ function addImgBase64Src(element) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
 
-        img.setAttribute('data-pdfcrowd-img-src', canvas.toDataURL());
+        img.setAttribute('data-gptpdf-img-src', canvas.toDataURL());
     }
 }
 
 function applyDataSrcBase(element) {
-    const images = element.querySelectorAll('img[data-pdfcrowd-img-src]');
+    const images = element.querySelectorAll('img[data-gptpdf-img-src]');
 
     for (let i = 0; i < images.length; i++) {
         const img = images[i];
-        const dataSrc = img.getAttribute('data-pdfcrowd-img-src');
+        const dataSrc = img.getAttribute('data-gptpdf-img-src');
 
         if (dataSrc) {
             img.setAttribute('src', dataSrc);
@@ -231,7 +231,7 @@ function persistCanvases(orig_element, new_element) {
             const new_canvas = new_canvases[i];
             const img = new_canvas.ownerDocument.createElement('img');
             img.src = orig_canvas.toDataURL();
-            img.classList.add('pdfcrowd-canvas-img');
+            img.classList.add('gptpdf-canvas-img');
             new_canvas.parentNode.replaceChild(img, new_canvas);
 
             styleCanvasArea(img, new_element);

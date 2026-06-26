@@ -197,7 +197,7 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
 
 chrome.runtime.onMessageExternal.addListener(function(message, sender, sendResponse) {
     if (message.action === 'openChatGPT') {
-        chrome.storage.local.set({ pdfcrowdHighlightBtn: true }, function() {
+        chrome.storage.local.set({ gptpdfHighlightBtn: true }, function() {
             chrome.tabs.query({ url: ['*://chatgpt.com/*', '*://chat.com/*'] }, function(tabs) {
                 if (!tabs || tabs.length === 0) {
                     chrome.tabs.create({ url: 'https://chatgpt.com' });
@@ -214,7 +214,7 @@ chrome.runtime.onMessageExternal.addListener(function(message, sender, sendRespo
 });
 
 chrome.action.onClicked.addListener(function() {
-    chrome.storage.local.set({ pdfcrowdHighlightBtn: true }, function() {
+    chrome.storage.local.set({ gptpdfHighlightBtn: true }, function() {
         chrome.tabs.query({ url: ['*://chatgpt.com/*', '*://chat.com/*'] }, function(tabs) {
             if (!tabs || tabs.length === 0) { chrome.tabs.create({ url: 'https://chatgpt.com' }); return; }
             const conv = tabs.find(t => t.url && /chatgpt\.com\/c\//.test(t.url));
@@ -226,7 +226,7 @@ chrome.action.onClicked.addListener(function() {
 
 chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
-        chrome.storage.local.set({ pdfcrowdHighlightBtn: true });
+        chrome.storage.local.set({ gptpdfHighlightBtn: true });
         chrome.tabs.create({ url: 'https://panarini.github.io/ExportChatGPTConversation/' });
     }
     if (details.reason === 'install') {

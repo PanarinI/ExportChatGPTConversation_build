@@ -2,7 +2,7 @@
 
 // PDF document rendering: clean the cloned conversation, code-block styling,
 // TOC / header / date / model / source builders, option->Gotenberg-params mapping.
-// Uses EXPORT_THEMES, helpers (isLight...), pdfcrowdShared. Params in, HTML/data out.
+// Uses EXPORT_THEMES, helpers (isLight...), gptpdfShared. Params in, HTML/data out.
 
 // Shared PDF custom CSS for BOTH the full export and the block-selection export
 // (single source of truth -> no dark-theme / stripe divergence between paths).
@@ -12,7 +12,7 @@ function buildExportCss(theme, isDarkMode) {
                         // ── Hide sr-only elements (accessibility labels) ──
                         '.sr-only{display:none !important}',
                         // ── "AI answers only": hide user prompts (no_questions) ──
-                        '.pdfcrowd-no-questions [data-message-author-role="user"]{display:none !important}',
+                        '.gptpdf-no-questions [data-message-author-role="user"]{display:none !important}',
                         // ── Base font ────────────────────────────────────
                         'body,p,li,td,th,blockquote,div{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif !important}',
                         'h1,h2,h3,h4,h5,h6{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif !important}',
@@ -35,7 +35,7 @@ function buildExportCss(theme, isDarkMode) {
                         'th{background-color:' + theme.tableHeader + ' !important;font-weight:600 !important;border:none !important;border-bottom:2px solid #d1d5db !important;border-right:1px solid #e5e7eb !important;padding:8px 12px !important}',
                         'blockquote{border-left:4px solid ' + theme.blockquote + ' !important;margin:8px 0 !important;padding:4px 0 4px 16px !important;background:none !important;font-style:normal !important}',
                         // ── Remove labels ─────────────────────────────────
-                        '.pdfcrowd-user-label,.pdfcrowd-ai-label{display:none !important}',
+                        '.gptpdf-user-label,.gptpdf-ai-label{display:none !important}',
                         '[data-message-author-role]::before,[data-message-author-role]::after{content:"" !important;display:none !important}',
                         '.chat-gpt-custom [data-message-author-role]::before,.chat-gpt-custom [data-message-author-role]::after{content:"" !important;display:none !important}',
                         // ── Image gallery — 3 per row, rounded, no borders ─
@@ -65,7 +65,7 @@ function buildExportCss(theme, isDarkMode) {
                         'blockquote{border-left-color:' + theme.accent + ' !important;color:#c8c8c8 !important}',
                         '.main-title{color:#ffffff !important}',
                         '.bg-token-bg-elevated-secondary{background-color:#1e1e1e !important;color:#e8e8e8 !important}',
-                        '[data-pdfcrowd-code-block]{background:#1e1e1e !important}'
+                        '[data-gptpdf-code-block]{background:#1e1e1e !important}'
                     ] : []).join(' ');
 }
 
@@ -123,7 +123,7 @@ function applyDarkCodeBlockStyles(main_clone, isDarkMode, theme) {
 
     function createCodeBlock(doc, language, codeText, codeHtml) {
         const block = doc.createElement('div');
-        block.setAttribute('data-pdfcrowd-code-block', 'true');
+        block.setAttribute('data-gptpdf-code-block', 'true');
         block.style.cssText = [
             `background:${CODE_DARK_BG} !important`,
             `background-color:${CODE_DARK_BG} !important`,
@@ -233,7 +233,7 @@ function applyDarkCodeBlockStyles(main_clone, isDarkMode, theme) {
 
         viewers.forEach(function(viewer) {
             if(!viewer.isConnected ||
-               viewer.closest('[data-pdfcrowd-code-block]')) {
+               viewer.closest('[data-gptpdf-code-block]')) {
                 return;
             }
 
@@ -277,7 +277,7 @@ function applyDarkCodeBlockStyles(main_clone, isDarkMode, theme) {
         'pre, code[class*="language-"], code.hljs, .hljs'
     )).forEach(function(codeElement) {
         if(!codeElement.isConnected ||
-           codeElement.closest('[data-pdfcrowd-code-block]')) {
+           codeElement.closest('[data-gptpdf-code-block]')) {
             return;
         }
 
@@ -311,7 +311,7 @@ function applyDarkCodeBlockStyles(main_clone, isDarkMode, theme) {
     });
 
     main_clone.querySelectorAll('code').forEach(function(code) {
-        if(code.closest('[data-pdfcrowd-code-block]')) {
+        if(code.closest('[data-gptpdf-code-block]')) {
             return;
         }
         setBg(code, CODE_DARK_BG);
@@ -386,7 +386,7 @@ function applyQuestionStyles(main_clone, options) {
     // In blocks mode, only 1-2 blocks may remain so root-finding can
     // walk too far up and erase content.
     const theme = EXPORT_THEMES[options.q_color] || EXPORT_THEMES['default'];
-    if(!main_clone._pdfcrowdBlocksMode) {
+    if(!main_clone._gptpdfBlocksMode) {
         applyDarkCodeBlockStyles(main_clone, isDark, theme);
     }
 }
@@ -394,9 +394,9 @@ function applyQuestionStyles(main_clone, options) {
 function getTriggerButton(event) {
     let trigger = event.target;
     if(trigger.id) {
-        localStorage.setItem('pdfcrowd-btn', trigger.id);
+        localStorage.setItem('gptpdf-btn', trigger.id);
     } else {
-        const lastBtn = localStorage.getItem('pdfcrowd-btn');
+        const lastBtn = localStorage.getItem('gptpdf-btn');
         if(lastBtn) {
             const btnElement = document.getElementById(lastBtn);
             if(btnElement) {
@@ -461,23 +461,23 @@ function applyMarginSettings(data, options) {
 }
 
 function buildCssClasses(options, singlePagePrint) {
-    let classes = singlePagePrint ? 'pdfcrowd-single-page ' : '';
+    let classes = singlePagePrint ? 'gptpdf-single-page ' : '';
 
     if(options.theme === 'dark' ||
        (options.theme === '' && !isLight(document.body))) {
-        classes += 'pdfcrowd-dark ';
+        classes += 'gptpdf-dark ';
     }
 
     if(options.no_questions) {
-        classes += 'pdfcrowd-no-questions ';
+        classes += 'gptpdf-no-questions ';
     }
 
     if(options.no_icons) {
-        classes += 'pdfcrowd-no-icons ';
+        classes += 'gptpdf-no-icons ';
     }
 
     if(options.page_break === 'after' && !singlePagePrint) {
-        classes += 'pdfcrowd-break-after ';
+        classes += 'gptpdf-break-after ';
     }
 
     // q_align and q_rounded removed — prompt is always right-aligned
@@ -485,7 +485,7 @@ function buildCssClasses(options, singlePagePrint) {
 
     if(options.toc && !options.no_questions) {
         if(options.toc === 'numbering') {
-            classes += 'pdfcrowd-use-toc-numbering ';
+            classes += 'gptpdf-use-toc-numbering ';
         }
     }
 
@@ -720,30 +720,37 @@ function cleanupForPdf(clone) {
     );
 
     // ── 8. Our block-selection UI ─────────────────────────────────────
-    clone.querySelectorAll('.pdfcrowd-block-cb, .pdfcrowd-img-sel-row')
+    clone.querySelectorAll('.gptpdf-block-cb, .gptpdf-img-sel-row')
         .forEach(function(el) { el.remove(); });
-    clone.querySelectorAll('[data-pdfcrowd-bid]').forEach(function(el) {
-        el.classList.remove('pdfcrowd-block-sel', 'pdfcrowd-block-checked');
-        el.removeAttribute('data-pdfcrowd-bid');
+    clone.querySelectorAll('[data-gptpdf-bid]').forEach(function(el) {
+        el.classList.remove('gptpdf-block-sel', 'gptpdf-block-checked');
+        el.removeAttribute('data-gptpdf-bid');
     });
 
     // ── 9. Lock image dimensions from live DOM snapshot ───────────────
-    clone.querySelectorAll('img[data-pdfcrowd-w]').forEach(function(img) {
+    clone.querySelectorAll('img[data-gptpdf-w]').forEach(function(img) {
         if(img.closest('.no-scrollbar')) return;
-        const w = img.getAttribute('data-pdfcrowd-w');
-        const h = img.getAttribute('data-pdfcrowd-h');
+        const w = img.getAttribute('data-gptpdf-w');
+        const h = img.getAttribute('data-gptpdf-h');
         if(w && h) {
             img.style.width = w + 'px';
             img.style.height = h + 'px';
             img.style.maxWidth = w + 'px';
         }
-        img.removeAttribute('data-pdfcrowd-w');
-        img.removeAttribute('data-pdfcrowd-h');
+        img.removeAttribute('data-gptpdf-w');
+        img.removeAttribute('data-gptpdf-h');
     });
 
     // ── 10. Extract DALL-E images from complex ChatGPT containers ────
-    // Replace the entire ChatGPT image wrapper with a plain <img> block.
-    clone.querySelectorAll('img').forEach(function(img) {
+    extractDalleImages(clone);
+}
+
+// Replace each complex ChatGPT DALL-E image wrapper (an absolutely-positioned
+// image inside an aspect-ratio box) with a plain, normal-flow <img> block so it
+// renders in the PDF. Shared by cleanupForPdf (full export) AND the block-mode
+// export — both need it, else the image collapses to an empty/clipped box.
+function extractDalleImages(root) {
+    root.querySelectorAll('img').forEach(function(img) {
         const src = img.getAttribute('src') || '';
         if (!src.startsWith('data:image/png') || src.length < 500000) return;
         if (img.closest('.no-scrollbar')) return;
@@ -836,7 +843,7 @@ function buildDatetimeHtml(options) {
               options.datetime_format === 'date_only'
               ? now.toLocaleDateString()
               : now.toLocaleString();
-        return `<div class="pdfcrowd-datetime">${datetimeStr}</div>`;
+        return `<div class="gptpdf-datetime">${datetimeStr}</div>`;
     }
     return '';
 }
@@ -872,7 +879,7 @@ function buildModelNameHtml(options) {
         const model_el = document.querySelector(
             '#page-header .text-lg');
         if(model_el) {
-            return '<div class="pdfcrowd-model-name">' +
+            return '<div class="gptpdf-model-name">' +
                 extractModelName(model_el) +
                 '</div>';
         }
@@ -883,7 +890,7 @@ function buildModelNameHtml(options) {
 function buildSourceLinkHtml(options) {
     if(options.source_link) {
         const source = window.location.href;
-        return `<div class="pdfcrowd-source-link">Source: <a href="${source}">${source}</a></div>`;
+        return `<div class="gptpdf-source-link">Source: <a href="${source}">${source}</a></div>`;
     }
     return '';
 }

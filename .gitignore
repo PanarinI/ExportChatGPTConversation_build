@@ -4,3 +4,10 @@
 .\#*
 *.zip
 userscript/save-chatgpt-as-pdf.all.user.js
+
+# macOS / IDE junk
+.DS_Store
+.idea/
+
+# stray build artifacts (e.g. extensionless temp zips from the makefile)
+zi6lL3TT
