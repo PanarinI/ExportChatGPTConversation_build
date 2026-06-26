@@ -12,7 +12,7 @@ chrome.runtime.onMessage.addListener(function(message) {
     }
 });
 
-const GOTENBERG_URL = 'http://89.167.13.19:3000/forms/chromium/convert/html';
+const GOTENBERG_URL = 'https://export-gpt.duckdns.org/forms/chromium/convert/html';
 const sessions = {};
 
 function blobToDataURL(blob, callback) {

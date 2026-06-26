@@ -52,7 +52,7 @@
     ],
     "host_permissions": [
         "https://www.google-analytics.com/",
-        "http://89.167.13.19/*",
+        "https://export-gpt.duckdns.org/*",
         "*://*.oaiusercontent.com/*",
         "*://files.oaiusercontent.com/*",
         "*://images.openai.com/*"
