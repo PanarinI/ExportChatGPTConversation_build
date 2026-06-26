@@ -26,12 +26,21 @@ pdfcrowdChatGPT.init = function() {
 
     const pdfcrowdBlockHtml = EXPORT_BUTTON_HTML;
 
+    // Re-entrancy guard: ignore clicks while an export is already running
+    // (prevents the double-click -> two half-finished files bug).
+    let exportInProgress = false;
+
     async function convert(event) {
         // Rate Us intercept: open dropdown instead of exporting
         if(pcrRateUsMode) {
             if(!pcrDropdownOpen) pcrOpenDropdown();
             return;
         }
+
+        if(exportInProgress) {
+            return;
+        }
+        exportInProgress = true;
 
         document.getElementById('pdfcrowd-extra-btns').classList.add(
             'pdfcrowd-hidden');
@@ -48,6 +57,7 @@ pdfcrowdChatGPT.init = function() {
         }
 
         function restoreButtonState() {
+            exportInProgress = false;
             btnConvert.disabled = false;
             spinner.classList.add('pdfcrowd-hidden');
             for(let i = 0; i < btnElems.length; i++) {
