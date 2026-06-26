@@ -71,6 +71,9 @@ function showLoadingOverlay() {
     }
     ov.classList.toggle('pdfcrowd-dark', !isLight(document.body));
     ov.style.display = 'flex';
+    // Cancel belongs to the harvest phase; ensure visible (generation hides it).
+    const _cancel = document.getElementById('pdfcrowd-cancel-loading');
+    if(_cancel) _cancel.style.display = '';
 }
 
 function hideLoadingOverlay() {
@@ -95,6 +98,11 @@ async function harvestVirtualizedTurns() {
     const origScroll = scroller.scrollTop;
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
     showLoadingOverlay();
+    const _ltext = document.querySelector('#pdfcrowd-loading-overlay .pdfcrowd-loading-text');
+    if(_ltext) _ltext.textContent = 'Loading conversation...';
+    const _longWait = setTimeout(function() {
+        if(_ltext) _ltext.textContent = 'Loading a long conversation, please wait...';
+    }, 7000);
     try {
         scroller.scrollTop = 0;
         await wait(450);
@@ -165,6 +173,7 @@ async function harvestVirtualizedTurns() {
         }
         await restoreScroll(scroller, origScroll);
     } finally {
+        clearTimeout(_longWait);
         hideLoadingOverlay();
     }
     return cache;

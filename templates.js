@@ -580,29 +580,42 @@ html.dark #pcr-rateus-dropdown .pcr-dropdown-label {
      z-index: 10001;
      display: none;
      position: fixed;
-     top: 0;
-     left: 0;
-     width: 100%;
-     height: 100%;
-     background: rgba(255, 255, 255, 0.96);
-     color: #222;
+     inset: 0;
+     background: rgba(0, 0, 0, 0.45);
      justify-content: center;
      align-items: center;
+ }
+ .pdfcrowd-loading-overlay.pdfcrowd-dark { background: rgba(0, 0, 0, 0.62); }
+ .pdfcrowd-loading-card {
+     display: flex;
      flex-direction: column;
-     gap: 1rem;
-     font-size: 1rem;
+     align-items: center;
+     gap: 14px;
+     min-width: 220px;
+     padding: 28px 34px;
+     background: #fff;
+     color: #222;
+     border-radius: 14px;
+     box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22);
+     font-size: 15px;
  }
-
- .pdfcrowd-loading-overlay.pdfcrowd-dark {
-     background: rgba(33, 33, 33, 0.96);
-     color: #eee;
+ .pdfcrowd-loading-overlay.pdfcrowd-dark .pdfcrowd-loading-card { background: #2a2a2a; color: #ededed; }
+ .pdfcrowd-loading-text { font-weight: 500; }
+ .pdfcrowd-loading-card .pcr-dots-loader span { width: 10px; height: 10px; }
+ .pdfcrowd-loading-cancel {
+     margin-top: 4px;
+     padding: 6px 18px;
+     border: 1px solid rgba(0, 0, 0, 0.15);
+     border-radius: 8px;
+     background: transparent;
+     color: inherit;
+     font-size: 13px;
+     cursor: pointer;
  }
-
- .pdfcrowd-loading-overlay .pdfcrowd-spinner {
-     width: 2.5rem;
-     height: 2.5rem;
-     border-width: 5px;
- }
+ .pdfcrowd-loading-cancel:hover { background: rgba(0, 0, 0, 0.06); }
+ .pdfcrowd-loading-overlay.pdfcrowd-dark .pdfcrowd-loading-cancel { border-color: rgba(255, 255, 255, 0.2); }
+ .pdfcrowd-loading-overlay.pdfcrowd-dark .pdfcrowd-loading-cancel:hover { background: rgba(255, 255, 255, 0.1); }
+ .pdfcrowd-loading-overlay .pdfcrowd-spinner { width: 2.4rem; height: 2.4rem; border-width: 4px; }
 
  .pdfcrowd-overlay {
      z-index: 10000;
@@ -1199,13 +1212,11 @@ const EXPORT_BUTTON_HTML = `
     </div>
 
     <div class="pdfcrowd-loading-overlay" id="pdfcrowd-loading-overlay">
-        <div class="pdfcrowd-spinner"></div>
-        <div>Loading conversation...</div>
-        <button id="pdfcrowd-cancel-loading"
-                class="btn btn-secondary"
-                style="margin-top: .5em;">
-            Cancel
-        </button>
+        <div class="pdfcrowd-loading-card">
+            <div class="pcr-dots-loader"><span></span><span></span><span></span></div>
+            <div class="pdfcrowd-loading-text">Loading conversation...</div>
+            <button id="pdfcrowd-cancel-loading" class="pdfcrowd-loading-cancel">Cancel</button>
+        </div>
     </div>
 
     <div class="pdfcrowd-overlay" id="pdfcrowd-title-overlay">

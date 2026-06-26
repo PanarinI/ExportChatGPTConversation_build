@@ -292,9 +292,11 @@ function setupBlockMode() {
         const bidsToKeep = new Set(selectedBids);
 
         // Bug #2: show loading overlay during PDF generation
-        const ovDiv = document.querySelector('#pdfcrowd-loading-overlay > div:not(.pdfcrowd-spinner)');
+        const ovDiv = document.querySelector('#pdfcrowd-loading-overlay .pdfcrowd-loading-text');
         if(ovDiv) ovDiv.textContent = isRuLang ? 'Создаём PDF, подождите…' : 'Creating PDF, please wait…';
         showLoadingOverlay();
+        const _cancelBtn = document.getElementById('pdfcrowd-cancel-loading');
+        if(_cancelBtn) _cancelBtn.style.display = 'none'; // nothing to cancel during generation
 
         // Hide UI but keep data-pdfcrowd-bid attrs alive for the clone step
         bar.classList.remove('pdfcrowd-active');
