@@ -37,6 +37,7 @@
                 "helpers.js",
                 "theme.js",
                 "render.js",
+                "capture.js",
                 "settings.js",
                 "common.js",
                 "request.js"
