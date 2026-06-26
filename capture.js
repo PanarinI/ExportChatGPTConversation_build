@@ -43,9 +43,16 @@ function captureRenderedTurns(cache) {
             continue;
         }
         const id = t.getAttribute('data-testid');
+        // ChatGPT fills citation hrefs asynchronously: an early snapshot can have
+        // hrefless (blue, non-clickable) links. Track resolved-link counts so we
+        // keep the richest snapshot and know which turns still need their links.
+        const hrefs = t.querySelectorAll('a[href]').length;
+        const unresolved = t.querySelectorAll('a.decorated-link:not([href])').length;
         const prev = cache.get(id);
-        if(!prev || html.length > prev.length) {
-            cache.set(id, t.outerHTML);
+        if(!prev || hrefs > prev.hrefs ||
+           (hrefs === prev.hrefs && html.length > prev.len)) {
+            cache.set(id, { html: t.outerHTML, hrefs: hrefs,
+                            len: html.length, unresolved: unresolved });
         }
     }
 }
@@ -131,19 +138,24 @@ async function harvestVirtualizedTurns() {
         // render in time. Every turn has a placeholder node, so detect any that
         // were never captured, scroll each into view, and wait for IT to render.
         for(let attempt = 0; attempt < 3 && !harvestCancelled; attempt++) {
-            const missing = Array.from(document.querySelectorAll(
+            const pending = Array.from(document.querySelectorAll(
                 '[data-testid^="conversation-turn"]'
-            )).filter(t => !cache.has(t.getAttribute('data-testid')));
-            if(missing.length === 0) {
+            )).filter(t => {
+                const c = cache.get(t.getAttribute('data-testid'));
+                return !c || c.unresolved > 0;   // uncaptured, or links not resolved
+            });
+            if(pending.length === 0) {
                 break;
             }
-            for(let m = 0; m < missing.length; m++) {
+            for(let m = 0; m < pending.length; m++) {
                 if(harvestCancelled) {
                     break;
                 }
-                missing[m].scrollIntoView();
-                for(let w = 0; w < 24; w++) {       // wait up to ~1.2s for THIS turn
-                    if(missing[m].innerHTML.length > 0) {
+                pending[m].scrollIntoView();
+                for(let w = 0; w < 30; w++) {       // up to ~1.5s for render + hrefs
+                    const el = pending[m];
+                    if(el.innerHTML.length > 0 && el.querySelectorAll(
+                        'a.decorated-link:not([href])').length === 0) {
                         break;
                     }
                     await wait(50);
@@ -178,13 +190,16 @@ function restoreVirtualizedTurns(clone, cache) {
     const turns = clone.querySelectorAll(
         '[data-testid^="conversation-turn"]');
     turns.forEach(t => {
-        if(t.innerHTML.length > 0) {
-            return;
-        }
         const id = t.getAttribute('data-testid');
         const cached = cache.get(id);
-        if(cached) {
-            t.outerHTML = cached;
+        if(!cached) {
+            return;
+        }
+        // Replace empty turns, OR turns whose live links are poorer than our
+        // captured snapshot (fixes blue/non-clickable inline links).
+        const liveHrefs = t.querySelectorAll('a[href]').length;
+        if(t.innerHTML.length === 0 || cached.hrefs > liveHrefs) {
+            t.outerHTML = cached.html;
         }
     });
 }
