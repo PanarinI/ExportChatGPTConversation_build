@@ -36,6 +36,8 @@
                 "templates.js",
                 "helpers.js",
                 "theme.js",
+                "render.js",
+                "settings.js",
                 "common.js",
                 "request.js"
             ]
