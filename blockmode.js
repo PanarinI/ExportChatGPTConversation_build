@@ -97,12 +97,12 @@ function setupBlockMode() {
             selRow.className = 'pdfcrowd-img-sel-row';
             selRow.setAttribute('data-pdfcrowd-sel-row', bid);
             selRow.innerHTML =
-                '<input type="checkbox" style="width:16px;height:16px;' +
-                'accent-color:#EA4C3A;cursor:pointer;flex-shrink:0">' +
                 '<span style="font-size:13px;color:#EA4C3A;font-weight:500;' +
                 'user-select:none;pointer-events:none">' +
                 (isRuLang ? 'Выбрать изображение' : 'Select image block') +
-                '</span>';
+                '</span>' +
+                '<input type="checkbox" style="width:16px;height:16px;' +
+                'accent-color:#EA4C3A;cursor:pointer;flex-shrink:0;margin-left:auto">';
             if(el.parentElement) {
                 el.parentElement.insertBefore(selRow, el);
             }
