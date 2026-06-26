@@ -39,6 +39,7 @@
                 "render.js",
                 "capture.js",
                 "settings.js",
+                "blockmode.js",
                 "common.js",
                 "request.js"
             ]
