@@ -31,9 +31,16 @@ Content scripts (на chatgpt.com) + service worker, порядок загруз
 - Нейминг: единый префикс `gptpdf` (namespace/функции/CSS-классы/id/data-атрибуты). Легаси `pdfcrowd`/`pcr` удалены. Namespace: `gptpdfChatGPT`, общий — `gptpdfShared`.
 - Flaky-export: проверять 5–10× (экспорт reference-чата, считать страницы + кликабельные ссылки).
 
-## Gotenberg
+## Бэкенд (Gotenberg за Caddy)
 
-VPS: `http://89.167.13.19:3000` (hardcoded в `background.js` — Stage 5: HTTPS + домен + конфиг).
+Расширение шлёт HTML на `https://export-gpt.duckdns.org/forms/chromium/convert/html`
+(зашито в `background.js`; разрешение — в `manifest.json` → host_permissions).
+
+Серверная цепочка (VPS Hetzner, Ubuntu, `89.167.13.19`):
+клиент → `https`(443) → Hetzner-фаервол (open 22/80/443) → **Caddy** (TLS-терминация, авто-сертификат
+Let's Encrypt) → `reverse_proxy localhost:3000` → **Gotenberg** (Docker) → PDF обратно.
+- Caddyfile: `/etc/caddy/Caddyfile`; служба `caddy` (systemd). Вход на VPS: `ssh root@89.167.13.19` (по ключу).
+- Внешний `3000` закрыт; Caddy↔Gotenberg по localhost. HTTPS сделан; остаток Stage 5 — timeout/ресурсы Gotenberg (503/500).
 
 ## Что НЕ трогать без обсуждения
 

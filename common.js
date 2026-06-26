@@ -61,12 +61,6 @@ gptpdfChatGPT.init = function() {
         return;
     }
 
-    // remote images live at least 1 minute
-    const minImageDuration = 60000;
-
-    const buttonIconFill = (typeof GM_xmlhttpRequest !== 'undefined')
-        ? '#A72C16' : '#EA4C3A';
-
     const blockStyle = document.createElement('style');
     blockStyle.textContent = UI_CSS;
     document.head.appendChild(blockStyle);
