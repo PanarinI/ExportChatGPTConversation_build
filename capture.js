@@ -127,6 +127,30 @@ async function harvestVirtualizedTurns() {
             await wait(220);
             captureRenderedTurns(cache);
         }
+        // Completeness pass: the fixed-delay scroll can miss turns that didn't
+        // render in time. Every turn has a placeholder node, so detect any that
+        // were never captured, scroll each into view, and wait for IT to render.
+        for(let attempt = 0; attempt < 3 && !harvestCancelled; attempt++) {
+            const missing = Array.from(document.querySelectorAll(
+                '[data-testid^="conversation-turn"]'
+            )).filter(t => !cache.has(t.getAttribute('data-testid')));
+            if(missing.length === 0) {
+                break;
+            }
+            for(let m = 0; m < missing.length; m++) {
+                if(harvestCancelled) {
+                    break;
+                }
+                missing[m].scrollIntoView();
+                for(let w = 0; w < 24; w++) {       // wait up to ~1.2s for THIS turn
+                    if(missing[m].innerHTML.length > 0) {
+                        break;
+                    }
+                    await wait(50);
+                }
+                captureRenderedTurns(cache);
+            }
+        }
         await restoreScroll(scroller, origScroll);
     } finally {
         hideLoadingOverlay();
