@@ -17,6 +17,7 @@ function setupBlockMode() {
     let debounceTimer  = null; // lifted here so exitBlockMode can clear it
     const blockMap     = new Map();
     const selectedBids = new Set();
+    const turnSnapshots = new Map(); // data-testid -> message outerHTML; keeps selection alive across unmount
 
     // ── helpers ────────────────────────────────────────────────────────────
 
@@ -127,6 +128,10 @@ function setupBlockMode() {
             if(selRow) selRow.classList.toggle('pdfcrowd-img-sel-checked', checked);
             if(checked) selectedBids.add(bid);
             else         selectedBids.delete(bid);
+            // Snapshot the whole message NOW (while mounted) so the selection
+            // survives ChatGPT unmounting it on scroll; restored at export time.
+            const _turn = el.closest('[data-testid^="conversation-turn"]');
+            if(_turn) turnSnapshots.set(_turn.getAttribute('data-testid'), _turn.outerHTML);
             updateBar();
         }
 
@@ -165,6 +170,7 @@ function setupBlockMode() {
             }
         });
         blockMap.clear();
+        turnSnapshots.clear();
         selectedBids.clear();
         bidCounter = 0;
     }
@@ -217,6 +223,7 @@ function setupBlockMode() {
         inBlockMode = true;
         bidCounter = 0;
         blockMap.clear();
+        turnSnapshots.clear();
         selectedBids.clear();
 
         // Show ✕ exit button
@@ -313,7 +320,12 @@ function setupBlockMode() {
 
             const main_clone = prepareContent(main);
             // turnCache is null — harvest already ran in enterBlockMode
-            restoreVirtualizedTurns(main_clone, null);
+            // Restore every selected message from its snapshot (incl. ones that
+            // scrolled out and unmounted) so their selection marks are present.
+            turnSnapshots.forEach(function(html, turnId) {
+                const t = main_clone.querySelector('[data-testid="' + turnId + '"]');
+                if(t) t.outerHTML = html;
+            });
 
             // Remove checkbox/selection UI that got cloned
             main_clone.querySelectorAll('.pdfcrowd-block-cb').forEach(
