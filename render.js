@@ -11,6 +11,8 @@ function buildExportCss(theme, isDarkMode) {
     return [
                         // ── Hide sr-only elements (accessibility labels) ──
                         '.sr-only{display:none !important}',
+                        // ── "AI answers only": hide user prompts (no_questions) ──
+                        '.pdfcrowd-no-questions [data-message-author-role="user"]{display:none !important}',
                         // ── Base font ────────────────────────────────────
                         'body,p,li,td,th,blockquote,div{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif !important}',
                         'h1,h2,h3,h4,h5,h6{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif !important}',
