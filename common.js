@@ -218,63 +218,7 @@ pdfcrowdChatGPT.init = function() {
                     rendering_mode: 'viewport',
                     smart_scaling_mode: 'viewport-fit',
                     viewport_width: 1300,
-                    custom_css: [
-                        // ── Hide sr-only elements (accessibility labels) ──
-                        '.sr-only{display:none !important}',
-                        // ── Base font ────────────────────────────────────
-                        'body,p,li,td,th,blockquote,div{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif !important}',
-                        'h1,h2,h3,h4,h5,h6{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif !important}',
-                        // ── Tables ──────────────────────────────────────
-                        'table{border-collapse:collapse !important;width:100% !important;border:1px solid #e5e7eb !important}',
-                        'td{border:none !important;border-bottom:1px solid #e5e7eb !important;border-right:1px solid #e5e7eb !important;padding:8px 12px !important}',
-                        'td:last-child{border-right:none !important}',
-                        'th:last-child{border-right:none !important}',
-                        '[class*="tableContainer"],[class*="tableWrapper"]{background:transparent !important}',
-                        // ── Code blocks ──────────────────────────────────
-                        '.bg-token-bg-elevated-secondary{background-color:' + theme.codeBg + ' !important;color:#111 !important}',
-                        'pre .sticky svg{display:none !important}',
-                        // ── KaTeX ────────────────────────────────────────
-                        '.katex-mathml{display:none !important}',
-                        '.katex-display{display:block !important;text-align:center !important;margin:1em 0 !important}',
-                        '.katex-html .mathnormal,.katex-html .mathit{font-style:italic !important;font-family:"Times New Roman",Georgia,serif !important}',
-                        // ── User prompt bubble ────────────────────────────
-                        '[data-message-author-role="user"]{background:transparent !important;display:flex !important;justify-content:flex-end !important;padding:0 !important;margin:4px 0 12px !important}',
-                        '[data-message-author-role="user"]>div{background:' + (isDarkMode ? theme.darkPromptBg : theme.promptBg) + ' !important;color:' + (isDarkMode ? '#e8e8e8' : theme.promptText) + ' !important;border-radius:16px !important;padding:8px 14px !important;max-width:70% !important;min-width:0 !important}',
-                        'th{background-color:' + theme.tableHeader + ' !important;font-weight:600 !important;border:none !important;border-bottom:2px solid #d1d5db !important;border-right:1px solid #e5e7eb !important;padding:8px 12px !important}',
-                        'blockquote{border-left:4px solid ' + theme.blockquote + ' !important;margin:8px 0 !important;padding:4px 0 4px 16px !important;background:none !important;font-style:normal !important}',
-                        // ── Remove labels ─────────────────────────────────
-                        '.pdfcrowd-user-label,.pdfcrowd-ai-label{display:none !important}',
-                        '[data-message-author-role]::before,[data-message-author-role]::after{content:"" !important;display:none !important}',
-                        '.chat-gpt-custom [data-message-author-role]::before,.chat-gpt-custom [data-message-author-role]::after{content:"" !important;display:none !important}',
-                        // ── Image gallery — 3 per row, rounded, no borders ─
-                        '.no-scrollbar{display:flex !important;flex-direction:row !important;flex-wrap:nowrap !important;gap:8px !important;overflow:visible !important;margin-bottom:12px !important}',
-                        '.no-scrollbar>div{width:200px !important;height:140px !important;min-width:0 !important;flex-shrink:0 !important;border:none !important;border-radius:10px !important;overflow:hidden !important;aspect-ratio:unset !important}',
-                        '.no-scrollbar>div>div,.no-scrollbar button{width:100% !important;height:100% !important;display:block !important}',
-                        '.no-scrollbar img{width:100% !important;height:100% !important;object-fit:cover !important;border-radius:10px !important;border:none !important;display:block !important}',
-                        // ── DALL-E image containers — remove aspect-ratio, ensure visible ──
-                        '[style*="aspect-ratio"]{aspect-ratio:unset !important;height:auto !important}',
-                        'img[src^="data:"]{display:block !important;max-width:100% !important;height:auto !important;visibility:visible !important;opacity:1 !important}',
-                        // ── Links — inherit text color, underline, ensure clickable ──
-                        'a{color:inherit !important;text-decoration:underline !important;pointer-events:auto !important}',
-                        // ── Favicon/citation images inside links — limit size ──
-                        'a img:not([src^="data:"]){max-width:20px !important;max-height:20px !important;width:auto !important;height:auto !important;display:inline !important;vertical-align:middle !important}'
-                    ].concat(isDarkMode ? [
-                        // ── Dark mode overrides ───────────────────────────
-                        'body,html{background:#212121 !important;color:#e8e8e8 !important;border:none !important;margin:0 !important;padding:0 !important}',
-                        '*{box-sizing:border-box}',
-                        'body>div,body>main{background:#212121 !important;border:none !important}',
-                        'hr{border-top-color:#444 !important}',
-                        'h1,h2,h3,h4,h5,h6{color:#ffffff !important}',
-                        'p,li,span,div{color:#e8e8e8}',
-                        'th{background:#2a2a2a !important;color:#ffffff !important;border-color:#3d3d3d !important}',
-                        'td{border-color:#3d3d3d !important;color:#e8e8e8 !important}',
-                        'table{border-color:#3d3d3d !important;background:#212121 !important}',
-                        'a{color:#7ab8f5 !important}',
-                        'blockquote{border-left-color:' + theme.accent + ' !important;color:#c8c8c8 !important}',
-                        '.main-title{color:#ffffff !important}',
-                        '.bg-token-bg-elevated-secondary{background-color:#1e1e1e !important;color:#e8e8e8 !important}',
-                        '[data-pdfcrowd-code-block]{background:#1e1e1e !important}'
-                    ] : []).join(' ')
+                    custom_css: buildExportCss(theme, isDarkMode)
                 };
 
                 const trigger = getTriggerButton(event);

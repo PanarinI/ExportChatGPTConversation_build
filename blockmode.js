@@ -382,6 +382,7 @@ function setupBlockMode() {
 
             const isDark = options.theme === 'dark' ||
                 (options.theme === '' && !isLight(document.body));
+            const theme = EXPORT_THEMES[options.q_color] || EXPORT_THEMES['default'];
 
             const title    = getTitle();
             const data = {
@@ -392,31 +393,12 @@ function setupBlockMode() {
                 rendering_mode: 'viewport',
                 smart_scaling_mode: 'viewport-fit',
                 viewport_width: 1300,
-                custom_css: [
-                    'body,p,li,td,th,blockquote,div{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif !important}',
-                    'h1,h2,h3,h4,h5,h6{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif !important}',
-                    'table{border-collapse:collapse !important;width:100% !important;border:1px solid #e5e7eb !important}',
-                    'td{border:none !important;border-bottom:1px solid #e5e7eb !important;border-right:1px solid #e5e7eb !important;padding:8px 12px !important}',
-                    'td:last-child{border-right:none !important}',
-                    'th{background-color:#f4f4f4 !important;font-weight:600 !important;border:none !important;border-bottom:2px solid #d1d5db !important;border-right:1px solid #e5e7eb !important;padding:8px 12px !important}',
-                    'th:last-child{border-right:none !important}',
-                    '[class*="tableContainer"],[class*="tableWrapper"]{background:transparent !important}',
-                    '.bg-token-bg-elevated-secondary{background-color:#f8f8f8 !important;color:#111 !important}',
-                    'pre .sticky svg{display:none !important}',
-                    '.katex-mathml{display:none !important}',
-                    '.katex-display{display:block !important;text-align:center !important;margin:1em 0 !important}',
-                    '[data-message-author-role="user"]{background:transparent !important;display:flex !important;justify-content:flex-end !important;padding:0 !important;margin:4px 0 12px !important}',
-                    '[data-message-author-role="user"]>div>div:first-child,[data-message-author-role="user"] .whitespace-pre-wrap{background:#f4f4f4 !important;border-radius:16px !important;padding:10px 16px !important;max-width:85% !important;display:inline-block !important}',
-                    '.no-scrollbar{display:flex !important;flex-direction:row !important;flex-wrap:nowrap !important;gap:8px !important;overflow:visible !important;margin-bottom:12px !important}',
-                    '.no-scrollbar>div{width:200px !important;height:140px !important;flex-shrink:0 !important;border:none !important;border-radius:10px !important;overflow:hidden !important;aspect-ratio:unset !important}',
-                    '.no-scrollbar img{width:100% !important;height:100% !important;object-fit:cover !important;border-radius:10px !important;border:none !important}',
-                    'a{color:inherit !important;text-decoration:underline !important;pointer-events:auto !important}'
-                ].join(' ')
+                custom_css: buildExportCss(theme, isDark)
             };
             applyMarginSettings(data, options);
 
             const classes = buildCssClasses(options, false);
-            if(isDark) data.page_background_color = '333333';
+            if(isDark) data.page_background_color = '212121';
             if(options.zoom) data.scale_factor = options.zoom;
 
             const h1Hidden = options.title_mode === 'none' ? 'display:none;' : '';
