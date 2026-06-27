@@ -2,13 +2,25 @@ chrome.runtime.setUninstallURL('https://panarini.github.io/ExportChatGPTConversa
 
 chrome.runtime.onMessage.addListener(function(message) {
     if(message.action === 'ga4Event') {
-        fetch('https://www.google-analytics.com/mp/collect?measurement_id=G-LVYMZZ18SD&api_secret=OEp4iQgzQHmFupGP91uz1g', {
-            method: 'POST',
-            body: JSON.stringify({
-                client_id: 'extension_' + Math.random().toString(36).slice(2),
-                events: [{ name: message.eventName }]
-            })
-        }).catch(function() {});
+        if(typeof gptpdfShared !== 'undefined' && gptpdfShared.IS_DEV) return;
+        chrome.storage.local.get(['ga4_client_id'], function(result) {
+            let clientId = result.ga4_client_id;
+            function doSend(cid) {
+                fetch('https://www.google-analytics.com/mp/collect?measurement_id=G-LVYMZZ18SD&api_secret=OEp4iQgzQHmFupGP91uz1g', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        client_id: cid,
+                        events: [{ name: message.eventName }]
+                    })
+                }).catch(function() {});
+            }
+            if(clientId) {
+                doSend(clientId);
+            } else {
+                clientId = 'ext_' + Math.random().toString(36).slice(2) + Date.now();
+                chrome.storage.local.set({ ga4_client_id: clientId }, function() { doSend(clientId); });
+            }
+        });
     }
 });
 

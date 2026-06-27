@@ -30,6 +30,7 @@ gptpdfShared.defaultOptions = {
 }
 
 gptpdfShared.version = 'v3.9';
+gptpdfShared.IS_DEV = false; // set to true in dev to suppress GA4 events
 
 gptpdfShared.rateUsLink = '#';
 // For 1–3 stars: redirect to private feedback form instead of public CWS review

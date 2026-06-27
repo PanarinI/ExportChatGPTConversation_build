@@ -4,22 +4,26 @@
 Последнее обновление: **2026-06-27**.
 
 ## Фаза
-**Stage 5 завершён.** Всё готово к публикации в Chrome Web Store.
+**Stage 5 завершён. Ожидает публикации в Chrome Web Store.**
 
-## Сделано в этой сессии
-- 🟢 **Gotenberg перезапущен** с `--api-timeout=120s` (лечит 503 на больших чатах) и `--chromium-restart-after=10` (лечит 500 от утечки памяти headless Chrome).
-- 🟢 **Удалены мёртвые константы** `minImageDuration` и `buttonIconFill` из `common.js`.
-- 🟢 **Починен makefile**: убрана строка `cp manifest_chrome.json ...` (файла нет, теперь один `manifest.json`).
-- 🟢 **Починен exclude.txt**: `manifest*` → `manifest_*` (чтобы `manifest.json` попадал в билд).
-- 🟢 **Дочищен exclude.txt**: добавлены `*.md`, `HISTORY`, `LICENSE`, `icons/misc`, `icons/3rd/pdfcrowd.svg` — архив похудел с 3.3 MB до 640 KB.
-- 🟢 **Удалены мёртвые папки** `test/`, `tools/`, `userscript/` — наследие PDFCrowd-форка, несовместимое с новым кодом.
-- 🟢 **makefile упрощён** до двух живых таргетов: `build-chrome` и `copyfiles`.
-- 🟢 **Версия поднята до 1.1.1** (Igor сделал вручную в manifest.json).
-- 🟢 **Сборка `make build-chrome` проверена** — создаёт чистый архив.
+## Сделано в предыдущей сессии (до этой)
+- 🟢 Gotenberg перезапущен с `--api-timeout=120s` и `--chromium-restart-after=10`
+- 🟢 Удалены мёртвые константы, починен makefile и exclude.txt
+- 🟢 Удалены мёртвые папки `test/`, `tools/`, `userscript/`
+- 🟢 makefile упрощён до `build-chrome` / `copyfiles`
+- 🟢 Версия поднята до 1.1.1; сборка `make build-chrome` проверена
 
-## Следующие шаги (по порядку)
-1. **Коммит** — см. команду ниже.
-2. **Публикация в CWS**: загрузить `save-gptchat-as-pdf-chrome.zip` в Chrome Web Store Developer Dashboard. В "notes to reviewer" написать: *"Extension exports ChatGPT conversations to PDF. It sends HTML content to a self-hosted Gotenberg instance at export-gpt.duckdns.org for PDF conversion. No user data is stored."*
+## Сделано в этой сессии (2026-06-27)
+- 🟢 **Создан `CLAUDE.md`** — контекст проекта для экономии токенов в новых сессиях
+- 🟢 **Починен GA4 client_id**: был `Math.random()` при каждом событии → теперь генерируется один раз и сохраняется в `chrome.storage.local`. GA4 видит одного пользователя, а не нового при каждом клике.
+- 🟢 **Добавлен флаг `gptpdfShared.IS_DEV`** в `shared.js` (сейчас `false`). Установить в `true` в dev-версии — события GA4 не отправляются, статистика не загрязняется тестами.
+
+## Следующие шаги
+1. **Перед работой в dev:** открыть `shared.js`, поставить `IS_DEV = true`.
+2. **Перед публикацией:** вернуть `IS_DEV = false`, проверить что `IS_DEV = false` в финальном архиве.
+3. **Коммит** текущих изменений.
+4. **Публикация в CWS**: загрузить `save-gptchat-as-pdf-chrome.zip`. В "notes to reviewer":
+   *"Extension exports ChatGPT conversations to PDF. It sends HTML content to a self-hosted Gotenberg instance at export-gpt.duckdns.org for PDF conversion. No user data is stored."*
 
 ## Архитектура сервера (прод)
 Клиент → `https`(443) → Hetzner-фаервол → **Caddy** (TLS-терминация, сертификат) → `reverse_proxy localhost:3000` → **Gotenberg** (Docker, `--api-timeout=120s --chromium-restart-after=10`) → PDF → клиент.
