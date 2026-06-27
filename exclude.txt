@@ -1,10 +1,15 @@
 .*
 *~
 makefile
-manifest*
+manifest_*
 *.zip
 exclude.txt
 userscript*
 tools
 images
 test
+*.md
+HISTORY
+LICENSE
+icons/misc
+icons/3rd/pdfcrowd.svg

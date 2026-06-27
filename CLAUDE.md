@@ -40,7 +40,7 @@ Content scripts (на chatgpt.com) + service worker, порядок загруз
 клиент → `https`(443) → Hetzner-фаервол (open 22/80/443) → **Caddy** (TLS-терминация, авто-сертификат
 Let's Encrypt) → `reverse_proxy localhost:3000` → **Gotenberg** (Docker) → PDF обратно.
 - Caddyfile: `/etc/caddy/Caddyfile`; служба `caddy` (systemd). Вход на VPS: `ssh root@89.167.13.19` (по ключу).
-- Внешний `3000` закрыт; Caddy↔Gotenberg по localhost. HTTPS сделан; остаток Stage 5 — timeout/ресурсы Gotenberg (503/500).
+- Внешний `3000` закрыт; Caddy↔Gotenberg по localhost. Gotenberg запущен с `--api-timeout=120s --chromium-restart-after=10`.
 
 ## Что НЕ трогать без обсуждения
 
