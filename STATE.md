@@ -16,13 +16,11 @@
 ## Сделано в этой сессии (2026-06-27)
 - 🟢 **Создан `CLAUDE.md`** — контекст проекта для экономии токенов в новых сессиях
 - 🟢 **Починен GA4 client_id**: был `Math.random()` при каждом событии → теперь генерируется один раз и сохраняется в `chrome.storage.local`. GA4 видит одного пользователя, а не нового при каждом клике.
-- 🟢 **Добавлен флаг `gptpdfShared.IS_DEV`** в `shared.js` (сейчас `false`). Установить в `true` в dev-версии — события GA4 не отправляются, статистика не загрязняется тестами.
+- 🟢 **GA4 dev-подавление стало автоматическим.** Ручной флаг `gptpdfShared.IS_DEV` удалён (он жил в content-script `shared.js` и был невидим из service worker — фактически не работал). Теперь `background.js` сам определяет dev через `chrome.management.getSelf()`: `installType === 'development'` → счётчик молчит, `'normal'` (из CWS) → счётчик идёт. Никаких ручных переключений перед dev/публикацией.
 
 ## Следующие шаги
-1. **Перед работой в dev:** открыть `shared.js`, поставить `IS_DEV = true`.
-2. **Перед публикацией:** вернуть `IS_DEV = false`, проверить что `IS_DEV = false` в финальном архиве.
-3. **Коммит** текущих изменений.
-4. **Публикация в CWS**: загрузить `save-gptchat-as-pdf-chrome.zip`. В "notes to reviewer":
+1. **Коммит** текущих изменений.
+2. **Публикация в CWS**: загрузить `save-gptchat-as-pdf-chrome.zip`. В "notes to reviewer":
    *"Extension exports ChatGPT conversations to PDF. It sends HTML content to a self-hosted Gotenberg instance at export-gpt.duckdns.org for PDF conversion. No user data is stored."*
 
 ## Архитектура сервера (прод)
