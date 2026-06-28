@@ -1,25 +1,19 @@
 # Export ChatGPT Conversation
 
-## Introduction
+Браузерное расширение (Chrome/Firefox): экспортирует диалог ChatGPT в PDF.
+Рендер PDF выполняет self-hosted Gotenberg за HTTPS-прокси.
 
-## Installation
+## Установка
 
-### Browser Extension
+- **Chrome Web Store:** опубликовано (v1.1.x).
+- **Сборка из исходников:** `make build-chrome`, затем в `chrome://extensions`
+  включить Developer mode → *Load unpacked* → выбрать собранную папку.
 
-### User Script
+## Архитектура (кратко)
 
-## Links
+Content scripts на `chatgpt.com` собирают диалог → service worker отправляет HTML
+на бэкенд (Gotenberg за Caddy/HTTPS) → готовый PDF возвращается пользователю.
 
-## License
+## Лицензия
 
-This project is licensed under the [MIT License](LICENSE).
-
-cd /Users/igor/PycharmProjects/save-chatgpt-as-pdf && git add background.js manifest.json && git commit -F - <<'EOF'
-Switch PDF backend to HTTPS domain instead of raw-IP HTTP
-
-Export now POSTs to https://export-gpt.duckdns.org (Caddy +
-Let's Encrypt in front of Gotenberg) instead of
-http://89.167.13.19:3000, so the conversation travels encrypted.
-Update the matching host_permission in manifest.json.
-
-EOF
+MIT — см. [LICENSE](LICENSE). Форк проекта `pdfcrowd/save-chatgpt-as-pdf`.

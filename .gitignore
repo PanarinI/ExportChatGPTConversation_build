@@ -11,3 +11,12 @@ userscript/save-chatgpt-as-pdf.all.user.js
 
 # stray build artifacts (e.g. extensionless temp zips from the makefile)
 zi6lL3TT
+
+# local research/media — not for git
+html_pdf_converter/
+versions_lib/
+
+# living-context DNA — приватный рабочий контекст, не для публичного код-репо (бэкап отдельно)
+CLAUDE.md
+STATE.md
+DECISIONS.md
