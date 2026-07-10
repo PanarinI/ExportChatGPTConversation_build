@@ -14,3 +14,4 @@ LICENSE
 icons/misc
 icons/3rd/pdfcrowd.svg
 versions_lib
+html_pdf_converter
