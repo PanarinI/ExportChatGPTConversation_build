@@ -6,6 +6,11 @@ gptpdfChatGPT.sendChunkedData = function(
     fileName,
     fnCleanup
 ) {
+    // [gptpdf][measure] ВРЕМЕННО — замер размера payload. УДАЛИТЬ перед сборкой билда.
+    console.log('[gptpdf][measure] payload =',
+        (htmlContent.length / 1048576).toFixed(1), 'MB   ·   chunks =',
+        Math.ceil(htmlContent.length / gptpdfChatGPT.CHUNK_SIZE));
+
     const sessionId = 'session_' + Date.now() + '_' + Math.random();
     const chunks = [];
     const chunkSize = gptpdfChatGPT.CHUNK_SIZE;

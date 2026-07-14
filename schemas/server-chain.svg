@@ -1,0 +1,71 @@
+<svg width="100%" viewBox="0 0 680 560" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Серверная цепочка экспорта: где рвётся и за чем можно следить</title>
+  <desc>Путь запроса от расширения через фаервол Hetzner, Caddy и Gotenberg обратно к PDF, с точками отказа и наблюдаемыми метриками.</desc>
+  <style>
+    text{font-family:inherit}
+    .t{fill:#232323}.s{fill:#5f5f5a}
+    .box{fill:#f7f7f4;stroke:#dcdcd5;stroke-width:1}
+    .chip{fill:#efeeea;stroke:#dcdcd5;stroke-width:1}
+    .spine{stroke:#c8c8c0;stroke-width:1.5;fill:none}
+    .fail{fill:#bf4a26}.watch{fill:#0f8a67}.ok{fill:#0f8a67}
+    @media (prefers-color-scheme:dark){
+      .t{fill:#ededed}.s{fill:#a2a29b}
+      .box{fill:#232323;stroke:#3d3d3d}.chip{fill:#2a2a2a;stroke:#3d3d3d}
+      .spine{stroke:#4a4a4a}.fail{fill:#f0906a}.watch{fill:#54c59d}.ok{fill:#54c59d}
+    }
+    :root[data-theme="dark"] .t{fill:#ededed}:root[data-theme="dark"] .s{fill:#a2a29b}
+    :root[data-theme="dark"] .box{fill:#232323;stroke:#3d3d3d}:root[data-theme="dark"] .chip{fill:#2a2a2a;stroke:#3d3d3d}
+    :root[data-theme="dark"] .spine{stroke:#4a4a4a}:root[data-theme="dark"] .fail{fill:#f0906a}:root[data-theme="dark"] .watch{fill:#54c59d}:root[data-theme="dark"] .ok{fill:#54c59d}
+    :root[data-theme="light"] .t{fill:#232323}:root[data-theme="light"] .s{fill:#5f5f5a}
+    :root[data-theme="light"] .box{fill:#f7f7f4;stroke:#dcdcd5}:root[data-theme="light"] .chip{fill:#efeeea;stroke:#dcdcd5}
+    :root[data-theme="light"] .fail{fill:#bf4a26}:root[data-theme="light"] .watch{fill:#0f8a67}
+  </style>
+
+  <text class="t" x="40" y="42" font-size="19" font-weight="500">Серверная цепочка экспорта</text>
+  <text class="s" x="40" y="63" font-size="12.5">где рвётся · за чем можно следить снаружи (без ssh)</text>
+
+  <rect class="chip" x="40" y="76" width="600" height="28" rx="8"/>
+  <text class="s" x="54" y="94" font-size="12">снимок сейчас · health <tspan class="ok" font-weight="500">200</tspan> · очередь <tspan class="ok" font-weight="500">0</tspan> · рестартов chromium 99 · сертификат до 24 сен <tspan class="ok">✓</tspan></text>
+
+  <text class="s" x="40" y="126" font-size="12"><tspan class="fail" font-weight="500">■</tspan> может упасть      <tspan class="watch" font-weight="500">■</tspan> видно снаружи</text>
+
+  <!-- spine arrows -->
+  <path class="spine" d="M175 208 L175 226"/><path class="spine" d="M170 221 L175 227 L180 221"/>
+  <path class="spine" d="M175 286 L175 304"/><path class="spine" d="M170 299 L175 305 L180 299"/>
+  <path class="spine" d="M175 364 L175 382"/><path class="spine" d="M170 377 L175 383 L180 377"/>
+  <path class="spine" d="M175 442 L175 460"/><path class="spine" d="M170 455 L175 461 L180 455"/>
+
+  <!-- row 1 -->
+  <rect class="box" x="40" y="150" width="270" height="58" rx="10"/>
+  <text class="t" x="56" y="176" font-size="13.5" font-weight="500">Расширение (браузер)</text>
+  <text class="s" x="56" y="194" font-size="11">собирает HTML + base64-картинки</text>
+  <text class="s" x="330" y="174" font-size="11.5"><tspan class="fail">■ </tspan>вкладка держит весь HTML → OOM на тяжёлом</text>
+  <text class="s" x="330" y="194" font-size="11.5"><tspan class="watch">■ </tspan>виден только у юзера (наш замер payload MB)</text>
+
+  <!-- row 2 -->
+  <rect class="box" x="40" y="228" width="270" height="58" rx="10"/>
+  <text class="t" x="56" y="254" font-size="13.5" font-weight="500">Фаервол Hetzner · HTTPS 443</text>
+  <text class="s" x="56" y="272" font-size="11">открыты порты 22 / 80 / 443</text>
+  <text class="s" x="330" y="252" font-size="11.5"><tspan class="fail">■ </tspan>сеть / оплата / простой VPS</text>
+  <text class="s" x="330" y="272" font-size="11.5"><tspan class="watch">■ </tspan>отвечает ли порт 443 снаружи</text>
+
+  <!-- row 3 -->
+  <rect class="box" x="40" y="306" width="270" height="58" rx="10"/>
+  <text class="t" x="56" y="332" font-size="13.5" font-weight="500">Caddy</text>
+  <text class="s" x="56" y="350" font-size="11">TLS + авто-сертификат Let's Encrypt</text>
+  <text class="s" x="330" y="330" font-size="11.5"><tspan class="fail">■ </tspan>сертификат не продлился → HTTPS ✕</text>
+  <text class="s" x="330" y="350" font-size="11.5"><tspan class="watch">■ </tspan>срок сертификата (сейчас до 24 сен ✓)</text>
+
+  <!-- row 4 -->
+  <rect class="box" x="40" y="384" width="270" height="58" rx="10"/>
+  <text class="t" x="56" y="410" font-size="13.5" font-weight="500">Gotenberg + Chromium</text>
+  <text class="s" x="56" y="428" font-size="11">HTML → PDF · Docker · рестарт /10</text>
+  <text class="s" x="330" y="408" font-size="11.5"><tspan class="fail">■ </tspan>OOM на гиганте · таймаут 120с → 503 · диск</text>
+  <text class="s" x="330" y="428" font-size="11.5"><tspan class="watch">■ </tspan>/health · очередь · рестарты (/metrics)</text>
+
+  <!-- row 5 -->
+  <rect class="box" x="40" y="462" width="270" height="58" rx="10"/>
+  <text class="t" x="56" y="488" font-size="13.5" font-weight="500">PDF → юзеру</text>
+  <text class="s" x="56" y="506" font-size="11">готовый файл обратно в браузер</text>
+  <text class="s" x="330" y="497" font-size="11.5"><tspan class="watch">■ </tspan>успех виден по событию export_completed</text>
+</svg>
