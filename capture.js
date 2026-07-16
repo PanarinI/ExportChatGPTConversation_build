@@ -74,6 +74,17 @@ function showLoadingOverlay() {
     // Cancel belongs to the harvest phase; ensure visible (generation hides it).
     const _cancel = document.getElementById('gptpdf-cancel-loading');
     if(_cancel) _cancel.style.display = '';
+    // Chrome throttles background tabs, which can break the harvest —
+    // ask the user to keep the tab in front (STATE: DALL-E/tab-switch bug).
+    const _card = ov.querySelector('.gptpdf-loading-card');
+    if(_card && !_card.querySelector('.gptpdf-loading-hint')) {
+        const hint = document.createElement('div');
+        hint.className = 'gptpdf-loading-hint';
+        hint.textContent = 'Please keep this tab open and in the foreground';
+        hint.style.cssText =
+            'font-size:12px;opacity:.75;margin-top:8px;text-align:center;max-width:250px;';
+        _card.appendChild(hint);
+    }
 }
 
 function hideLoadingOverlay() {
