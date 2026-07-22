@@ -11,11 +11,17 @@ chrome.runtime.onMessage.addListener(function(message) {
             chrome.storage.local.get(['ga4_client_id'], function(result) {
                 let clientId = result.ga4_client_id;
                 function doSend(cid) {
+                    // Only attach params when the sender provided them, so the
+                    // existing bare events stay byte-identical on the wire.
+                    const evt = { name: message.eventName };
+                    if(message.eventParams) {
+                        evt.params = message.eventParams;
+                    }
                     fetch('https://www.google-analytics.com/mp/collect?measurement_id=G-LVYMZZ18SD&api_secret=OEp4iQgzQHmFupGP91uz1g', {
                         method: 'POST',
                         body: JSON.stringify({
                             client_id: cid,
-                            events: [{ name: message.eventName }]
+                            events: [evt]
                         })
                     }).catch(function() {});
                 }

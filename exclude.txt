@@ -8,6 +8,7 @@ userscript*
 tools
 images
 test
+tests
 *.md
 HISTORY
 LICENSE

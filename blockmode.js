@@ -4,6 +4,64 @@
 // only those. Self-contained (own state + DOM refs); uses global capture/render/
 // helpers + the request transport. init() calls setupBlockMode() after markup.
 
+// Rebuild the user's selected turns in the export clone from their snapshots.
+// A turn is snapshotted (bids and all) the moment a block in it is toggled, so
+// the SNAPSHOT — not the live DOM — is the authority on what the user picked.
+// Since 2026-07 ChatGPT's virtualizer UNMOUNTS turns the user scrolled away
+// from: they are gone from the clone, not just emptied. So a snapshot must be
+// INSERTED, not only used to fill an empty placeholder — the old fill-only
+// behaviour silently dropped every selection outside the mounted window. This
+// is block-mode's analog of restoreVirtualizedTurns() (capture.js). Cases:
+//   • turn missing from clone          → insert snapshot in numeric-testid order
+//   • turn present but empty            → replace (old placeholder mode)
+//   • turn mounted, keeps its kept bid  → keep live clone (it has base64 images)
+//   • turn mounted, kept bid gone       → replace (remount: snapshot is truth)
+function restoreSelectedTurns(clone, turnSnapshots, bidsToKeep) {
+    if(!turnSnapshots || turnSnapshots.size === 0) return;
+    const liveTurns = clone.querySelectorAll(
+        '[data-testid^="conversation-turn"]');
+    const container = liveTurns.length ? liveTurns[0].parentElement : null;
+    // Trailing number of data-testid="conversation-turn-N". The number runs
+    // across the whole conversation, so sorting by it rebuilds order under the
+    // ragged mounted window (kept local so block-mode stays self-contained).
+    const idxOf = function(id) {
+        const m = /(\d+)\s*$/.exec(id || '');
+        return m ? parseInt(m[1], 10) : -1;
+    };
+    const liveHasKeptBid = function(turn) {
+        if(!turn) return false;
+        return Array.from(turn.querySelectorAll('[data-gptpdf-bid]')).some(
+            function(el) {
+                return bidsToKeep.has(el.getAttribute('data-gptpdf-bid'));
+            });
+    };
+    turnSnapshots.forEach(function(html, turnId) {
+        const existing = clone.querySelector(
+            '[data-testid="' + turnId + '"]');
+        // Mounted turn that still carries a kept bid → keep the live clone,
+        // whose images are already base64. Otherwise the snapshot wins.
+        if(liveHasKeptBid(existing)) return;
+        const box = document.createElement('div');
+        box.innerHTML = html;
+        const snap = box.firstElementChild;
+        if(!snap) return;
+        if(existing) { existing.replaceWith(snap); return; }
+        if(!container) return; // no anchor to insert into (no mounted turns)
+        const idx = idxOf(turnId);
+        const sibs = container.querySelectorAll(
+            '[data-testid^="conversation-turn"]');
+        let placed = false;
+        for(let i = 0; i < sibs.length; i++) {
+            if(idxOf(sibs[i].getAttribute('data-testid')) > idx) {
+                container.insertBefore(snap, sibs[i]);
+                placed = true;
+                break;
+            }
+        }
+        if(!placed) container.appendChild(snap);
+    });
+}
+
 function setupBlockMode() {
     const blocksBtn = document.getElementById('gptpdf-blocks');
     const bar       = document.getElementById('gptpdf-blocks-bar');
@@ -376,17 +434,23 @@ function setupBlockMode() {
             Promise.all(imgPromises).then(function() {
 
             const main_clone = prepareContent(main);
-            // turnCache is null — harvest already ran in enterBlockMode
-            // Restore selected messages from their snapshots — but ONLY ones that
-            // unmounted (empty in the clone). A mounted turn keeps its LIVE clone,
-            // which carries the base64-converted images; the snapshot was taken at
-            // click time with the old image src and would otherwise overwrite (and
-            // break) DALL-E / uploaded images. Unmounted turns still come from the
-            // snapshot, so cross-message selection keeps working.
-            turnSnapshots.forEach(function(html, turnId) {
-                const t = main_clone.querySelector('[data-testid="' + turnId + '"]');
-                if(t && t.innerHTML.trim().length === 0) t.outerHTML = html;
-            });
+            // Rebuild the selected turns from their snapshots. Harvest already
+            // ran on block-mode entry, but its cache is discarded — the snapshots
+            // (taken at click time, WITH the bids) are block-mode's source of
+            // truth. Under the current virtualizer a turn the user scrolled away
+            // from is unmounted (gone from the clone), so snapshots are INSERTED,
+            // not just used to fill empty placeholders; otherwise every selection
+            // outside the mounted window is silently dropped. Mounted turns that
+            // still carry their kept bid keep their live clone (base64 images).
+            restoreSelectedTurns(main_clone, turnSnapshots, bidsToKeep);
+            // Snapshots are captured with the selection-highlight classes still
+            // on the block; strip them so they don't linger on inserted turns
+            // (live-clone turns were already cleaned before cloning).
+            main_clone.querySelectorAll('.gptpdf-block-sel, .gptpdf-block-checked')
+                .forEach(function(el) {
+                    el.classList.remove(
+                        'gptpdf-block-sel', 'gptpdf-block-checked');
+                });
 
             // Remove checkbox/selection UI that got cloned
             main_clone.querySelectorAll('.gptpdf-block-cb').forEach(

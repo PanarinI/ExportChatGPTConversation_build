@@ -1,0 +1,161 @@
+<title>restoreSelectedTurns — стенд выбора блоков под виртуализацией</title>
+<!--
+  Проверяет пересборку ВЫБРАННЫХ турнов в режиме «Select to export»
+  (blockmode.js: restoreSelectedTurns) под новой виртуализацией ChatGPT.
+
+  Зачем: с 2026-07 ChatGPT УДАЛЯЕТ турны за кадром (не оставляет пустые
+  заглушки). Выбор юзера живёт в turnSnapshots (снимок турна в момент клика,
+  с бидами), но старый шаг восстановления умел только ЗАМЕЩАТЬ пустую заглушку
+  — размонтированный (удалённый) турн он не находил, и выбранный блок молча
+  выпадал из PDF. Теперь снимок ВСТАВЛЯЕТСЯ по номеру из data-testid. Сцена 1
+  воспроизводит реальный замер 20.07 (смонтировано 16,18,31,37,83…94 из 94)
+  с выборами в размонтированных турнах.
+
+  Запуск (без установки чего-либо):
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=4000 --dump-dom \
+      "file://$PWD/tests/blockmode-restore-test.html"
+  или просто открыть файл в браузере.
+
+  Границы: покрыта ТОЛЬКО пересборка выбора (чистая функция). Что harvest
+  реально доскроллит весь диалог и что ручной выбор через прокрутку
+  переживает размонтирование живьём — этим стендом НЕ проверяется, только
+  вручную на chatgpt.com.
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../blockmode.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, cond, detail) {
+    if (!cond) failed++;
+    out.push((cond ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+function mkTurn(i, inner) {
+    const d = document.createElement('div');
+    d.setAttribute('data-testid', 'conversation-turn-' + i);
+    d.innerHTML = '<div class="markdown"><p>T' + i + '</p>' + (inner || '') + '</div>';
+    return d;
+}
+function bidBlock(bid, txt) {
+    return '<p data-gptpdf-bid="' + bid + '">' + (txt || ('B' + bid)) + '</p>';
+}
+function ids(root) {
+    return [...root.querySelectorAll('[data-testid^="conversation-turn"]')]
+        .map(t => +t.getAttribute('data-testid').replace(/\D+/g, ''));
+}
+function mkClone(mountedNums, innerFor) {
+    const clone = document.createElement('main');
+    const container = document.createElement('div');
+    clone.appendChild(container);
+    mountedNums.forEach(i => container.appendChild(
+        mkTurn(i, innerFor ? innerFor(i) : '')));
+    return clone;
+}
+
+// ── Сцена 1: замер 20.07 — рваное окно + выборы в РАЗМОНТИРОВАННЫХ турнах ──
+// Юзер прокрутил длинный чат и отметил блок в турне 5 и в турне 40; к экспорту
+// оба размонтированы (в окне только 16,18,31,37,83…94). Выбор обязан уцелеть.
+const MOUNTED = [16, 18, 31, 37, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94];
+const clone = mkClone(MOUNTED);
+// внешний ребёнок контейнера, как на живой странице
+const spacer = document.createElement('div');
+spacer.setAttribute('data-testid', 'thread-footer-overflow-spacer');
+clone.firstElementChild.appendChild(spacer);
+
+const snaps = new Map();
+snaps.set('conversation-turn-5',  mkTurn(5,  bidBlock('101', 'sel5')).outerHTML);
+snaps.set('conversation-turn-40', mkTurn(40, bidBlock('102', 'sel40')).outerHTML);
+const keep = new Set(['101', '102']);
+
+out.push('до сборки турнов в клоне: ' + ids(clone).length +
+         '  (' + ids(clone).join(',') + ')');
+restoreSelectedTurns(clone, snaps, keep);
+out.push('после сборки: ' + ids(clone).length + '  (' + ids(clone).join(',') + ')\n');
+
+check('размонтированный выбранный турн 5 вставлен',
+      !!clone.querySelector('[data-testid="conversation-turn-5"]'));
+check('размонтированный выбранный турн 40 вставлен',
+      !!clone.querySelector('[data-testid="conversation-turn-40"]'));
+check('выбранный бид 101 (турн 5) уцелел с содержимым',
+      clone.querySelector('[data-gptpdf-bid="101"]') &&
+      clone.querySelector('[data-gptpdf-bid="101"]').textContent === 'sel5');
+check('выбранный бид 102 (турн 40) уцелел с содержимым',
+      clone.querySelector('[data-gptpdf-bid="102"]') &&
+      clone.querySelector('[data-gptpdf-bid="102"]').textContent === 'sel40');
+check('вставки в правильном порядке (5 до 16, 40 между 37 и 83)',
+      JSON.stringify(ids(clone)) ===
+      JSON.stringify([5, 16, 18, 31, 37, 40, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94]),
+      ids(clone).slice(0, 6).join(','));
+check('дубликатов турнов нет',
+      new Set(ids(clone)).size === ids(clone).length);
+check('посторонний ребёнок контейнера (spacer) уцелел',
+      !!clone.querySelector('[data-testid="thread-footer-overflow-spacer"]'));
+
+// ── Сцена 2: старый режим — пустая заглушка заполняется из снимка ──
+const c2 = document.createElement('main');
+const cont2 = document.createElement('div'); c2.appendChild(cont2);
+const empty7 = document.createElement('div');
+empty7.setAttribute('data-testid', 'conversation-turn-7'); // пустая заглушка
+cont2.appendChild(empty7);
+restoreSelectedTurns(c2, new Map([['conversation-turn-7',
+    mkTurn(7, bidBlock('8', 'sel7')).outerHTML]]), new Set(['8']));
+check('пустая заглушка заполнена из снимка (старый режим не сломан)',
+      c2.textContent.includes('T7') && !!c2.querySelector('[data-gptpdf-bid="8"]'));
+
+// ── Сцена 3: смонтированный турн с выбранным бидом → живой клон сохранён ──
+// Живой клон уже несёт base64-картинку; снимок (исходный URL) НЕ должен её затереть.
+const c3 = document.createElement('main');
+const cont3 = document.createElement('div'); c3.appendChild(cont3);
+cont3.appendChild(mkTurn(10,
+    '<img src="data:image/png;base64,LIVE">' + bidBlock('5', 'sel')));
+const snap10 = mkTurn(10,
+    '<img src="https://oaiusercontent.com/x.png">' + bidBlock('5', 'sel')).outerHTML;
+restoreSelectedTurns(c3, new Map([['conversation-turn-10', snap10]]), new Set(['5']));
+check('смонтированный турн с выбранным бидом оставляет живой клон (base64-картинка цела)',
+      (c3.querySelector('img').getAttribute('src') || '').indexOf('base64,LIVE') !== -1,
+      c3.querySelector('img').getAttribute('src'));
+
+// ── Сцена 4: ремонт — свежий невыбранный бид → снимок побеждает ──
+// Юзер выбрал турн (бид 3), прокрутил, турн размонтировался и РЕМОНТнулся со
+// свежим бидом 99 (чекбокс пуст). В снимке — выбор (бид 3), он авторитетнее.
+const c4 = document.createElement('main');
+const cont4 = document.createElement('div'); c4.appendChild(cont4);
+cont4.appendChild(mkTurn(12, bidBlock('99', 'fresh'))); // ремонт, невыбран
+restoreSelectedTurns(c4, new Map([['conversation-turn-12',
+    mkTurn(12, bidBlock('3', 'sel')).outerHTML]]), new Set(['3']));
+check('ремонт со свежим бидом замещён снимком с выбранным бидом',
+      !!c4.querySelector('[data-gptpdf-bid="3"]') &&
+      !c4.querySelector('[data-gptpdf-bid="99"]'));
+
+// ── Сцена 5: порядок вставок не зависит от порядка кликов ──
+const c5 = mkClone([10, 50]);
+const snaps5 = new Map();
+snaps5.set('conversation-turn-40', mkTurn(40, bidBlock('1')).outerHTML);
+snaps5.set('conversation-turn-5',  mkTurn(5,  bidBlock('2')).outerHTML);
+snaps5.set('conversation-turn-20', mkTurn(20, bidBlock('3')).outerHTML);
+restoreSelectedTurns(c5, snaps5, new Set(['1', '2', '3']));
+check('вставки в числовом порядке независимо от порядка кликов',
+      JSON.stringify(ids(c5)) === JSON.stringify([5, 10, 20, 40, 50]),
+      ids(c5).join(','));
+
+// ── Сцена 6: пустые снимки = клон не трогаем ──
+const c6 = mkClone([1, 2]);
+restoreSelectedTurns(c6, new Map(), new Set());
+check('пустые снимки = клон без изменений', ids(c6).length === 2);
+
+// ── Сцена 7: нет смонтированных турнов (вырожденный) → без падения ──
+let threw = false;
+try {
+    const c7 = document.createElement('main');
+    c7.appendChild(document.createElement('div'));
+    restoreSelectedTurns(c7, new Map([['conversation-turn-3',
+        mkTurn(3, bidBlock('1')).outerHTML]]), new Set(['1']));
+} catch (e) { threw = true; }
+check('нет смонтированных турнов → без падения', !threw);
+
+out.push('\n' + (failed ? '❌ провалено проверок: ' + failed
+                        : '✅ все проверки пройдены'));
+document.getElementById('log').textContent = out.join('\n');
+</script>

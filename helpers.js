@@ -10,6 +10,26 @@ function findRow(element) {
     ) || element.closest('article');
 }
 
+// Coarse bucket for a failed export, used as the `reason` param on the
+// export_failed analytics event. Pure (no DOM) so it is unit-tested
+// (tests/failreason-test.html). Keep the buckets few and low-cardinality:
+//   fair_use  — 432, deliberate usage limit
+//   too_large — 503 / Gotenberg api-timeout: server couldn't render in time
+//   network   — fetch never reached the service (offline, or an AV/security
+//               extension blocking the request — the silent "not works")
+//   http_<n>  — any other HTTP status from the service
+//   client    — failed before the request (stale extension, chunk error, throw)
+function gptpdfFailureReason(status, text) {
+    if(status == 432) return 'fair_use';
+    if(status == 503 ||
+       (text && /time limit|timeout|--api-timeout/i.test(text))) {
+        return 'too_large';
+    }
+    if(status == 'network-error') return 'network';
+    if(status) return 'http_' + status;
+    return 'client';
+}
+
 function hasParent(element, parent) {
     while(element) {
         if(element === parent) {
@@ -239,19 +259,66 @@ function persistCanvases(orig_element, new_element) {
     }
 }
 
-function getTitle() {
-    let title = '';
-    const chatTitle = document.querySelector(
-        `nav a[href="${window.location.pathname}"]`);
-    if(chatTitle) {
-        // use chat title 1st as it does not contain model name in it
-        title = chatTitle.textContent.trim();
+// ChatGPT's placeholder name for a chat it has not named yet, in the locales we
+// have seen. Best-effort: missing one only costs a fallback we would take anyway.
+const GENERIC_CHAT_TITLES = [
+    'chatgpt', 'new chat', 'untitled',
+    'новый чат', 'новий чат', 'nuevo chat', 'nouveau chat', 'neuer chat',
+    'novo chat', 'nuova chat', 'nowy czat', 'nieuwe chat', 'yeni sohbet'
+];
+
+function isGenericChatTitle(t) {
+    const s = (t || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    return !s || GENERIC_CHAT_TITLES.indexOf(s) !== -1;
+}
+
+// Name taken from the first thing the user asked. Never generic, so two exports
+// are never indistinguishable in the downloads folder. Reads `root` (the export
+// clone, which holds the whole conversation) rather than the live page, where
+// the first turn is usually unmounted by the time we get here.
+function firstPromptTitle(root) {
+    const first = (root || document).querySelector(
+        '[data-message-author-role="user"]');
+    if(!first) {
+        return '';
     }
+    // textContent, not innerText: the clone is detached, so it has no layout.
+    const text = (first.textContent || '').replace(/\s+/g, ' ').trim();
+    if(!text) {
+        return '';
+    }
+    return text.length > 60 ? text.slice(0, 60).trim() + '…' : text;
+}
+
+// Chat name for the PDF heading and file name, best source first.
+function getTitle(root) {
+    let title = '';
+    // 1. The chat's own link in the sidebar — the freshest, always-correct name,
+    //    and it carries no model name. This used to be matched as
+    //    `nav a[href=...]`; since the 2026-07 ChatGPT redesign that finds
+    //    nothing (verified 07-20), so search the whole document: the link may
+    //    have moved out of <nav>, and the history list is virtualized, so on a
+    //    long history it may not be mounted at all.
+    const links = document.querySelectorAll(
+        `a[href="${window.location.pathname}"]`);
+    for(let i = 0; i < links.length && !title; i++) {
+        title = links[i].textContent.trim();
+    }
+    // 2. Tab title — correct once ChatGPT refreshes it, but it lags on a
+    //    freshly named chat and until then still reads as the generic
+    //    "New chat". With (1) broken that lag is what made two different
+    //    exports both land as "Новый чат" (user report 2026-07-20).
     if(!title) {
         const titles = document.getElementsByTagName('title');
         if(titles.length > 0) {
             title = titles[0].textContent.trim();
         }
+        if(isGenericChatTitle(title)) {
+            title = '';
+        }
+    }
+    if(!title) {
+        title = firstPromptTitle(root);
     }
     return title;
 }

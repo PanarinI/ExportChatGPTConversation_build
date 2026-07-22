@@ -1,0 +1,113 @@
+<title>Тестовое имя</title>
+<!--
+  Проверяет выбор имени чата для PDF (getTitle в helpers.js).
+
+  Зачем: до 2026-07 имя бралось из ссылки чата в боковой панели через
+  `nav a[href=...]`. После редизайна ChatGPT этот поиск не находит ничего
+  (замер 07-20: панель = НЕ НАЙДЕНА), и мы молча жили на заголовке вкладки —
+  а он отстаёт на свежепереименованном чате и до обновления показывает
+  «Новый чат». Из-за этого два разных экспорта получали одно имя.
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=3000 --dump-dom "file://$PWD/tests/title-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../helpers.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, cond, detail) {
+    if (!cond) failed++;
+    out.push((cond ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+// Ссылка чата — вне <nav>, как после редизайна
+function putLink(text) {
+    const a = document.createElement('a');
+    a.setAttribute('href', location.pathname);
+    a.textContent = text;
+    a.id = 'chat-link';
+    document.body.appendChild(a);
+}
+function dropLink() {
+    const a = document.getElementById('chat-link');
+    if (a) a.remove();
+}
+// Клон переписки: первое сообщение — пользовательское
+function mkClone(prompt) {
+    const root = document.createElement('main');
+    if (prompt !== null) {
+        const u = document.createElement('div');
+        u.setAttribute('data-message-author-role', 'user');
+        u.textContent = prompt;
+        root.appendChild(u);
+    }
+    const a = document.createElement('div');
+    a.setAttribute('data-message-author-role', 'assistant');
+    a.textContent = 'ответ ИИ';
+    root.appendChild(a);
+    return root;
+}
+
+// ── 1. Ссылка чата найдена вне <nav> → берём её
+putLink('Идея для сатирического принта');
+document.title = 'Новый чат';
+check('ссылка вне <nav> побеждает заголовок вкладки',
+      getTitle(mkClone('привет')) === 'Идея для сатирического принта',
+      getTitle(mkClone('привет')));
+dropLink();
+
+// ── 2. Ссылки нет, заголовок вкладки осмысленный → берём вкладку
+document.title = 'Идея для сатирического принта';
+check('без ссылки берём осмысленный заголовок вкладки',
+      getTitle(mkClone('привет')) === 'Идея для сатирического принта',
+      getTitle(mkClone('привет')));
+
+// ── 3. Ссылки нет, вкладка отстала на «Новый чат» → первый вопрос юзера
+//      (ровно тот случай, что дал два файла с одинаковым именем)
+document.title = 'Новый чат';
+check('generic-заголовок отвергается в пользу первого вопроса',
+      getTitle(mkClone('как продвинуть плагин в cws')) ===
+          'как продвинуть плагин в cws',
+      getTitle(mkClone('как продвинуть плагин в cws')));
+
+// ── 4. Два разных чата с «Новый чат» дают РАЗНЫЕ имена
+const t1 = getTitle(mkClone('как продвинуть плагин в cws'));
+const t2 = getTitle(mkClone('правда ли что гугл изменил алгоритмы'));
+check('два экспорта больше не одноимённые', t1 !== t2, t1 + '  ≠  ' + t2);
+
+// ── 5. Длинный первый вопрос обрезается
+const long = 'а'.repeat(200);
+const got5 = getTitle(mkClone(long));
+check('длинный вопрос обрезан до 60 + многоточие',
+      got5.length === 61 && got5.endsWith('…'), 'длина ' + got5.length);
+
+// ── 6. Схлопывание пробелов и переносов
+check('пробелы и переносы схлопнуты',
+      getTitle(mkClone('  как   продвинуть\n\nплагин  ')) ===
+          'как продвинуть плагин',
+      '"' + getTitle(mkClone('  как   продвинуть\n\nплагин  ')) + '"');
+
+// ── 7. Совсем нечего взять → пусто (прежнее поведение, не падаем)
+check('нет ни ссылки, ни имени, ни вопроса → пусто',
+      getTitle(mkClone(null)) === '', '"' + getTitle(mkClone(null)) + '"');
+
+// ── 8. Английский generic тоже отвергается
+document.title = 'ChatGPT';
+check('generic "ChatGPT" отвергается',
+      getTitle(mkClone('hello world')) === 'hello world');
+document.title = 'New chat';
+check('generic "New chat" отвергается',
+      getTitle(mkClone('hello world')) === 'hello world');
+
+// ── 9. isGenericChatTitle
+check('isGenericChatTitle: регистр и пробелы не мешают',
+      isGenericChatTitle('  НОВЫЙ   ЧАТ ') === true);
+check('isGenericChatTitle: осмысленное имя не generic',
+      isGenericChatTitle('Идея для принта') === false);
+
+out.push('\n' + (failed ? '❌ провалено проверок: ' + failed
+                        : '✅ все проверки пройдены'));
+document.getElementById('log').textContent = out.join('\n');
+</script>

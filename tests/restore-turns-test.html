@@ -1,0 +1,126 @@
+<title>restoreVirtualizedTurns — стенд сборки диалога</title>
+<!--
+  Проверяет пересборку диалога из рваного окна DOM (capture.js).
+
+  Зачем: с 2026-07 ChatGPT УДАЛЯЕТ турны за кадром вместо того, чтобы оставлять
+  пустые заглушки. В клоне остаётся только смонтированное окно (реальный замер
+  20.07: 16,18,31,37,83…94 из 94-турного чата), и недостающие турны нужно
+  ВСТАВЛЯТЬ, а не только замещать. Сцена 1 воспроизводит ровно этот замер.
+
+  Запуск (без установки чего-либо):
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=4000 --dump-dom \
+      "file://$PWD/tests/restore-turns-test.html"
+  или просто открыть файл в браузере.
+
+  Границы: покрыта ТОЛЬКО пересборка (Part B). Что харвест реально доскроллит
+  весь диалог на живой странице — этим стендом НЕ проверяется, только вручную
+  на chatgpt.com (flaky-протокол 5–10×).
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../capture.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, cond, detail) {
+    if (!cond) failed++;
+    out.push((cond ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+function mkTurn(i, extra) {
+    const d = document.createElement('div');
+    d.setAttribute('data-testid', 'conversation-turn-' + i);
+    d.innerHTML = '<p>T' + i + '</p>' + (extra || '');
+    return d;
+}
+function ids(root) {
+    return [...root.querySelectorAll('[data-testid^="conversation-turn"]')]
+        .map(t => +t.getAttribute('data-testid').replace(/\D+/g, ''));
+}
+
+// ── Сцена 1: диалог из 94 турнов, смонтировано рваное окно (замер 2026-07-20)
+const MOUNTED = [16, 18, 31, 37, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94];
+const clone = document.createElement('main');
+const container = document.createElement('div');
+clone.appendChild(container);
+MOUNTED.forEach(i => container.appendChild(mkTurn(i)));
+const spacer = document.createElement('div');
+spacer.setAttribute('data-testid', 'thread-footer-overflow-spacer');
+container.appendChild(spacer);
+
+const cache = new Map();
+for (let i = 1; i <= 94; i++) {
+    const t = mkTurn(i);
+    cache.set('conversation-turn-' + i,
+              { html: t.outerHTML, hrefs: 0, len: t.innerHTML.length });
+}
+
+out.push('до сборки в клоне турнов: ' + ids(clone).length +
+         '  (' + ids(clone).join(',') + ')');
+restoreVirtualizedTurns(clone, cache);
+const got = ids(clone);
+const want = Array.from({ length: 94 }, (_, k) => k + 1);
+out.push('после сборки: ' + got.length + '\n');
+
+check('все 94 турна собраны', got.length === 94, 'получено ' + got.length);
+check('порядок восходящий и без дыр',
+      JSON.stringify(got) === JSON.stringify(want),
+      got.slice(0, 6).join(',') + ' … ' + got.slice(-3).join(','));
+check('дубликатов нет', new Set(got).size === got.length,
+      'уникальных ' + new Set(got).size);
+check('содержимое соответствует номеру',
+      [...clone.querySelectorAll('[data-testid^="conversation-turn"]')].every(
+          t => t.textContent.trim() ===
+               'T' + t.getAttribute('data-testid').replace(/\D+/g, '')));
+check('посторонние дети контейнера уцелели',
+      !!clone.querySelector('[data-testid="thread-footer-overflow-spacer"]'));
+check('спейсер остался в хвосте', container.lastElementChild === spacer);
+
+// ── Сцена 2: живая копия богаче кэша (ссылки резолвнуты) → должна победить
+const c2 = document.createElement('main');
+const cont2 = document.createElement('div');
+c2.appendChild(cont2);
+cont2.appendChild(mkTurn(5, '<a href="https://example.test">link</a>'));
+const poor = mkTurn(5, '<a class="decorated-link">link</a>');
+const cache2 = new Map([['conversation-turn-5',
+    { html: poor.outerHTML, hrefs: 0, len: poor.innerHTML.length }]]);
+restoreVirtualizedTurns(c2, cache2);
+check('богатая живая копия побеждает бедный кэш',
+      c2.querySelectorAll('a[href]').length === 1,
+      'ссылок с href: ' + c2.querySelectorAll('a[href]').length);
+
+// ── Сцена 3: кэш богаче живого (пустая заглушка — старый режим ChatGPT)
+const c3 = document.createElement('main');
+const cont3 = document.createElement('div');
+c3.appendChild(cont3);
+const empty = document.createElement('div');
+empty.setAttribute('data-testid', 'conversation-turn-7');
+cont3.appendChild(empty);
+const rich = mkTurn(7, '<a href="https://example.test">link</a>');
+const cache3 = new Map([['conversation-turn-7',
+    { html: rich.outerHTML, hrefs: 1, len: rich.innerHTML.length }]]);
+restoreVirtualizedTurns(c3, cache3);
+check('пустая заглушка заполняется из кэша (старый режим не сломан)',
+      c3.textContent.includes('T7') &&
+      c3.querySelectorAll('a[href]').length === 1,
+      'текст: "' + c3.textContent.trim() + '", ссылок: ' +
+      c3.querySelectorAll('a[href]').length);
+
+// ── Сцена 4: пустой кэш — клон не трогаем
+const c4 = document.createElement('main');
+const cont4 = document.createElement('div');
+c4.appendChild(cont4);
+cont4.appendChild(mkTurn(1));
+cont4.appendChild(mkTurn(2));
+restoreVirtualizedTurns(c4, new Map());
+check('пустой кэш = клон без изменений', ids(c4).length === 2);
+
+// ── Сцена 5: turnIndex
+check('turnIndex читает номер', turnIndex('conversation-turn-94') === 94);
+check('turnIndex не падает на мусоре',
+      turnIndex(null) === -1 && turnIndex('') === -1);
+
+out.push('\n' + (failed ? '❌ провалено проверок: ' + failed
+                        : '✅ все проверки пройдены'));
+document.getElementById('log').textContent = out.join('\n');
+</script>

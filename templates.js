@@ -1127,19 +1127,18 @@ const EXPORT_BUTTON_HTML = `
     <div id="gptpdf-extra-btns" class="gptpdf-hidden gptpdf-text-left">
 
         <button
-            id="gptpdf-blocks"
+            id="gptpdf-everything"
             type="button"
             class="gptpdf-extra-btn">
             <span class="gptpdf-menu-icon">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="1.5" y="4" width="7" height="7" rx="1.5"/>
-                    <path d="M3 7.5l2 2 3-3" stroke-width="1.5"/>
-                    <path d="M11 5.5h5.5M11 8h4M11 10.5h5.5" stroke-width="1.5"/>
+                    <rect x="1.5" y="2.5" width="10" height="6.5" rx="2"/>
+                    <rect x="6.5" y="9" width="10" height="6.5" rx="2"/>
                 </svg>
             </span>
             <span class="gptpdf-menu-text">
-                <span class="gptpdf-menu-title">Select to export</span>
-                <span class="gptpdf-menu-desc">Pick blocks to export</span>
+                <span class="gptpdf-menu-title">Everything</span>
+                <span class="gptpdf-menu-desc">Your prompts + AI answers</span>
             </span>
         </button>
 
@@ -1156,6 +1155,23 @@ const EXPORT_BUTTON_HTML = `
             <span class="gptpdf-menu-text">
                 <span class="gptpdf-menu-title">AI answers only</span>
                 <span class="gptpdf-menu-desc">Exclude your prompts from the PDF</span>
+            </span>
+        </button>
+
+        <button
+            id="gptpdf-blocks"
+            type="button"
+            class="gptpdf-extra-btn">
+            <span class="gptpdf-menu-icon">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1.5" y="4" width="7" height="7" rx="1.5"/>
+                    <path d="M3 7.5l2 2 3-3" stroke-width="1.5"/>
+                    <path d="M11 5.5h5.5M11 8h4M11 10.5h5.5" stroke-width="1.5"/>
+                </svg>
+            </span>
+            <span class="gptpdf-menu-text">
+                <span class="gptpdf-menu-title">Select to export</span>
+                <span class="gptpdf-menu-desc">Pick blocks to export</span>
             </span>
         </button>
 

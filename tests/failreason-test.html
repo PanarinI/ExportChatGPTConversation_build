@@ -1,0 +1,61 @@
+<title>gptpdfFailureReason — стенд</title>
+<!--
+  Проверяет классификацию отказа экспорта (gptpdfFailureReason в helpers.js),
+  которая идёт как параметр `reason` в аналитическое событие export_failed.
+
+  Зачем: датчик должен не просто считать сбои, а различать их причины —
+  «сервер задохнулся» (too_large / 503) против «запрос не дошёл» (network:
+  оффлайн или блокировка антивирусом/security-расширением, тихое «not works»).
+  Заведён в релизе 1.1.3 (2026-07-20) по просьбе автора.
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=3000 --dump-dom "file://$PWD/tests/failreason-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../helpers.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function eq(name, got, want) {
+    const ok = got === want;
+    if (!ok) failed++;
+    out.push((ok ? '✓ ' : '✗ ') + name + '   → ' + JSON.stringify(got) +
+             (ok ? '' : ' (ждали ' + JSON.stringify(want) + ')'));
+}
+
+// 432 → fair_use (сознательный лимит, приоритет над всем)
+eq('432 → fair_use', gptpdfFailureReason(432, null), 'fair_use');
+eq('432 даже с timeout-текстом → fair_use',
+   gptpdfFailureReason(432, 'api-timeout'), 'fair_use');
+
+// 503 и таймауты Gotenberg → too_large
+eq('503 → too_large', gptpdfFailureReason(503, ''), 'too_large');
+eq('текст --api-timeout → too_large',
+   gptpdfFailureReason(500, 'Gotenberg: --api-timeout exceeded'), 'too_large');
+eq('текст "time limit" → too_large',
+   gptpdfFailureReason(500, 'PDF engine time limit reached'), 'too_large');
+
+// network-error → network (оффлайн / заблокирован — тихое «not works»)
+eq('network-error → network',
+   gptpdfFailureReason('network-error', 'Failed to fetch'), 'network');
+
+// прочие HTTP-коды → http_<n>
+eq('500 → http_500', gptpdfFailureReason(500, 'internal'), 'http_500');
+eq('413 → http_413', gptpdfFailureReason(413, 'payload too large'), 'http_413');
+
+// клиентские сбои (status = null): stale-расширение, чанк, исключение
+eq('null → client', gptpdfFailureReason(null, null), 'client');
+eq('null с текстом → client',
+   gptpdfFailureReason(null, 'Extension was updated'), 'client');
+
+// низкая кардинальность — значения годятся как GA4-параметр
+const values = ['fair_use', 'too_large', 'network', 'client', 'http_500'];
+eq('все значения — короткие строки без пробелов',
+   values.every(v => /^[a-z0-9_]+$/.test(v)), true);
+
+out.push('\n' + (failed ? '❌ провалено проверок: ' + failed
+                        : '✅ все проверки пройдены'));
+document.getElementById('log').textContent = out.join('\n');
+</script>

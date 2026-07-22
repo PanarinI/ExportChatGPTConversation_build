@@ -2,8 +2,9 @@
 
 // ── GA4 Measurement Protocol ──────────────────────────────────────────────────
 // fetch must go through background.js — ChatGPT CSP blocks requests from content scripts
-function sendGA4Event(eventName) {
-    chrome.runtime.sendMessage({ action: 'ga4Event', eventName: eventName });
+function sendGA4Event(eventName, params) {
+    chrome.runtime.sendMessage(
+        { action: 'ga4Event', eventName: eventName, eventParams: params });
 }
 
 // Shared in-button export feedback (dots spinner + 8s seconds counter), used by
@@ -205,7 +206,7 @@ gptpdfChatGPT.init = function() {
 
             applyQuestionStyles(main_clone, options);
 
-            let title = getTitle();
+            let title = getTitle(main_clone);
             let filename = title;
 
             const cleanup = restoreButtonState;
@@ -682,28 +683,48 @@ if (singlePageBtn) {
     });
 }
 
+// "Everything" and "AI answers only" are the two halves of one setting
+// (`no_questions`), shown as a lit pair. The full export was always the
+// default, but the menu named only the narrower mode — so a user could not
+// tell what the plain Export button did, and asked how to include their own
+// prompts (user report 2026-07-20). Naming the default fixes that without
+// changing any behavior. Clicking a half SETS its value rather than toggling:
+// with both halves visible, a toggle would let the lit one turn itself off.
 const aiOnlyBtn = document.getElementById('gptpdf-ai-only');
+const everythingBtn = document.getElementById('gptpdf-everything');
+
+function gptpdfPaintScope(noQuestions) {
+    if(everythingBtn) {
+        everythingBtn.classList.toggle('gptpdf-active', !noQuestions);
+    }
+    if(aiOnlyBtn) {
+        aiOnlyBtn.classList.toggle('gptpdf-active', !!noQuestions);
+    }
+}
+
+function gptpdfSetScope(noQuestions) {
+    gptpdfShared.getOptions(function(options) {
+        options.no_questions = noQuestions;
+        chrome.storage.sync.set({options: options});
+        gptpdfPaintScope(noQuestions);
+    });
+}
+
+if (aiOnlyBtn || everythingBtn) {
+    gptpdfShared.getOptions(function(options) {
+        gptpdfPaintScope(options.no_questions);
+    });
+}
+
+if (everythingBtn) {
+    everythingBtn.addEventListener('click', function() {
+        gptpdfSetScope(false);
+    });
+}
 
 if (aiOnlyBtn) {
-    gptpdfShared.getOptions(function(options) {
-        if(options.no_questions) {
-            aiOnlyBtn.classList.add('gptpdf-active');
-        }
-    });
-
     aiOnlyBtn.addEventListener('click', function() {
-        gptpdfShared.getOptions(function(options) {
-
-            options.no_questions = !options.no_questions;
-
-            chrome.storage.sync.set({options: options});
-
-            if(options.no_questions) {
-                aiOnlyBtn.classList.add('gptpdf-active');
-            } else {
-                aiOnlyBtn.classList.remove('gptpdf-active');
-            }
-        });
+        gptpdfSetScope(true);
     });
 }
     const options_el = document.getElementById('gptpdf-options');
@@ -723,10 +744,17 @@ if (aiOnlyBtn) {
 }
 
 gptpdfChatGPT.showError = function(status, text, hideContact) {
+  // Every failed export funnels through here (all four paths in request.js),
+  // mirroring saveBlob for success. Fire the failed-export signal with a coarse
+  // reason so success rate — and the "not works" split between a too-large
+  // server timeout and a blocked/offline request — is finally visible. Dev
+  // builds are suppressed in background.js, so testing never counts.
+  const reason = gptpdfFailureReason(status, text);
+  sendGA4Event('export_failed', { reason: reason });
   const html = [];
   // Gotenberg returns 503 with a raw "--api-timeout" message when rendering takes
   // too long — translate that into something a normal user can act on.
-  const isTimeout = status == 503 || (text && /time limit|timeout|--api-timeout/i.test(text));
+  const isTimeout = reason === 'too_large';
   if (status == 432) {
       html.push('<strong>Fair Use Notice</strong>');
       html.push('Current usage is over the limit. Please wait a while before trying again.');

@@ -185,12 +185,13 @@ gptpdfChatGPT.doRequest = function(
     fileName,
     fnCleanup
 ) {
-    // [gptpdf][measure] ВРЕМЕННО — замер до/после. УДАЛИТЬ перед сборкой билда.
+    // Quiet diagnostics: payload size before/after the image shrink. Kept in the
+    // shipped build (was a temporary alert+log) — together with the harvest line
+    // in capture.js it is what makes a user's "not works" report actionable.
     const gptpdfBeforeMB = (htmlContent.length / 1048576).toFixed(1);
     gptpdfChatGPT.shrinkHtmlImages(htmlContent).then(function(shrunk) {
         const gptpdfAfterMB = (shrunk.length / 1048576).toFixed(1);
         console.log('[gptpdf][measure] payload', gptpdfBeforeMB, 'MB →', gptpdfAfterMB, 'MB');
-        alert('[gptpdf замер] payload = ' + gptpdfBeforeMB + ' MB → ' + gptpdfAfterMB + ' MB');
         gptpdfChatGPT.sendChunkedData(
             shrunk,
             params,
