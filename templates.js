@@ -1137,7 +1137,7 @@ const EXPORT_BUTTON_HTML = `
                 </svg>
             </span>
             <span class="gptpdf-menu-text">
-                <span class="gptpdf-menu-title">Everything</span>
+                <span class="gptpdf-menu-title">Everything (select all)</span>
                 <span class="gptpdf-menu-desc">Your prompts + AI answers</span>
             </span>
         </button>
@@ -1355,8 +1355,8 @@ const EXPORT_BUTTON_HTML = `
               <div class="gptpdf-row">
                 <span class="gptpdf-label">Creation date</span>
                 <div class="gptpdf-segment" id="gptpdf-datetime">
-                  <button class="gptpdf-seg-btn" data-value="none">None</button>
-                  <button class="gptpdf-seg-btn active" data-value="date_only">Date</button>
+                  <button class="gptpdf-seg-btn active" data-value="none">None</button>
+                  <button class="gptpdf-seg-btn" data-value="date_only">Date</button>
                   <button class="gptpdf-seg-btn" data-value="full">Date & time</button>
                 </div>
               </div>
@@ -1374,7 +1374,7 @@ const EXPORT_BUTTON_HTML = `
               </div>
               <div class="gptpdf-row">
                 <span class="gptpdf-label">Source link</span>
-                <label class="gptpdf-toggle"><input type="checkbox" id="gptpdf-source-link" checked><span class="gptpdf-toggle-track"></span></label>
+                <label class="gptpdf-toggle"><input type="checkbox" id="gptpdf-source-link"><span class="gptpdf-toggle-track"></span></label>
               </div>
             </div>
 

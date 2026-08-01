@@ -5,6 +5,16 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [Unreleased]
+### Changed
+- Export menu: the "Everything" entry now reads "Everything (select all)", so the
+  whole-conversation option is findable by users who look for a "select all" —
+  a 1–3★ review asked for exactly that while stuck in "Select to export".
+- The PDF no longer prints a date and a source link at the top by default. Both
+  were on out of the box and appeared as extension-added marks above the
+  conversation; they are now off by default and can be re-enabled in Settings
+  (Creation date / Source link).
+
 ## [1.1.3] — 2026-07-20
 ### Fixed
 - Long conversations were exported truncated. ChatGPT changed how it virtualizes
