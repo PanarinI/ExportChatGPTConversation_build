@@ -40,6 +40,27 @@ function hasParent(element, parent) {
     return false;
 }
 
+// True when a <button> wraps a REAL content image (a user-uploaded picture or a
+// generated image) rather than being an action button or a citation/"Sources"
+// button whose only <img>s are tiny favicons. The export cleanup uses this to KEEP
+// such images (unwrap the button) instead of deleting the button with the image
+// inside it — the "no pictures in the PDF" bug: ChatGPT wraps uploaded images in a
+// labeled <button aria-label="Open image: …">, and the old rule removed every
+// labeled button outright. A content image is detected by the size our capture
+// stamped on it (data-gptpdf-w) or by a real inline data: image — never the 1px
+// favicon-blank gif. Pure DOM (candidate for a tests/ stand).
+function gptpdfButtonWrapsContentImage(btn) {
+    if(!btn || !btn.querySelectorAll) return false;
+    const imgs = btn.querySelectorAll('img');
+    for(let i = 0; i < imgs.length; i++) {
+        const img = imgs[i];
+        if(parseInt(img.getAttribute('data-gptpdf-w') || '0', 10) > 64) return true;
+        const src = img.getAttribute('src') || '';
+        if(/^data:image\/(png|jpe?g|webp)/i.test(src) && src.length > 2000) return true;
+    }
+    return false;
+}
+
 function addImgBase64Src(element) {
     const images = element.querySelectorAll('img');
 

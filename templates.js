@@ -1137,7 +1137,7 @@ const EXPORT_BUTTON_HTML = `
                 </svg>
             </span>
             <span class="gptpdf-menu-text">
-                <span class="gptpdf-menu-title">Everything (select all)</span>
+                <span class="gptpdf-menu-title">Select all</span>
                 <span class="gptpdf-menu-desc">Your prompts + AI answers</span>
             </span>
         </button>

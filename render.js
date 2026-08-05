@@ -624,8 +624,9 @@ function cleanupForPdf(clone) {
 
     // ── 3. All UI buttons outside markdown/pre ────────────────────────
     // Removes: message action rows (copy/like/share/edit), image edit buttons.
-    // Exception: buttons wrapping DALL-E images (no aria-label) — unwrap those.
-    // Buttons with aria-label (e.g. "Источники") are removed entirely incl. their images.
+    // Exception: buttons wrapping a real content image (uploaded pics + DALL-E) are
+    // unwrapped so the image survives — even when aria-labeled ("Open image: …").
+    // Citation/"Sources" buttons hold only favicons (no content image) → removed.
     clone.querySelectorAll('button').forEach(function(el) {
         if(!el.closest('.markdown') && !el.closest('pre')) {
             if(el.closest('.no-scrollbar')) {
@@ -635,8 +636,14 @@ function cleanupForPdf(clone) {
                     while(el.firstChild) parent.insertBefore(el.firstChild, el);
                     el.remove();
                 }
-            } else if(!el.getAttribute('aria-label') && el.querySelector('img')) {
-                // DALL-E images are wrapped in unlabeled buttons — unwrap instead of remove
+            } else if((!el.getAttribute('aria-label') && el.querySelector('img')) ||
+                      gptpdfButtonWrapsContentImage(el)) {
+                // Unwrap buttons that wrap a real content image so the image
+                // survives — unlabeled DALL-E buttons AND *labeled* uploaded-image
+                // buttons (aria-label "Open image: <file>"), which the old rule
+                // deleted along with the picture (the "no images in the PDF" bug).
+                // Citation/"Sources" buttons carry only favicons → no content image
+                // → still removed below.
                 const parent = el.parentElement;
                 if(parent) {
                     while(el.firstChild) parent.insertBefore(el.firstChild, el);

@@ -5,15 +5,22 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
-## [Unreleased]
+## [1.1.4] — 2026-08-01
 ### Changed
-- Export menu: the "Everything" entry now reads "Everything (select all)", so the
-  whole-conversation option is findable by users who look for a "select all" —
-  a 1–3★ review asked for exactly that while stuck in "Select to export".
+- Export menu: the whole-conversation option is now labeled "Select all" (was
+  "Everything"), so users who look for a "select all" find it instead of getting
+  lost in "Select to export" — a 1–3★ review asked for exactly this.
 - The PDF no longer prints a date and a source link at the top by default. Both
   were on out of the box and appeared as extension-added marks above the
   conversation; they are now off by default and can be re-enabled in Settings
   (Creation date / Source link).
+### Fixed
+- Uploaded images no longer vanish from the PDF (text-only export). ChatGPT wraps
+  an uploaded picture in a labeled button ("Open image: …"), and the export cleanup
+  removed every such button — deleting the image with it. Buttons that wrap a real
+  image are now kept in both full and selective export, while citation/"Sources"
+  buttons (favicons only) are still removed. Reported by a user with a reproducible
+  single-image test chat.
 
 ## [1.1.3] — 2026-07-20
 ### Fixed

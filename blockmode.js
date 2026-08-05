@@ -529,7 +529,18 @@ function setupBlockMode() {
             main_clone.querySelectorAll('.katex-mathml').forEach(function(el) { el.remove(); });
             main_clone.querySelectorAll('pre button, pre .sticky button').forEach(function(el) { el.remove(); });
             main_clone.querySelectorAll('button').forEach(function(el) {
-                if(!el.closest('.markdown') && !el.closest('pre')) el.remove();
+                if(el.closest('.markdown') || el.closest('pre')) return;
+                // Keep uploaded/generated images ChatGPT wraps in a button, else
+                // selective export drops them too (same bug as the full path).
+                if(gptpdfButtonWrapsContentImage(el)) {
+                    const parent = el.parentElement;
+                    if(parent) {
+                        while(el.firstChild) parent.insertBefore(el.firstChild, el);
+                        el.remove();
+                    }
+                } else {
+                    el.remove();
+                }
             });
             main_clone.querySelectorAll('input[type="file"]').forEach(function(el) { el.remove(); });
             // Remove ChatGPT disclaimer (short leaf element outside turns)
