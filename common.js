@@ -451,6 +451,17 @@ gptpdfChatGPT.init = function() {
         });
     });
 
+    // "Not now" → same as clicking outside (hide until the next export), but visible.
+    // The ask still comes back — a dismiss is a delay, not a refusal, and the user can now see
+    // that the way out exists instead of having to guess it.
+    const gptpdfLater = document.getElementById('gptpdf-rateus-later');
+    if(gptpdfLater) {
+        gptpdfLater.addEventListener('click', function(e) {
+            e.stopPropagation();
+            gptpdfCloseDropdown();
+        });
+    }
+
     // Click outside → close dropdown and revert to Export
     document.addEventListener('click', function(e) {
         if(!gptpdfDropdownOpen) return;

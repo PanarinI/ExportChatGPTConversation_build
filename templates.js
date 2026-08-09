@@ -431,6 +431,18 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-dropdown-label {
 }
 #gptpdf-rateus-dropdown .gptpdf-stars { gap: 4px; }
 #gptpdf-rateus-dropdown .gptpdf-star  { font-size: 22px; }
+/* Видимый выход. Делает ровно то же, что клик мимо кнопки (спрятать до следующего экспорта) —
+   об этом просто больше не надо догадываться. Просьба вернётся, это не «никогда». */
+#gptpdf-rateus-dropdown .gptpdf-rateus-later {
+    font-size: 11px;
+    color: rgba(0,0,0,0.4);
+    cursor: pointer;
+    padding: 0 4px 1px;
+    transition: color 0.15s;
+}
+#gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(0,0,0,0.65); }
+html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later { color: rgba(255,255,255,0.35); }
+html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,255,255,0.6); }
 
  .gptpdf-invisible {
      visibility: hidden;
@@ -1117,6 +1129,7 @@ const EXPORT_BUTTON_HTML = `
             <span class="gptpdf-star" data-n="4">★</span>
             <span class="gptpdf-star" data-n="5">★</span>
         </div>
+        <div class="gptpdf-rateus-later" id="gptpdf-rateus-later">Not now</div>
     </div>
     <div id="gptpdf-no-chat-tooltip" class="gptpdf-no-chat-tooltip">
         Open a conversation first — then click Export

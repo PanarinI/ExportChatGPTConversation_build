@@ -14,7 +14,10 @@ zi6lL3TT
 
 # local research/media — not for git
 html_pdf_converter/
-versions_lib/
+
+# сборки: dist/exportgpt-<версия>[-dev].zip + dist/unpacked-<версия>-dev/ (бывший versions_lib,
+# слит сюда 08-10 — один дом для всех версий). Артефакты, не исходники.
+dist/
 
 # living-context DNA — приватный рабочий контекст, не для публичного код-репо (бэкап отдельно)
 CLAUDE.md

@@ -5,6 +5,14 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [1.1.5] — 2026-08-10
+### Changed
+- The rating prompt now shows a "Not now" link next to the stars. It does exactly
+  what clicking away from the prompt has always done — the Export button comes
+  back and the prompt returns after your next export — but you no longer have to
+  guess that a way out exists. Nothing about when the prompt appears has changed,
+  and a rating still retires it for good.
+
 ## [1.1.4] — 2026-08-01
 ### Changed
 - Export menu: the whole-conversation option is now labeled "Select all" (was

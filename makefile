@@ -1,13 +1,14 @@
-.PHONY: help build-chrome copyfiles
+.PHONY: help dev prod
 
 help:
 	cat makefile
 
-build-chrome: copyfiles
-	rm -rf $(CURDIR)/save-gptchat-as-pdf-chrome.zip
-	cd /tmp/save-chatgpt-to-pdf/ && zip -r $(CURDIR)/save-gptchat-as-pdf-chrome.zip .
+# Сборка идёт ТОЛЬКО через tools/build.sh (см. шапку скрипта). Два режима:
+#   make dev   → dist/exportgpt-<версия>-dev.zip + dist/unpacked-<версия>-dev/ (load unpacked, тест)
+#   make prod  → dist/exportgpt-<версия>.zip (в стор, version_name снят)
+# Готовый zip не перезаписывается: bash tools/build.sh dev --force
+dev:
+	bash tools/build.sh dev
 
-copyfiles:
-	rm -rf /tmp/save-chatgpt-to-pdf/
-	mkdir /tmp/save-chatgpt-to-pdf/
-	rsync -q -av --exclude-from=exclude.txt . /tmp/save-chatgpt-to-pdf/
+prod:
+	bash tools/build.sh prod
