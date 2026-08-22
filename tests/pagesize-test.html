@@ -1,0 +1,128 @@
+<title>Тест формата страницы</title>
+<!--
+  Проверяет выбор формата бумаги: детектор дефолта по часовому поясу
+  (gptpdfShared.defaultPageSize в shared.js), кнопки Page size в модалке
+  настроек и геометрию превью.
+
+  Зачем: 08-22 добавлен Letter (8.5×11in) — офисный стандарт США, Канады,
+  Мексики, Филиппин. США — первая страна по установкам, и все они получали A4,
+  который на Letter-принтере ужимается и иначе ломается по страницам. Движок
+  Letter умел с самого переезда на Gotenberg (background.js), до ветки просто
+  нельзя было дотянуться. Тогда же убран A5 (половина листа A4, вдвое больше
+  страниц ни за что) — вместе с веткой в движке, чтобы не осталось мёртвого
+  кода, и с переводом тех, у кого он был сохранён.
+
+  Дефолт берётся из ЧАСОВОГО ПОЯСА, а не из navigator.language: огромная доля
+  мира сидит в en-US-браузере, и по языку Letter уехал бы в Берлин и Москву.
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=3000 --dump-dom "file://$PWD/tests/pagesize-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../shared.js"></script>
+<script src="../templates.js"></script>
+<script src="../helpers.js"></script>
+<script src="../theme.js"></script>
+<div id="gptpdf-host"></div>
+<script src="../settings.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function eq(name, got, want) {
+    const ok = got === want;
+    if (!ok) failed++;
+    out.push((ok ? '✓ ' : '✗ ') + name + '   → ' + JSON.stringify(got) +
+             (ok ? '' : ' (ждали ' + JSON.stringify(want) + ')'));
+}
+
+// ── 1. Детектор дефолта: подменяем пояс и спрашиваем настоящий shared.js ─────
+const realIntl = Intl.DateTimeFormat;
+function underZone(zone) {
+    Intl.DateTimeFormat = () => ({ resolvedOptions: () => ({ timeZone: zone }) });
+    try { return gptpdfShared.defaultPageSize(); }
+    finally { Intl.DateTimeFormat = realIntl; }
+}
+
+[['America/New_York', 'США — восток'], ['America/Chicago', 'США — центр'],
+ ['America/Los_Angeles', 'США — запад'], ['America/Phoenix', 'США — Аризона'],
+ ['America/Anchorage', 'Аляска'], ['Pacific/Honolulu', 'Гавайи'],
+ ['America/Indiana/Indianapolis', 'Индиана (по префиксу)'],
+ ['America/Kentucky/Louisville', 'Кентукки (по префиксу)'],
+ ['America/North_Dakota/Center', 'Сев. Дакота (по префиксу)'],
+ ['America/Toronto', 'Канада'], ['America/Vancouver', 'Канада — запад'],
+ ['America/Mexico_City', 'Мексика'], ['Asia/Manila', 'Филиппины'],
+ ['America/Santiago', 'Чили'], ['America/Bogota', 'Колумбия']
+].forEach(([zone, label]) => eq(label + ' → letter', underZone(zone), 'letter'));
+
+[['Europe/Moscow', 'Россия'], ['Europe/Berlin', 'Германия'],
+ ['Europe/London', 'Британия'], ['Asia/Tokyo', 'Япония'],
+ ['Asia/Seoul', 'Корея'], ['Asia/Shanghai', 'Китай'],
+ ['Asia/Kolkata', 'Индия'], ['America/Sao_Paulo', 'Бразилия'],
+ ['America/Argentina/Buenos_Aires', 'Аргентина'],
+ ['Asia/Jakarta', 'Индонезия'], ['Asia/Tbilisi', 'Грузия'],
+ ['Australia/Sydney', 'Австралия'], ['UTC', 'UTC']
+].forEach(([zone, label]) => eq(label + ' → a4', underZone(zone), 'a4'));
+
+// Враждебный вход: детектор обязан вернуть a4, а не упасть — иначе он утащит
+// за собой весь content script и расширение не появится на странице.
+Intl.DateTimeFormat = () => { throw new Error('boom'); };
+eq('Intl бросает исключение → a4', (function(){ try { return gptpdfShared.defaultPageSize(); }
+                                                catch(e) { return 'УПАЛ: ' + e.message; } })(), 'a4');
+Intl.DateTimeFormat = () => ({ resolvedOptions: () => ({}) });
+eq('пояс не определён → a4', gptpdfShared.defaultPageSize(), 'a4');
+Intl.DateTimeFormat = realIntl;
+eq('дефолт в defaultOptions — живой формат',
+   ['a4', 'letter'].includes(gptpdfShared.defaultOptions.page_size), true);
+
+// ── 1b. Снятый A5: сохранённое значение переводится на живой формат ─────────
+// Иначе человек печатал бы формат, который кнопки настроек показать не могут:
+// модалка и PDF разошлись бы, и вернуться было бы некуда.
+function storedAs(saved) {
+    window.chrome = { storage: { sync: { get: (k, cb) => cb({ options: saved }) } } };
+    Intl.DateTimeFormat = () => ({ resolvedOptions: () => ({ timeZone: 'Europe/Moscow' }) });
+    let got;
+    try { gptpdfShared.getOptions(o => { got = o.page_size; }); }
+    finally { Intl.DateTimeFormat = realIntl; delete window.chrome; }
+    return got;
+}
+eq('сохранённый a5 → живой формат', storedAs({ page_size: 'a5' }), 'a4');
+eq('сохранённый мусор → живой формат', storedAs({ page_size: 'wat' }), 'a4');
+eq('сохранённый a4 не трогаем', storedAs({ page_size: 'a4' }), 'a4');
+eq('сохранённый letter не трогаем', storedAs({ page_size: 'letter' }), 'letter');
+eq('настроек нет вовсе → дефолт', storedAs(null), 'a4');
+
+// ── 2. Кнопки Page size в живой модалке ─────────────────────────────────────
+document.head.insertAdjacentHTML('beforeend', '<style>' + UI_CSS + '</style>');
+document.getElementById('gptpdf-host').innerHTML = EXPORT_BUTTON_HTML;
+document.dispatchEvent(new Event('DOMContentLoaded'));
+
+const seg = document.getElementById('gptpdf-page-size');
+const values = [...seg.querySelectorAll('.gptpdf-seg-btn')].map(b => b.dataset.value);
+eq('в сегменте два формата, A5 снят', values.join('|'), 'a4|letter');
+
+['a4', 'letter'].forEach(function(size) {
+    gptpdfSetSegment('gptpdf-page-size', size);
+    eq('загрузка настроек показывает ' + size, gptpdfGetSegment('gptpdf-page-size'), size);
+    seg.querySelector('[data-value="' + size + '"]').click();
+    eq('клик по ' + size + ' доезжает до настроек', gptpdfGetSettings().page_size, size);
+});
+
+// ── 3. Геометрия превью — Letter шире и ниже A4 ─────────────────────────────
+const doc = document.getElementById('gptpdf-preview-doc');
+function shape(size) {
+    gptpdfUpdatePreview(Object.assign({}, gptpdfShared.defaultOptions,
+        { page_size: size, orientation: '' }));
+    return { w: parseInt(doc.style.width), h: parseInt(doc.style.height) };
+}
+const a4 = shape('a4'), letter = shape('letter');
+eq('Letter шире A4', letter.w > a4.w, true);
+eq('Letter ниже A4', letter.h < a4.h, true);
+eq('пропорция Letter ≈ 11/8.5', Math.abs(letter.h / letter.w - 11 / 8.5) < 0.02, true);
+eq('пропорция A4 ≈ √2', Math.abs(a4.h / a4.w - 1.414) < 0.02, true);
+
+out.push('\n' + (failed ? '❌ провалено проверок: ' + failed
+                        : '✅ все проверки пройдены'));
+document.getElementById('log').textContent = out.join('\n');
+</script>

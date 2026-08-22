@@ -2,6 +2,56 @@
 
 const gptpdfShared = {};
 
+// Paper size default. Letter (8.5x11in) is the office standard in the US,
+// Canada, Mexico, the Philippines and a few more; A4 (210x297mm) is the
+// standard everywhere else, and A4 printed on a Letter tray gets scaled down
+// and re-broken across pages.
+//
+// The signal is the OS TIME ZONE, not navigator.language: a large share of
+// users worldwide run an en-US browser, so the language would hand Letter to
+// people in Berlin and Moscow. The zone comes from the machine's clock, so it
+// also survives a VPN. A zone that is not listed falls through to A4 and the
+// user can flip the Page size buttons in Settings.
+const GPTPDF_LETTER_ZONE_PREFIXES = [
+    'America/Indiana/', 'America/Kentucky/', 'America/North_Dakota/'
+];
+const GPTPDF_LETTER_ZONES = new Set([
+    // United States
+    'America/New_York', 'America/Detroit', 'America/Chicago', 'America/Menominee',
+    'America/Denver', 'America/Boise', 'America/Phoenix', 'America/Los_Angeles',
+    'America/Anchorage', 'America/Juneau', 'America/Sitka', 'America/Metlakatla',
+    'America/Yakutat', 'America/Nome', 'America/Adak', 'Pacific/Honolulu',
+    'America/Puerto_Rico', 'Pacific/Guam', 'Pacific/Saipan',
+    // Canada
+    'America/Toronto', 'America/Vancouver', 'America/Edmonton', 'America/Winnipeg',
+    'America/Halifax', 'America/St_Johns', 'America/Regina', 'America/Moncton',
+    'America/Whitehorse', 'America/Dawson', 'America/Dawson_Creek', 'America/Creston',
+    'America/Fort_Nelson', 'America/Swift_Current', 'America/Atikokan',
+    'America/Yellowknife', 'America/Iqaluit', 'America/Cambridge_Bay', 'America/Inuvik',
+    'America/Rankin_Inlet', 'America/Resolute', 'America/Goose_Bay', 'America/Glace_Bay',
+    'America/Blanc-Sablon',
+    // Mexico
+    'America/Mexico_City', 'America/Cancun', 'America/Merida', 'America/Monterrey',
+    'America/Matamoros', 'America/Chihuahua', 'America/Ciudad_Juarez', 'America/Ojinaga',
+    'America/Mazatlan', 'America/Bahia_Banderas', 'America/Hermosillo', 'America/Tijuana',
+    // Philippines, Chile, Colombia and neighbours on Letter
+    'Asia/Manila', 'America/Santiago', 'America/Punta_Arenas', 'Pacific/Easter',
+    'America/Bogota', 'America/Caracas', 'America/Panama', 'America/Costa_Rica',
+    'America/Guatemala', 'America/Santo_Domingo'
+]);
+
+gptpdfShared.defaultPageSize = function() {
+    try {
+        const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if(!zone) return 'a4';
+        if(GPTPDF_LETTER_ZONES.has(zone)) return 'letter';
+        if(GPTPDF_LETTER_ZONE_PREFIXES.some(p => zone.startsWith(p))) return 'letter';
+        return 'a4';
+    } catch(e) {
+        return 'a4';
+    }
+};
+
 gptpdfShared.defaultOptions = {
     margins: '',
     theme: '',
@@ -24,7 +74,7 @@ gptpdfShared.defaultOptions = {
     datetime_format: 'none',
     q_align: 'right',
     q_rounded: true,
-    page_size: 'a4',
+    page_size: gptpdfShared.defaultPageSize(),
     orientation: '',
     single_page: false
 }
@@ -56,6 +106,13 @@ gptpdfShared.getOptions = function(callback) {
                 Object.assign(rv, gptpdfShared.defaultOptions);
                 if(obj.options) {
                     Object.assign(rv, obj.options);
+                }
+                // A5 was retired in 1.1.6. A stored size the product no longer
+                // offers would keep printing a page the Settings buttons cannot
+                // show — the modal and the PDF would disagree, with no way back
+                // — so anything but a live format falls through to the default.
+                if(rv.page_size !== 'a4' && rv.page_size !== 'letter') {
+                    rv.page_size = gptpdfShared.defaultPageSize();
                 }
                 callback(rv);
             });

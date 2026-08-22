@@ -111,9 +111,6 @@ function sendToGotenberg(htmlContent, params, sendResponse) {
     if (params.page_size === 'letter') {
         formData.append('paperWidth', '8.5');
         formData.append('paperHeight', isSinglePage ? '200' : '11');
-    } else if (params.page_size === 'a5') {
-        formData.append('paperWidth', '5.83');
-        formData.append('paperHeight', isSinglePage ? '200' : '8.27');
     } else {
         formData.append('paperWidth', '8.27');
         formData.append('paperHeight', isSinglePage ? '200' : '11.69');

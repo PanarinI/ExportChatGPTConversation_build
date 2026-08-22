@@ -1,0 +1,54 @@
+<title>Стенд настроек</title>
+<!--
+  Визуальный стенд модалки настроек — рисует её из НАСТОЯЩИХ templates.js
+  (UI_CSS + EXPORT_BUTTON_HTML) и settings.js, без установки расширения.
+
+  Зачем: строка «Page size» и превью документа проверяются глазами, автотестом
+  такое не ловится. Родился 08-22 при добавлении Letter — надо было убедиться,
+  что сегмент не разъезжает рядом с переключателем ориентации. В тот же день
+  из сегмента убран A5, осталось две кнопки.
+
+  Урок 08-10, воспроизведён здесь руками: без `button { color: inherit }`
+  кнопка берёт чёрный цвет от браузера, и стенд врёт про тёмную тему.
+  На chatgpt.com это делает preflight Tailwind.
+
+  Запуск (глазами, не headless):
+    открыть file://$PWD/tests/settings-modal-stand.html
+    ?theme=dark      — тёмная тема
+    ?size=letter     — каким форматом открыть (a4 | letter)
+-->
+<script src="../shared.js"></script>
+<script src="../templates.js"></script>
+<script src="../helpers.js"></script>
+<script src="../theme.js"></script>
+<div id="gptpdf-host"></div>
+<script>
+const params = new URLSearchParams(location.search);
+if(params.get('theme') === 'dark') {
+    document.documentElement.classList.add('dark');
+    document.body.style.background = '#212121';
+} else {
+    document.body.style.background = '#fff';
+}
+document.head.insertAdjacentHTML('beforeend', '<style>' + UI_CSS + '</style>');
+// Tailwind preflight stand-in — see the 08-10 lesson in the header comment.
+document.head.insertAdjacentHTML('beforeend',
+    '<style>*,::before,::after{box-sizing:border-box}button{color:inherit;font:inherit;margin:0}</style>');
+document.getElementById('gptpdf-host').innerHTML = EXPORT_BUTTON_HTML;
+</script>
+<script src="../settings.js"></script>
+<script>
+// Feed the modal a chosen page size without touching chrome.storage.
+const size = params.get('size') || gptpdfShared.defaultPageSize();
+const opts = Object.assign({}, gptpdfShared.defaultOptions, { page_size: size });
+document.getElementById('gptpdf-settings-overlay').style.display = 'flex';
+gptpdfLoadSettings(opts);
+gptpdfUpdatePreview(opts);
+// Report what the code actually resolved, for the person looking at the screen.
+const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+document.body.insertAdjacentHTML('beforeend',
+    '<div id="stand-note" style="position:fixed;left:8px;bottom:8px;z-index:99999;' +
+    'font:12px/1.5 ui-monospace,monospace;color:#888;background:rgba(127,127,127,.12);' +
+    'padding:6px 10px;border-radius:6px">time zone: ' + zone +
+    ' → default ' + gptpdfShared.defaultPageSize() + ' · showing: ' + size + '</div>');
+</script>

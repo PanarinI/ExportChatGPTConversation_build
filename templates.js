@@ -1285,7 +1285,7 @@ const EXPORT_BUTTON_HTML = `
                 <div style="display:flex;gap:8px;align-items:center;">
                   <div class="gptpdf-segment" id="gptpdf-page-size">
                     <button class="gptpdf-seg-btn active" data-value="a4">A4</button>
-                    <button class="gptpdf-seg-btn" data-value="a5">A5</button>
+                    <button class="gptpdf-seg-btn" data-value="letter">Letter</button>
                   </div>
                   <div class="gptpdf-segment" id="gptpdf-orientation">
                     <button class="gptpdf-seg-btn active" data-value="">↕</button>

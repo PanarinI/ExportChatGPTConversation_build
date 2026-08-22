@@ -426,12 +426,10 @@ function applyConversionOptions(data, trigger, options) {
     }
 
     if(options && options.page_size) {
+        // A4 and Letter are within a quarter inch of each other, so the viewport
+        // needs no correction. (A5 did — it was 70% of A4 and used to scale the
+        // viewport here — but A5 was retired in 1.1.6.)
         data.page_size = options.page_size;
-        // A5 is ~70% the width of A4. Scale viewport so text appears the same
-        // physical size (same pt), not shrunk to fit a smaller page.
-        if(options.page_size === 'a5' && data.viewport_width) {
-            data.viewport_width = Math.round(data.viewport_width * 0.7);
-        }
     }
     if(options && options.orientation === 'landscape') {
         data.orientation = 'landscape';

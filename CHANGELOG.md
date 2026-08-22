@@ -5,6 +5,21 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [1.1.6] — 2026-08-22
+### Added
+- Page size now offers **Letter** (8.5 × 11 in) next to A4. Letter is the office
+  standard in the US, Canada, Mexico and the Philippines, where an A4 export gets
+  shrunk by the printer and re-broken across pages.
+- On a fresh install the default page size follows the computer's time zone: Letter
+  in Letter countries, A4 everywhere else. Your saved choice always wins over the
+  default, so nothing changes for anyone who has already picked a size. The time zone
+  is read on the device and never sent anywhere.
+### Removed
+- **A5 is gone.** It is half an A4 sheet — a notebook page, not an office one — and
+  a chat exported onto it ran to twice the pages for no gain. Page size is now A4 or
+  Letter. If you had A5 selected, your exports move to the size that fits your
+  country; nothing else about them changes.
+
 ## [1.1.5] — 2026-08-10
 ### Changed
 - The rating prompt now shows a "Not now" link next to the stars. It does exactly

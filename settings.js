@@ -135,8 +135,11 @@ function gptpdfUpdatePreview(opts) {
 
     // Page size: change aspect ratio of the mock document
     const isLandscape = o.orientation === 'landscape';
-    const aspectRatio = 1.414; // A4 and A5 share the same √2 ratio
-    const docW = o.page_size === 'a5' ? 112 : 152;
+    // A4 is the √2 ratio (1.414); Letter is squatter — 11/8.5 = 1.294 — and a
+    // touch wider than A4 (8.5in vs 8.27in), so it gets its own numbers.
+    const isLetter = o.page_size === 'letter';
+    const aspectRatio = isLetter ? 1.294 : 1.414;
+    const docW = isLetter ? 156 : 152;
     doc.style.width = docW + 'px';
     doc.style.height = isLandscape
         ? Math.round(docW / aspectRatio) + 'px'
