@@ -1,0 +1,85 @@
+<title>Тест спасения картинок</title>
+<!--
+  Проверяет ГЕЙТ `extractDalleImages` (render.js) — функцию, которая вынимает
+  картинку из абсолютно-позиционированной обёртки ChatGPT. По её собственному
+  комментарию, без этого «картинка схлопывается в пустую/обрезанную коробку».
+
+  Зачем: 08-22 живой голос (ZH) — «кроме картинок первого диалога, картинки
+  последующих не выгружаются». Гейт открывается по двум условиям сразу:
+  src начинается с `data:image/png` И длиннее 500 000 символов. Всё, что
+  пришло другим типом или оказалось мельче, обёртку не покидает.
+
+  Что тест НЕ проверяет: с каким MIME реальные картинки ChatGPT приходят с
+  сервера. Это решается только живым экспортом (08-01 у автора была png).
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=3000 --dump-dom "file://$PWD/tests/late-turn-images-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../shared.js"></script>
+<script src="../helpers.js"></script>
+<script src="../theme.js"></script>
+<script src="../templates.js"></script>
+<script src="../render.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function eq(name, got, want) {
+    const ok = got === want;
+    if (!ok) failed++;
+    out.push((ok ? '✓ ' : '✗ ') + name.padEnd(52) + ' → ' + JSON.stringify(got) +
+             (ok ? '' : '  (ждали ' + JSON.stringify(want) + ')'));
+}
+
+// Обёртка ChatGPT: картинка position:absolute внутри коробки с aspect-ratio.
+// Именно её extractDalleImages и должна вскрывать.
+function wrapped(src) {
+    const root = document.createElement('div');
+    root.innerHTML =
+        '<div data-message-author-role="assistant"><div class="markdown">' +
+        '<div class="aspect" style="position:relative;aspect-ratio:1/1;overflow:hidden">' +
+        '<span style="display:block;width:100%">' +
+        '<img src="' + src + '" style="position:absolute;inset:0;width:100%">' +
+        '</span></div></div></div>';
+    return root;
+}
+// «Спасена» = функция вставила рядом чистый блок и погасила исходную обёртку.
+function rescued(src) {
+    const root = wrapped(src);
+    extractDalleImages(root);
+    const hidden = root.querySelector('.aspect').style.display === 'none';
+    return hidden && root.querySelectorAll('img').length === 2;
+}
+
+const big = 'x'.repeat(500001);
+const small = 'x'.repeat(1000);
+
+out.push('— что гейт пропускает —');
+eq('большой PNG (так ходит canvas-путь)',   rescued('data:image/png;base64,' + big),  true);
+
+out.push('\n— что гейт НЕ пропускает —');
+eq('большой WEBP',                          rescued('data:image/webp;base64,' + big), false);
+eq('большой JPEG',                          rescued('data:image/jpeg;base64,' + big), false);
+eq('большой GIF',                           rescued('data:image/gif;base64,' + big),  false);
+eq('МАЛЕНЬКИЙ PNG (< 500 000 символов)',    rescued('data:image/png;base64,' + small), false);
+eq('несконвертированный удалённый URL',     rescued('https://files.oaiusercontent.com/a.png'), false);
+eq('blob: (так и не покрыт base64)',        rescued('blob:https://chatgpt.com/abc'),  false);
+
+out.push('\n— где порог проходит ровно —');
+eq('PNG в 499 999 символов',  rescued('data:image/png;base64,' + 'x'.repeat(499999 - 22)), false);
+eq('PNG в 500 001 символ',    rescued('data:image/png;base64,' + 'x'.repeat(500001)),      true);
+
+out.push('\n— галерею трогать нельзя (там свой путь) —');
+(function() {
+    const root = wrapped('data:image/png;base64,' + big);
+    root.querySelector('.aspect').classList.add('no-scrollbar');
+    extractDalleImages(root);
+    eq('картинка в .no-scrollbar не вскрывается', root.querySelectorAll('img').length, 1);
+})();
+
+out.push('\n' + (failed ? '❌ провалено проверок: ' + failed
+                        : '✅ все проверки пройдены — гейт ведёт себя ровно как описано'));
+document.getElementById('log').textContent = out.join('\n');
+</script>

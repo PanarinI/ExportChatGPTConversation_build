@@ -5,6 +5,16 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [1.1.7] — 2026-08-22
+### Fixed
+- **Landscape combined with Single page produced a five-metre-wide sheet.** Single
+  page works by making the sheet 200 inches tall so nothing is cut; the landscape
+  option turns the sheet sideways — and it turned that 200 inches into the *width*.
+  A single-page landscape export came out 200 in wide and 8.3 in tall, with the
+  whole conversation squeezed into a strip. Landscape and Single page together now
+  give what they should: a sheet as wide as a landscape page, running down as far
+  as the conversation needs. Landscape on its own was never affected.
+
 ## [1.1.6] — 2026-08-22
 ### Added
 - Page size now offers **Letter** (8.5 × 11 in) next to A4. Letter is the office

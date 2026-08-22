@@ -106,20 +106,27 @@ function sendToGotenberg(htmlContent, params, sendResponse) {
     const formData = new FormData();
     formData.append('files', new Blob([htmlContent], {type: 'text/html'}), 'index.html');
 
-    // Paper size
+    // Paper size and orientation — both sides computed here, on purpose.
+    //
+    // Gotenberg's `landscape` flag is exactly a swap of paperWidth/paperHeight
+    // (measured 08-22: 8.27x11.69 + landscape came back identical to a plain
+    // 11.69x8.27). Harmless on its own — but single-page mode forces the height
+    // to 200in to get one uncut page, and the flag swapped THAT: a single-page
+    // landscape export came out 200in WIDE and 8.28in tall, the whole chat
+    // squeezed into a five-metre strip. Deciding the two numbers ourselves keeps
+    // orientation off the single-page height and drops the dependency on how
+    // Chromium reads the flag.
     const isSinglePage = params.single_page || params.page_height === '-1';
-    if (params.page_size === 'letter') {
-        formData.append('paperWidth', '8.5');
-        formData.append('paperHeight', isSinglePage ? '200' : '11');
-    } else {
-        formData.append('paperWidth', '8.27');
-        formData.append('paperHeight', isSinglePage ? '200' : '11.69');
-    }
+    const isLandscape = params.orientation === 'landscape';
+    const SINGLE_PAGE_HEIGHT = '200';
+    const [shortSide, longSide] = params.page_size === 'letter'
+        ? ['8.5', '11']       // US Letter
+        : ['8.27', '11.69'];  // A4
 
-    // Orientation
-    if (params.orientation === 'landscape') {
-        formData.append('landscape', 'true');
-    }
+    formData.append('paperWidth', isLandscape ? longSide : shortSide);
+    formData.append('paperHeight', isSinglePage
+        ? SINGLE_PAGE_HEIGHT                       // one long page, however wide
+        : (isLandscape ? shortSide : longSide));
 
     // Margins
     if (isDark) {
