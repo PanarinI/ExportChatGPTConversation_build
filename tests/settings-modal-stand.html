@@ -16,6 +16,7 @@
     открыть file://$PWD/tests/settings-modal-stand.html
     ?theme=dark      — тёмная тема
     ?size=letter     — каким форматом открыть (a4 | letter)
+    ?orient=landscape — горизонтальный лист
 -->
 <script src="../shared.js"></script>
 <script src="../templates.js"></script>
@@ -40,7 +41,9 @@ document.getElementById('gptpdf-host').innerHTML = EXPORT_BUTTON_HTML;
 <script>
 // Feed the modal a chosen page size without touching chrome.storage.
 const size = params.get('size') || gptpdfShared.defaultPageSize();
-const opts = Object.assign({}, gptpdfShared.defaultOptions, { page_size: size });
+const orient = params.get('orient') || '';
+const opts = Object.assign({}, gptpdfShared.defaultOptions,
+    { page_size: size, orientation: orient });
 document.getElementById('gptpdf-settings-overlay').style.display = 'flex';
 gptpdfLoadSettings(opts);
 gptpdfUpdatePreview(opts);

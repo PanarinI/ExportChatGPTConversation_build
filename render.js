@@ -426,9 +426,11 @@ function applyConversionOptions(data, trigger, options) {
     }
 
     if(options && options.page_size) {
-        // A4 and Letter are within a quarter inch of each other, so the viewport
-        // needs no correction. (A5 did — it was 70% of A4 and used to scale the
-        // viewport here — but A5 was retired in 1.1.6.)
+        // A5 used to adjust data.viewport_width here. That never reached the
+        // renderer: viewport_width (like rendering_mode, smart_scaling_mode,
+        // jpeg_quality, image_dpi, convert_images_to_jpeg) is a leftover of the
+        // PDFCrowd API — background.js builds its Gotenberg form from twelve
+        // fields and none of those are among them. Retired with A5 in 1.1.6.
         data.page_size = options.page_size;
     }
     if(options && options.orientation === 'landscape') {
