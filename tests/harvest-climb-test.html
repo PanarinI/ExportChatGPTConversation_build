@@ -1,0 +1,302 @@
+<title>harvestVirtualizedTurns — стенд подъёма к началу диалога</title>
+<!--
+  Проверяет, что харвест доходит до ПЕРВОГО сообщения древнего чата (capture.js).
+
+  Зачем: ChatGPT не держит старый чат в DOM и никогда не держал — он хранит окно
+  турнов и подгружает более СТАРЫЕ с сервера, когда домотаешь вверх. Харвест до
+  2026-08 стартовал с `scrollTop = 0` и шёл ВНИЗ: ноль — это верх загруженного
+  окна, а не верх диалога.
+
+  ⚠️ Второй замер того же дня (три экспорта одной вкладки подряд):
+      1→40 · 1→70 · 1→190
+  Нижний турн — всегда самое свежее сообщение, значит номер, растущий для ОДНОГО
+  И ТОГО ЖЕ сообщения, считает загруженное окно: при подгрузке старой страницы
+  ВЕСЬ диалог перенумеровывается. Отсюда сцена C: `data-testid` перестаёт быть
+  личностью турна, ею становится `data-message-id`.
+
+  Сцены:
+    A — контроль: старый алгоритм (только вниз) на сквозной нумерации.
+    B — сегодняшний харвест там же (личность = `data-testid`, запасной путь).
+    C — то же, но сервер ПЕРЕНУМЕРОВЫВАЕТ турны при каждой подгрузке, а у
+        сообщений есть `data-message-id`. Проверяется и порядок пересборки
+        end-to-end через `restoreVirtualizedTurns`.
+    E — чат открыт ПОСЕРЕДИНЕ и лента дёргается вниз при касании верха.
+        Полевой замер 08-27: три экспорта одного чата по 81 странице, текст
+        одинаковый (266 651 против 266 675 знаков), но кусок с 10% одного файла
+        лежал на 91% другого — документ выходил ПОВЁРНУТЫМ. Сцена ловит это.
+    G — подгрузка МЕДЛЕННАЯ, 2.5 с на порцию. Сторож полноты: 08-27 я срезал
+        ожидания ради секунд, и длинные чаты снова перестали доходить до начала.
+        Эта сцена краснеет от такого среза.
+    D — короткий чат, лежащий в DOM целиком: сторож времени.
+    F — средний чат целиком в DOM, но длиннее двух экранов: сторож ожидания
+        наверху. Полевой замер 08-27: 2-страничный документ стоил 7 секунд
+        харвеста, из них около трёх — ожидание подгрузки, которой не бывает. Полевой замер
+        08-27 — 20 секунд на чате из четырёх сообщений, потому что терпение у
+        верха тратилось там, где сверху заведомо ничего нет.
+
+  Запуск (без установки чего-либо):
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=600000 --dump-dom \
+      "file://$PWD/tests/harvest-climb-test.html"
+  или просто открыть файл в браузере.
+
+  Границы: подгрузка с сервера ЭМУЛИРОВАНА. Стенд доказывает логику подъёма и
+  устойчивость к перенумерации, а не то, что живой ChatGPT просыпается именно на
+  этих движениях — это только прогон на chatgpt.com.
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../capture.js"></script>
+<script>
+const TOTAL = 100;          // сообщений в диалоге
+const FIRST = 2;            // ChatGPT нумерует с 2
+const PAGE = 20;            // сколько отдаёт сервер за раз
+const LOADED_AT_OPEN = 40;  // сколько лежит при открытии чата
+const TURN_H = 150;
+const VIEW_H = 400;
+const SHORT = 4;            // короткий чат: столько сообщений, всё сразу в DOM
+
+const out = [];
+let failed = 0;
+function check(name, cond, detail) {
+    if(!cond) failed++;
+    out.push((cond ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+const expectedOrder = (withIds) => {
+    const a = [];
+    for(let i = FIRST; i < FIRST + TOTAL; i++) {
+        a.push(withIds ? 'msg:m' + i : 'conversation-turn-' + i);
+    }
+    return a;
+};
+
+// ── сцена: виртуализатор с серверной подгрузкой вверх ──────────────────
+function mountScene(opts) {
+    const old = document.getElementById('scene');
+    if(old) old.remove();
+    const scroller = document.createElement('div');
+    scroller.id = 'scene';
+    scroller.style.cssText = 'height:' + VIEW_H + 'px;overflow-y:auto';
+    const list = document.createElement('div');
+    scroller.appendChild(list);
+    document.body.appendChild(scroller);
+
+    const ids = [];                  // реальные номера сообщений, лежащие на странице
+    const total = opts.count || (opts.short ? SHORT : TOTAL);
+    let oldestLoaded = (opts.count || opts.short) ? FIRST : FIRST + TOTAL - LOADED_AT_OPEN;
+    let fetching = false, fetches = 0, renumbered = 0;
+    let yanksLeft = opts.yank || 0;
+    const lastTestid = {};           // сообщение → какой номер ему давали в прошлый раз
+
+    // номер в data-testid: сквозной по диалогу ИЛИ по позиции в загруженном окне
+    const testidOf = (real, pos) => opts.renumber ? (pos + 1) : real;
+
+    function html() {
+        const top = scroller.scrollTop, bottom = top + VIEW_H;
+        let h = '';
+        for(let k = 0; k < ids.length; k++) {
+            const y0 = k * TURN_H;
+            const near = y0 + TURN_H > top - VIEW_H && y0 < bottom + VIEW_H;
+            if(!near) {
+                h += '<div style="height:' + TURN_H + 'px"></div>';
+                continue;
+            }
+            const real = ids[k], n = testidOf(real, k);
+            if(lastTestid[real] !== undefined && lastTestid[real] !== n) renumbered++;
+            lastTestid[real] = n;
+            const body = opts.ids
+                ? '<div data-message-id="m' + real + '"><p>msg ' + real + '</p></div>'
+                : '<p>msg ' + real + '</p>';
+            h += '<div data-testid="conversation-turn-' + n + '" style="height:' +
+                 TURN_H + 'px">' + body + '</div>';
+        }
+        return h;
+    }
+    function render() { list.innerHTML = html(); }
+    function loadOlderPage() {
+        if(fetching || oldestLoaded <= FIRST) return;
+        fetching = true; fetches++;
+        setTimeout(function() {                 // «сеть»
+            const n = Math.min(PAGE, oldestLoaded - FIRST);
+            const before = list.scrollHeight;
+            const head = [];
+            for(let i = oldestLoaded - n; i < oldestLoaded; i++) head.push(i);
+            oldestLoaded -= n;
+            ids.unshift.apply(ids, head);
+            const keep = scroller.scrollTop;
+            render();
+            scroller.scrollTop = keep + (list.scrollHeight - before);  // scroll anchoring
+            fetching = false;
+        }, opts.delay || 120);
+    }
+    // Виртуализатор опрашивает ПОЗИЦИЮ таймером, а не слушает событие `scroll`:
+    // в headless-Chrome события прокрутки привязаны к кадрам и почти не доезжают
+    // (замер: 2 события на весь прогон), а таймеры идут исправно.
+    let lastTop = -1;
+    setInterval(function() {
+        if(scroller.scrollTop !== lastTop) { lastTop = scroller.scrollTop; render(); }
+        if(scroller.scrollTop <= 50) {
+            loadOlderPage();
+            // ChatGPT дёргает ленту вниз, когда трогаешь верх (полевое
+            // наблюдение 08-27: полоса к верху → резко вниз, и так ~10 секунд).
+            if(yanksLeft > 0) { yanksLeft--; scroller.scrollTop = list.scrollHeight; }
+        }
+    }, 50);
+
+    for(let i = oldestLoaded; i < FIRST + total; i++) ids.push(i);
+    render();
+    // чат открывается внизу — или там, где человек его оставил
+    scroller.scrollTop = opts.startAt === 'middle'
+        ? Math.floor(list.scrollHeight / 2) : list.scrollHeight;
+    render();
+    return { scroller, list, stats: () => ({ fetches, renumbered }) };
+}
+
+// ── контроль: старый алгоритм (только вниз от нуля) ────────────────────
+async function legacyHarvest(scroller) {
+    const cache = new Map();
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    scroller.scrollTop = 0;
+    await wait(450);
+    captureRenderedTurns(cache);
+    const step = Math.max(200, Math.floor(scroller.clientHeight * 0.7));
+    let stuck = 0;
+    for(let i = 0; i < 400; i++) {
+        const before = scroller.scrollTop;
+        scroller.scrollTop = before + step;
+        await wait(220);
+        captureRenderedTurns(cache);
+        if(scroller.scrollTop <= before + 2) { if(++stuck >= 4) break; } else stuck = 0;
+    }
+    return cache;
+}
+
+(async function run() {
+    // ── A ────────────────────────────────────────────────────────────
+    let scene = mountScene({ renumber: false, ids: false });
+    const legacy = await legacyHarvest(scene.scroller);
+    out.push('— A. Контроль: старый алгоритм (только вниз), сквозная нумерация —');
+    out.push('  поймано ' + legacy.size + ' из ' + TOTAL);
+    check('старый алгоритм НЕ доходит до начала (стенд воспроизводит баг)',
+          legacy.size < TOTAL, 'поймано ' + legacy.size);
+
+    // ── B ────────────────────────────────────────────────────────────
+    scene = mountScene({ renumber: false, ids: false });
+    const b = await harvestVirtualizedTurns();
+    const bi = b.gptpdfHarvest || {};
+    out.push('');
+    out.push('— B. Сегодняшний харвест, сквозная нумерация (личность = data-testid) —');
+    out.push('  поймано ' + b.size + ' из ' + TOTAL + ', подгрузок: ' +
+             scene.stats().fetches + ', top loaded: ' + bi.topLoads + 'x');
+    check('пойман весь диалог', b.size === TOTAL, 'поймано ' + b.size);
+    check('порядок совпал с диалогом',
+          JSON.stringify(b.gptpdfOrder) === JSON.stringify(expectedOrder(false)),
+          'первые: ' + (b.gptpdfOrder || []).slice(0, 3).join(','));
+    check('верх разбудил подгрузку столько раз, сколько страниц не хватало',
+          bi.topLoads === (TOTAL - LOADED_AT_OPEN) / PAGE, 'topLoads=' + bi.topLoads);
+    check('подъём кончился тишиной наверху, а не обрывом',
+          bi.quietAtTop === true, 'quietAtTop=' + bi.quietAtTop);
+    check('ничего не потеряно по отчёту', bi.missing === 0, 'missing=' + bi.missing);
+    check('старый алгоритм заведомо хуже', legacy.size < b.size,
+          legacy.size + ' против ' + b.size);
+
+    // ── C ────────────────────────────────────────────────────────────
+    scene = mountScene({ renumber: true, ids: true });
+    const c = await harvestVirtualizedTurns();
+    const ci = c.gptpdfHarvest || {};
+    const st = scene.stats();
+    out.push('');
+    out.push('— C. То же, но сервер ПЕРЕНУМЕРОВЫВАЕТ турны при подгрузке —');
+    out.push('  поймано ' + c.size + ' из ' + TOTAL + ', подгрузок: ' + st.fetches +
+             ', перенумерований: ' + st.renumbered);
+    check('сцена действительно перенумеровывает (иначе проверка пустая)',
+          st.renumbered > 0, 'перенумерований ' + st.renumbered);
+    check('перенумерация не схлопнула сообщения', c.size === TOTAL,
+          'поймано ' + c.size);
+    check('личность взята из data-message-id',
+          (c.gptpdfOrder || [])[0] === 'msg:m' + FIRST,
+          'первый ключ: ' + (c.gptpdfOrder || [])[0]);
+    check('порядок совпал с диалогом',
+          JSON.stringify(c.gptpdfOrder) === JSON.stringify(expectedOrder(true)),
+          'первые: ' + (c.gptpdfOrder || []).slice(0, 3).join(','));
+
+    // end-to-end: пересборка клона, как в настоящем экспорте
+    const clone = scene.list.cloneNode(true);
+    restoreVirtualizedTurns(clone, c);
+    const built = [...clone.querySelectorAll('[data-message-id]')]
+        .map(x => x.getAttribute('data-message-id'));
+    const want = expectedOrder(true).map(k => k.slice(4));
+    check('пересобранный диалог идёт в правильном порядке от первого до последнего',
+          JSON.stringify(built) === JSON.stringify(want),
+          built.length + ' сообщений, начало: ' + built.slice(0, 3).join(','));
+
+    // ── E. Чат открыт посередине + лента дёргается вниз ──────────────
+    scene = mountScene({ renumber: true, ids: true, yank: 8, startAt: 'middle' });
+    const e = await harvestVirtualizedTurns();
+    const ei = e.gptpdfHarvest || {};
+    out.push('');
+    out.push('— E. Открыт ПОСЕРЕДИНЕ + лента дёргается вниз (как у ChatGPT) —');
+    out.push('  поймано ' + e.size + ' из ' + TOTAL + ', прыжков без перекрытия: ' +
+             ei.orderJumps + ', размещено в порядке: ' + ei.ordered);
+    check('пойман весь диалог', e.size === TOTAL, 'поймано ' + e.size);
+    check('ПОРЯДОК НЕ ПЕРЕВЁРНУТ — диалог начинается с первого сообщения',
+          (e.gptpdfOrder || [])[0] === 'msg:m' + FIRST,
+          'первый: ' + (e.gptpdfOrder || [])[0]);
+    check('порядок совпал с диалогом целиком',
+          JSON.stringify(e.gptpdfOrder) === JSON.stringify(expectedOrder(true)),
+          'первые: ' + (e.gptpdfOrder || []).slice(0, 3).join(','));
+    const cl = scene.list.cloneNode(true);
+    restoreVirtualizedTurns(cl, e);
+    const seq = [...cl.querySelectorAll('[data-message-id]')].map(x => x.getAttribute('data-message-id'));
+    check('пересобранный документ не повёрнут',
+          JSON.stringify(seq) === JSON.stringify(expectedOrder(true).map(k => k.slice(4))),
+          seq.length + ' сообщений, начало: ' + seq.slice(0, 3).join(','));
+
+    // ── G. Медленная подгрузка: страница отдаёт страницу за 2.5 секунды ──
+    scene = mountScene({ renumber: true, ids: true, delay: 2500 });
+    const g = await harvestVirtualizedTurns();
+    const gi = g.gptpdfHarvest || {};
+    out.push('');
+    out.push('— G. Сервер отвечает 2.5 с на порцию —');
+    out.push('  поймано ' + g.size + ' из ' + TOTAL + ', ушло секунд: ' + gi.seconds +
+             ', ритм замерен как ' + gi.maxArrivalGap + ' мс');
+    check('медленная страница всё равно доезжает до начала', g.size === TOTAL,
+          'поймано ' + g.size);
+    check('порядок целый', (g.gptpdfOrder || [])[0] === 'msg:m' + FIRST,
+          'первый: ' + (g.gptpdfOrder || [])[0]);
+
+    // ── D. Короткий чат: он лежит целиком, ждать наверху нечего ───────
+    scene = mountScene({ renumber: false, ids: true, short: true });
+    const d = await harvestVirtualizedTurns();
+    const di = d.gptpdfHarvest || {};
+    out.push('');
+    out.push('— D. Короткий чат (' + SHORT + ' сообщений, всё уже загружено) —');
+    out.push('  поймано ' + d.size + ', ушло секунд: ' + di.seconds +
+             ', top loaded: ' + di.topLoads + 'x');
+    check('короткий чат пойман целиком', d.size === SHORT, 'поймано ' + d.size);
+    check('на коротком чате харвест НЕ ждёт у верха (полевой замер 08-27: было 20 с)',
+          di.seconds <= 5, 'ушло ' + di.seconds + ' с');
+    check('терпение не тратится там, где сверху ничего не приезжает',
+          di.topLoads === 0, 'topLoads=' + di.topLoads);
+
+    // ── F. Средний чат целиком в DOM: платит ли он за чужое ожидание ──
+    scene = mountScene({ renumber: false, ids: true, count: 12 });
+    const f = await harvestVirtualizedTurns();
+    const fi = f.gptpdfHarvest || {};
+    out.push('');
+    out.push('— F. 12 сообщений, всё загружено, лента длиннее двух экранов —');
+    out.push('  поймано ' + f.size + ' из 12, ушло секунд: ' + fi.seconds +
+             '   подъём ' + fi.ms.climb + ' + спуск ' + fi.ms.down + ' + хвост ' + fi.ms.tail + ' мс');
+    check('пойман весь чат', f.size === 12, 'поймано ' + f.size);
+    // 8 с — цена полноты, а не небрежность: первые 3 секунды у верха платит
+    // КАЖДЫЙ чат, потому что отличить «сверху ничего нет» от «сверху отвечают
+    // медленно» страница не даёт (провал 08-27, сцена G). Снимается это не
+    // укорачиванием ожидания, а отказом от повторного спуска — отложено.
+    check('не платит за ожидание больше, чем стоит полнота',
+          fi.seconds <= 8, 'ушло ' + fi.seconds + ' с');
+
+    out.push('');
+    out.push(failed === 0 ? '✅ все проверки пройдены' : '❌ провалено проверок: ' + failed);
+    document.getElementById('log').textContent = out.join('\n');
+})();
+</script>

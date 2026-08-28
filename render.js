@@ -11,8 +11,31 @@ function buildExportCss(theme, isDarkMode) {
     return [
                         // ── Hide sr-only elements (accessibility labels) ──
                         '.sr-only{display:none !important}',
+                        // ── Разрыв страницы перед каждым промптом ────────
+                        // Опция «Page breaks: After each answer» до 08-27 вешала
+                        // на body класс gptpdf-break-after, под который НЕ БЫЛО
+                        // ни одного правила: в модалке пунктир рисовался, в PDF
+                        // не менялось ничего. Метку ставит cleanupForPdf, первый
+                        // промпт её не получает — иначе первая страница ушла бы
+                        // под один заголовок.
+                        '.gptpdf-break-after .gptpdf-newpage{break-before:page !important;page-break-before:always !important}',
+                        // Промпт не режется пополам между страницами. Промпт
+                        // выше страницы браузер разорвёт всё равно — это подсказка,
+                        // а не запрет.
+                        '[data-testid^="conversation-turn"].gptpdf-user-turn{break-inside:avoid !important;page-break-inside:avoid !important}',
+                        // ── Альбомный лист: две колонки ─────────────────
+                        '.gptpdf-landscape .gptpdf-conversation{column-count:2 !important;column-gap:26px !important;column-fill:auto !important}',
+                        '.gptpdf-landscape .gptpdf-conversation pre,.gptpdf-landscape .gptpdf-conversation table{break-inside:avoid-column !important}',
                         // ── "AI answers only": hide user prompts (no_questions) ──
+                        // Прятать сам пузырь мало: обёртка турна остаётся со своими
+                        // отступами, и на месте каждого вопроса зияет пробел
+                        // (жалоба автора 08-27). Убираем турн целиком; правило на
+                        // пузырь оставлено для блочного режима, где меток нет.
+                        '.gptpdf-no-questions .gptpdf-user-turn{display:none !important}',
                         '.gptpdf-no-questions [data-message-author-role="user"]{display:none !important}',
+                        // Без вопросов «новый лист перед каждым вопросом» разрывать
+                        // нечего — переносим разрыв на ответ, который за ним шёл.
+                        '.gptpdf-no-questions.gptpdf-break-after .gptpdf-newpage-ai{break-before:page !important;page-break-before:always !important}',
                         // ── Base font ────────────────────────────────────
                         'body,p,li,td,th,blockquote,div{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif !important}',
                         'h1,h2,h3,h4,h5,h6{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif !important}',
@@ -480,6 +503,13 @@ function buildCssClasses(options, singlePagePrint) {
         classes += 'gptpdf-break-after ';
     }
 
+    // Альбомный лист без колонок даёт строку в 137 знаков (замер 08-27,
+    // книжный — 94, комфортно глазу 65–90). Две колонки возвращают строку
+    // к читаемой и делают широкий лист осмысленным для разговора.
+    if(options.orientation === 'landscape' && !singlePagePrint) {
+        classes += 'gptpdf-landscape ';
+    }
+
     // q_align and q_rounded removed — prompt is always right-aligned
     // via custom_css, no need for class-based alignment
 
@@ -565,6 +595,27 @@ function buildRuleLHtml() {
 // No page numbers (not available client-side).
 // Removes ChatGPT UI elements that should not appear in the PDF.
 function cleanupForPdf(clone) {
+
+    // ── Метки для разрывов страниц и колонок ──────────────────────────
+    // Ставятся всегда, включаются классом на body: правило одно, а решает
+    // настройка. Первый промпт метку не получает — разрыв перед ним оставил бы
+    // первую страницу пустой под заголовком.
+    clone.classList.add('gptpdf-conversation');
+    const _users = clone.querySelectorAll('[data-message-author-role="user"]');
+    for(let i = 0; i < _users.length; i++) {
+        const turn = _users[i].closest('[data-testid^="conversation-turn"]')
+            || _users[i];
+        turn.classList.add('gptpdf-user-turn');
+        if(i > 0) {
+            turn.classList.add('gptpdf-newpage');
+            // Тот же разрыв, но для режима «только ответы»: там вопрос скрыт,
+            // и разрывать надо ответ, который за ним шёл.
+            const next = turn.nextElementSibling;
+            if(next && next.matches('[data-testid^="conversation-turn"]')) {
+                next.classList.add('gptpdf-newpage-ai');
+            }
+        }
+    }
 
     // ── 0. Remove accessibility-only elements (sr-only) that are hidden
     //       in browser via CSS but render as visible text in PDF.

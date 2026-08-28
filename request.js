@@ -35,6 +35,11 @@ gptpdfChatGPT.sendChunkedData = function(
                 fileName: fileName
             }, response => {
                 fnCleanup();
+                if(gptpdfChatGPT._sendStart) {
+                    console.log('[gptpdf][measure] server round trip ' +
+                        ((Date.now() - gptpdfChatGPT._sendStart) / 1000)
+                            .toFixed(1) + 's');
+                }
                 if (response.status != 200) {
                     gptpdfChatGPT.showError(
                         response.status,
@@ -188,6 +193,9 @@ gptpdfChatGPT.doRequest = function(
     // Quiet diagnostics: payload size before/after the image shrink. Kept in the
     // shipped build (was a temporary alert+log) — together with the harvest line
     // in capture.js it is what makes a user's "not works" report actionable.
+    // Сколько занимает ВСЁ после харвеста: картинки в base64, сборка HTML,
+    // отправка, рендер на Gotenberg, ответ. Без этой отметки «долго» — догадка.
+    gptpdfChatGPT._sendStart = Date.now();
     const gptpdfBeforeMB = (htmlContent.length / 1048576).toFixed(1);
     gptpdfChatGPT.shrinkHtmlImages(htmlContent).then(function(shrunk) {
         const gptpdfAfterMB = (shrunk.length / 1048576).toFixed(1);

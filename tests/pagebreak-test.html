@@ -1,0 +1,107 @@
+<title>Разрывы страниц и колонки — стенд</title>
+<!--
+  Проверяет опцию «Page breaks: After each answer» и две колонки в альбомном.
+
+  Зачем: до 27.08.2026 опция вешала на body класс `gptpdf-break-after`, под
+  который НЕ БЫЛО ни одного правила в `buildExportCss`. В модалке настроек
+  рисовался пунктир, в PDF не менялось ничего — жалоба автора: «не срабатывает,
+  а промпты иногда режутся пополам». Сцена C ловит именно этот класс поломок:
+  класс на body есть, правила нет.
+
+  Запуск (без установки чего-либо):
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=5000 --dump-dom \
+      "file://$PWD/tests/pagebreak-test.html"
+
+  Границы: здесь проверяются КЛАССЫ и ПРАВИЛА, а не сам разрыв листа — его
+  печатает Chromium. Печатью проверено отдельно, руками (замер 27.08):
+    node -e "..." > export.css  →  пробный html  →  --print-to-pdf
+    5 обменов без опции = 2 листа, с опцией = 5 листов, по одному на промпт.
+    Альбомный с колонками — две колонки, строка вернулась к читаемой.
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../templates.js"></script>
+<script src="../theme.js"></script>
+<script src="../render.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, cond, detail) {
+    if(!cond) failed++;
+    out.push((cond ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+
+// ── A. Классы на body ────────────────────────────────────────────────
+const clsBreak = buildCssClasses({ page_break: 'after' }, false);
+const clsSingle = buildCssClasses({ page_break: 'after' }, true);
+const clsLand = buildCssClasses({ orientation: 'landscape' }, false);
+const clsLandSingle = buildCssClasses({ orientation: 'landscape' }, true);
+out.push('— A. Классы на body —');
+check('опция разрывов даёт класс', clsBreak.indexOf('gptpdf-break-after') >= 0, clsBreak);
+check('в одностраничном режиме разрывов нет',
+      clsSingle.indexOf('gptpdf-break-after') < 0, clsSingle);
+check('альбомный даёт класс колонок', clsLand.indexOf('gptpdf-landscape') >= 0, clsLand);
+check('одностраничный альбомный без колонок',
+      clsLandSingle.indexOf('gptpdf-landscape') < 0, clsLandSingle);
+
+// ── B. Метки в клоне ─────────────────────────────────────────────────
+function mkTurn(n, role) {
+    const d = document.createElement('div');
+    d.setAttribute('data-testid', 'conversation-turn-' + n);
+    d.innerHTML = '<div data-message-author-role="' + role + '"><p>текст ' + n + '</p></div>';
+    return d;
+}
+const clone = document.createElement('main');
+[[2,'user'],[3,'assistant'],[4,'user'],[5,'assistant'],[6,'user']]
+    .forEach(([n, r]) => clone.appendChild(mkTurn(n, r)));
+cleanupForPdf(clone);
+const marked = [...clone.querySelectorAll('.gptpdf-newpage')]
+    .map(t => t.getAttribute('data-testid'));
+const userTurns = [...clone.querySelectorAll('.gptpdf-user-turn')]
+    .map(t => t.getAttribute('data-testid'));
+out.push('');
+out.push('— B. Метки в клоне —');
+check('контейнер разговора помечен',
+      clone.classList.contains('gptpdf-conversation'), clone.className);
+check('помечены все промпты, и только они',
+      JSON.stringify(userTurns) === JSON.stringify(
+          ['conversation-turn-2','conversation-turn-4','conversation-turn-6']),
+      userTurns.join(','));
+check('ПЕРВЫЙ промпт не получает разрыв (иначе первый лист пустой)',
+      JSON.stringify(marked) === JSON.stringify(
+          ['conversation-turn-4','conversation-turn-6']), marked.join(','));
+check('метка стоит на ТУРНЕ, а не внутри пузыря',
+      clone.querySelectorAll('[data-message-author-role].gptpdf-newpage').length === 0);
+const aiMarked = [...clone.querySelectorAll('.gptpdf-newpage-ai')]
+    .map(t => t.getAttribute('data-testid'));
+check('в режиме «только ответы» разрыв переезжает на следующий ответ',
+      JSON.stringify(aiMarked) === JSON.stringify(['conversation-turn-5']),
+      aiMarked.join(',') || 'ничего');
+
+// ── C. У каждого класса есть правило ─────────────────────────────────
+// Сторож против поломки 27.08: класс на body был, правила под него — нет.
+const css = buildExportCss(EXPORT_THEMES[Object.keys(EXPORT_THEMES)[0]], false);
+out.push('');
+out.push('— C. Мёртвых классов нет —');
+['gptpdf-break-after','gptpdf-landscape','gptpdf-no-questions','gptpdf-newpage',
+ 'gptpdf-user-turn','gptpdf-conversation'].forEach(c => {
+    check('на .' + c + ' есть правило в CSS', css.indexOf(c) >= 0);
+});
+check('в режиме «только ответы» прячется весь турн, а не пузырь',
+      /gptpdf-no-questions \.gptpdf-user-turn\{display:none/.test(css));
+check('разрыв в режиме «только ответы» есть',
+      css.indexOf('gptpdf-newpage-ai') >= 0);
+check('промпт не режется между страницами',
+      /gptpdf-user-turn\{[^}]*break-inside:avoid/.test(css));
+check('колонки включаются только под классом альбомного',
+      /gptpdf-landscape[^{]*\{[^}]*column-count:2/.test(css));
+// Превью в модалке обязано показывать то же, что печатается: класс есть в UI_CSS.
+check('у превью есть правило на две колонки',
+      /gptpdf-prev-columns[^{]*\{[^}]*column-count:\s*2/.test(UI_CSS),
+      'UI_CSS');
+
+out.push('');
+out.push(failed === 0 ? '✅ все проверки пройдены' : '❌ провалено проверок: ' + failed);
+document.getElementById('log').textContent = out.join('\n');
+</script>

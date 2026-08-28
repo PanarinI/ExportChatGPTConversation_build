@@ -5,8 +5,57 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
-## [1.1.7] — 2026-08-22
+## [1.1.7] — 2026-08-27
 ### Fixed
+- **Long conversations were exported from the middle, not from the beginning.**
+  ChatGPT does not keep an old chat in the page: it holds a window of messages
+  and fetches older ones from its server only as you scroll up. The exporter
+  jumped to the top of that window — which in a long chat is somewhere in the
+  middle — and read downwards from there, so the PDF began wherever the page
+  happened to be loaded and quietly ended up 40–60 pages long however long the
+  chat really was. It now climbs to the true first message, waiting for each
+  older stretch to arrive, before it starts reading, and it says in the page
+  how many messages it has loaded so far.
+- **"Page breaks: after each answer" did nothing.** The setting was wired to the
+  preview, which drew a dashed line between exchanges, and to a marker on the
+  document — but the rule that actually breaks the page was never there. Every
+  export came out with the same continuous flow whichever way the setting was
+  left. It now does what it says: each of your prompts starts a fresh page, with
+  the answer it replies to left on the previous one. The first prompt is not
+  pushed down, so the file still opens on your first question.
+- **"AI answers only" left a blank gap where each prompt had been.** Hiding a
+  prompt hid the text but kept the frame it sat in, spacing and all, so the
+  export came out with a hole between every pair of answers. The whole block is
+  removed now. With page breaks switched on in this mode, each answer starts a
+  fresh page — there is no prompt left to start one.
+- **Your prompts were split across two pages.** A question that happened to fall
+  near the bottom of a sheet was cut in half. Prompts now move to the next page
+  whole, unless one is longer than a page.
+- **Landscape now sets the conversation in two columns.** A landscape sheet is
+  40% wider, and the text was simply run across all of it — around 137 characters
+  a line, where the eye starts losing its place past 90. Two columns bring the
+  line back to a comfortable length and give the wider sheet a reason to exist.
+  Tables and code still use the full width. Landscape combined with Single page
+  keeps the single long sheet and stays in one column. The preview in Settings
+  shows the columns, so what you pick is what you get.
+- **Messages could come out in the wrong order.** The export read the page in
+  snapshots and stitched them together by their overlap. ChatGPT pulls the list
+  back down when you touch its top, and a jump left a snapshot with nothing to
+  attach to — those messages were appended at the end. The conversation was all
+  there, in the wrong order, and where it started depended on where the chat
+  happened to be scrolled when you pressed Export. Messages are now placed by
+  their position relative to each other, which survives both the jumps and
+  ChatGPT renumbering the conversation as older parts load.
+### Changed
+- **A short chat now takes a few seconds longer than before.** The export first
+  checks whether there is an unloaded part above, and on a chat that has none
+  that check is spent for nothing. It is the price of the fix above; the waiting
+  is kept as short as the page allows, and the loading window now counts the
+  messages it has read so you can see it working.
+- **The wait is no longer capped at 90 seconds.** The old limit was a length
+  limit in disguise: a chat that needed more scrolling than that was cut with no
+  warning. The export now keeps going while it is still making progress and
+  stops when nothing new arrives; Cancel is available the whole time.
 - **Landscape combined with Single page produced a five-metre-wide sheet.** Single
   page works by making the sheet 200 inches tall so nothing is cut; the landscape
   option turns the sheet sideways — and it turned that 200 inches into the *width*.

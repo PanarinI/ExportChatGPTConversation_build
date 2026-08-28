@@ -1071,6 +1071,13 @@ html.dark #gptpdf-preview-label { color: rgba(255,255,255,0.28); }
     box-shadow: 0 4px 20px rgba(0,0,0,0.15); transition: background 0.3s; overflow: hidden;
     position: relative;
 }
+/* Альбомный лист печатается в две колонки — превью обязано показывать то же.
+   Flex-колонка с gap для многоколоночной раскладки не годится, поэтому на время
+   альбомного переключаемся на block + column-count, а gap заменяем отступом. */
+#gptpdf-preview-doc.gptpdf-prev-columns {
+    display: block; column-count: 2; column-gap: 9px;
+}
+#gptpdf-preview-doc.gptpdf-prev-columns > * { margin-bottom: 7px; break-inside: avoid; }
 #gptpdf-preview-doc.preview-light { background: #fff; }
 #gptpdf-preview-doc.preview-dark { background: #333; }
 

@@ -145,6 +145,12 @@ function gptpdfUpdatePreview(opts) {
         ? Math.round(docW / aspectRatio) + 'px'
         : Math.round(docW * aspectRatio) + 'px';
 
+    // Две колонки — ровно там же, где их даёт печать: альбомный лист и не
+    // одностраничный режим (у одностраничного лист один и длинный, делить
+    // нечего). Класс ставится ПОСЛЕ присвоения className выше — то присвоение
+    // затирает список классов целиком.
+    doc.classList.toggle('gptpdf-prev-columns', isLandscape && !o.single_page);
+
     // Margins: adjust preview doc padding to give a visual sense of margin size
     if(o.margins === 'minimal') {
         doc.style.padding = '4px 3px';

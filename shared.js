@@ -81,6 +81,14 @@ gptpdfShared.defaultOptions = {
 
 gptpdfShared.version = 'v3.9';
 
+// Метка сборки. В дереве репозитория всегда 'source'; в ПАКЕТ её штампует
+// tools/build.sh (дев — версия + время сборки, прод — чистый номер). Одна
+// строка в консоли отвечает на вопрос «какой пакет реально живёт в браузере».
+// Урок 2026-08-26: без неё три прогона экспорта подряд ушли на старом коде —
+// Reload на карточке расширения не взял, а отличить сборки было нечем.
+gptpdfShared.build = 'source';
+console.log('[gptpdf] build ' + gptpdfShared.build);
+
 gptpdfShared.rateUsLink = '#';
 // For 1–3 stars: redirect to private feedback form instead of public CWS review
 gptpdfShared.feedbackFormLink = 'https://forms.gle/tXvfsrDsYbMprwiR7';

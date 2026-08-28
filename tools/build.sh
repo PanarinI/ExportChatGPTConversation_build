@@ -69,6 +69,21 @@ json.dump(m, open(path, 'w'), ensure_ascii=False, indent=4)
 open(path, 'a').write('\n')
 PY
 
+# Метка сборки — тоже ТОЛЬКО в копии. Без неё «почему правка не приехала»
+# стоит целого прогона экспорта: в chrome://extensions обе дев-сборки выглядят
+# одинаково (version_name один и тот же), а отличить их в бою было нечем.
+python3 - "$STAGE/shared.js" "$MODE" "$VER" <<'PY'
+import io, sys, time
+path, mode, ver = sys.argv[1], sys.argv[2], sys.argv[3]
+stamp = ver + '-dev · ' + time.strftime('%d.%m %H:%M') if mode == 'dev' else ver
+s = io.open(path, encoding='utf-8').read()
+old = "gptpdfShared.build = 'source';"
+if old not in s:
+    sys.exit('СТОП: в shared.js нет метки сборки gptpdfShared.build')
+io.open(path, 'w', encoding='utf-8').write(
+    s.replace(old, "gptpdfShared.build = '" + stamp + "';"))
+PY
+
 # Всё, что манифест обещает, должно доехать: забытый в exclude.txt файл роняет сборку здесь,
 # а не тихо ломает расширение у людей.
 python3 - "$STAGE" <<'PY'
