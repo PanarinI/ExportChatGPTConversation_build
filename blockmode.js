@@ -62,6 +62,161 @@ function restoreSelectedTurns(clone, turnSnapshots, bidsToKeep) {
     });
 }
 
+// Returns all selectable content blocks under `root` — the live page by
+// default, an export clone when filtering. Lifted out of setupBlockMode so the
+// SAME walk serves both sides: the checkboxes drawn on the page and the removal
+// of unchecked blocks from the clone. If the two sides disagreed about what a
+// block is, "everything minus these" would cut the wrong thing.
+// • User message  → whole [data-message-author-role="user"] = 1 block
+// • AI message    → each direct child of .markdown (skip hr/script/style)
+function gptpdfFindBlocks(root) {
+    const scope = root || document;
+    const result = [];
+    scope.querySelectorAll(
+        '[data-testid^="conversation-turn"]'
+    ).forEach(function(turn) {
+        const userEl = turn.querySelector(
+            '[data-message-author-role="user"]');
+        if(userEl) {
+            result.push(userEl);
+            return;
+        }
+        // AI turn: drill into .markdown container
+        const markdown = turn.querySelector('.markdown');
+        if(markdown) {
+            Array.from(markdown.children).forEach(function(child) {
+                const tag = child.tagName;
+                if(!tag) return;
+                if(tag === 'HR' || tag === 'SCRIPT' || tag === 'STYLE') return;
+                // Skip our own injected UI elements
+                if(child.classList.contains('gptpdf-img-sel-row')) return;
+                result.push(child);
+            });
+        }
+        // Generated/uploaded images (e.g. DALL-E) often live OUTSIDE .markdown
+        // in their own container — make them selectable blocks too.
+        turn.querySelectorAll('img').forEach(function(img) {
+            const src = img.getAttribute('src') || '';
+            // Recognise a generated/uploaded image 3 ways, so detection is
+            // robust to the src changing. The export converts the live <img>
+            // to a base64 src, so a URL-only check would STOP matching it after
+            // the first export — and the checkbox would vanish (the reported bug).
+            const isGenImg = !!img.closest('[class*="imagegen"]');
+            const isProtectedUrl = src.indexOf('/backend-api/') !== -1 ||
+                                   src.indexOf('oaiusercontent') !== -1 ||
+                                   src.indexOf('images.openai') !== -1;
+            const isBigData = src.startsWith('data:image/') && src.length > 50000;
+            if(!isGenImg && !isProtectedUrl && !isBigData) return;
+            if(markdown && markdown.contains(img)) return;
+            let container = img;
+            while(container.parentElement && container.parentElement !== turn) {
+                container = container.parentElement;
+            }
+            if(container !== turn && container.tagName &&
+               !container.classList.contains('gptpdf-img-sel-row') &&
+               result.indexOf(container) === -1) {
+                result.push(container);
+            }
+        });
+    });
+    return result;
+}
+
+// Stable identity of a block, good on both the live page and a clone.
+// A bid is useless here: it is handed out at attach time and a turn that
+// ChatGPT unmounts and remounts comes back a fresh node with a NEW bid, while
+// blocks restored from the harvest never had one at all. So identity is built
+// from what the server owns — the message id — plus the block's place inside
+// its message. `data-testid` is only the fallback: its number counts the loaded
+// window and the whole thread is renumbered when older pages load in
+// (CHATGPT-DOM.md §3), so it means different messages at different moments.
+// Our own injected rows are skipped when counting, so inserting one does not
+// renumber the blocks under it.
+function gptpdfBlockKey(el) {
+    if(!el) return '';
+    const turn = el.closest('[data-testid^="conversation-turn"]');
+    let msg = el.closest('[data-message-id]');
+    // Image containers sit OUTSIDE the message element (as a child of the
+    // turn), so the message id is below them, not above.
+    if(!msg && turn) msg = turn.querySelector('[data-message-id]');
+    const id = msg && msg.getAttribute('data-message-id');
+    const base = id ? 'msg:' + id
+                    : (turn ? (turn.getAttribute('data-testid') || '') : '');
+    if(msg === el) return base + '#u';        // the user message = one block
+    const parent = el.parentElement;
+    if(!parent) return base + '#0';
+    let i = 0;
+    const kids = parent.children;
+    for(let k = 0; k < kids.length; k++) {
+        const ch = kids[k];
+        if(ch.classList && ch.classList.contains('gptpdf-img-sel-row')) continue;
+        if(ch === el) return base + '#' + i;
+        i++;
+    }
+    return base + '#?';
+}
+
+// ── handover from "Select all" mode to the full export ─────────────────────
+// In that mode the export is NOT a sparse selection: it is the whole
+// conversation with holes. So it rides the normal full-export path (which
+// climbs to the real start, re-lays the turns in order and builds the TOC) and
+// only the unchecked blocks are cut out of its clone, here. Both values are
+// consumed once — a later ordinary export must not inherit them.
+let gptpdfPendingExclusions = null;
+let gptpdfPendingTurnCache  = null;
+
+// The harvest block mode already paid for on entry. Handing it over spares the
+// user a second climb through a long conversation for the same conversation.
+function gptpdfTakePrefetchedTurns() {
+    const cache = gptpdfPendingTurnCache;
+    gptpdfPendingTurnCache = null;
+    return cache;
+}
+
+// Cut the unchecked blocks out of the full-export clone, and with them any turn
+// left with nothing. Also sweeps block-mode's own markup, in case a turn was
+// captured while the checkboxes were on the page.
+function gptpdfApplyBlockExclusions(clone) {
+    if(!clone) return;
+    const excluded = gptpdfPendingExclusions;
+    gptpdfPendingExclusions = null;
+
+    clone.querySelectorAll('.gptpdf-block-cb, .gptpdf-img-sel-row').forEach(
+        function(el) { el.remove(); });
+    clone.querySelectorAll('.gptpdf-block-sel, .gptpdf-block-checked').forEach(
+        function(el) {
+            el.classList.remove('gptpdf-block-sel', 'gptpdf-block-checked');
+        });
+    clone.querySelectorAll('[data-gptpdf-bid]').forEach(
+        function(el) { el.removeAttribute('data-gptpdf-bid'); });
+
+    if(!excluded || excluded.size === 0) return;
+
+    // Every key is read BEFORE anything is removed. A block's place inside its
+    // message is part of its name, so cutting one out mid-read renames whatever
+    // stood after it, and the neighbour that slides into the empty place would
+    // be cut as well. Blocks are counted per turn on the same pass: a turn goes
+    // only if EVERY block in it was unchecked, and a turn that never had a
+    // block (tool/system rows) is left alone.
+    const perTurn = new Map();
+    const marked = [];
+    gptpdfFindBlocks(clone).forEach(function(el) {
+        const turn = el.closest('[data-testid^="conversation-turn"]');
+        if(!turn) return;
+        let rec = perTurn.get(turn);
+        if(!rec) { rec = { total: 0, cut: 0 }; perTurn.set(turn, rec); }
+        rec.total++;
+        if(excluded.has(gptpdfBlockKey(el))) {
+            rec.cut++;
+            marked.push(el);
+        }
+    });
+    marked.forEach(function(el) { el.remove(); });
+    perTurn.forEach(function(rec, turn) {
+        if(rec.total > 0 && rec.cut === rec.total) turn.remove();
+    });
+}
+
 function setupBlockMode() {
     const blocksBtn = document.getElementById('gptpdf-blocks');
     const bar       = document.getElementById('gptpdf-blocks-bar');
@@ -76,85 +231,121 @@ function setupBlockMode() {
     const blockMap     = new Map();
     const selectedBids = new Set();
     const turnSnapshots = new Map(); // data-testid -> message outerHTML; keeps selection alive across unmount
+    // "Select all" is not a bulk tick of the checkboxes — the blocks the user
+    // never scrolled to are not in the page at all, so there is nothing to tick.
+    // It flips the meaning of the selection: take the whole conversation, and
+    // the boxes below now say what to LEAVE OUT. Hence a set of keys, not bids.
+    let allMode = false;
+    const excludedKeys = new Set();
+    let allRow = null;          // the "Select all" row above the first block
+    let entryTurnCache = null;  // harvest from block-mode entry, reused on export
 
     // ── helpers ────────────────────────────────────────────────────────────
 
     function updateBar() {
-        const n = selectedBids.size;
+        const n  = selectedBids.size;
+        const ex = excludedKeys.size;
         const isRu = (navigator.language || '').toLowerCase().startsWith('ru');
         if(isRu) {
-            countEl.textContent = n === 1 ? '1 блок выбран' : n + ' блоков выбрано';
+            countEl.textContent = allMode
+                ? (ex ? 'Всё, кроме ' + ex : 'Выбрано всё')
+                : (n === 1 ? '1 блок выбран' : n + ' блоков выбрано');
             exportBtn.textContent = 'Экспортировать';
             cancelBtn.textContent = 'Отмена';
         } else {
-            countEl.textContent = n === 1 ? '1 block selected' : n + ' blocks selected';
+            countEl.textContent = allMode
+                ? (ex ? 'All but ' + ex : 'All blocks')
+                : (n === 1 ? '1 block selected' : n + ' blocks selected');
             exportBtn.textContent = 'Export selected';
             cancelBtn.textContent = 'Cancel';
         }
-        exportBtn.disabled = (n === 0);
+        exportBtn.disabled = (!allMode && n === 0);
     }
 
-    // Returns all selectable content blocks from the current DOM.
-    // • User message  → whole [data-message-author-role="user"] = 1 block
-    // • AI message    → each direct child of .markdown (skip hr/script/style)
-    function findBlocks() {
-        const result = [];
-        document.querySelectorAll(
-            '[data-testid^="conversation-turn"]'
-        ).forEach(function(turn) {
-            const userEl = turn.querySelector(
-                '[data-message-author-role="user"]');
-            if(userEl) {
-                result.push(userEl);
-                return;
-            }
-            // AI turn: drill into .markdown container
-            const markdown = turn.querySelector('.markdown');
-            if(markdown) {
-                Array.from(markdown.children).forEach(function(child) {
-                    const tag = child.tagName;
-                    if(!tag) return;
-                    if(tag === 'HR' || tag === 'SCRIPT' || tag === 'STYLE') return;
-                    // Skip our own injected UI elements
-                    if(child.classList.contains('gptpdf-img-sel-row')) return;
-                    if(child.hasAttribute('data-gptpdf-bid')) return;
-                    result.push(child);
-                });
-            }
-            // Generated/uploaded images (e.g. DALL-E) often live OUTSIDE .markdown
-            // in their own container — make them selectable blocks too.
-            turn.querySelectorAll('img').forEach(function(img) {
-                const src = img.getAttribute('src') || '';
-                // Recognise a generated/uploaded image 3 ways, so detection is
-                // robust to the src changing. The export converts the live <img>
-                // to a base64 src, so a URL-only check would STOP matching it after
-                // the first export — and the checkbox would vanish (the reported bug).
-                const isGenImg = !!img.closest('[class*="imagegen"]');
-                const isProtectedUrl = src.indexOf('/backend-api/') !== -1 ||
-                                       src.indexOf('oaiusercontent') !== -1 ||
-                                       src.indexOf('images.openai') !== -1;
-                const isBigData = src.startsWith('data:image/') && src.length > 50000;
-                if(!isGenImg && !isProtectedUrl && !isBigData) return;
-                if(markdown && markdown.contains(img)) return;
-                let container = img;
-                while(container.parentElement && container.parentElement !== turn) {
-                    container = container.parentElement;
-                }
-                if(container !== turn && container.tagName &&
-                   !container.classList.contains('gptpdf-img-sel-row') &&
-                   !container.hasAttribute('data-gptpdf-bid') &&
-                   result.indexOf(container) === -1) {
-                    result.push(container);
-                }
-            });
-        });
-        return result;
+    // Paint one block to match the mode: in "all" a box is ticked unless it was
+    // explicitly unchecked, otherwise it follows the manual pick.
+    function paintBlock(info) {
+        const checked = allMode ? !excludedKeys.has(info.key)
+                                : selectedBids.has(info.bid);
+        info.cb.checked = checked;
+        info.visualEl.classList.toggle('gptpdf-block-checked', checked);
+        if(info.selRow) {
+            info.selRow.classList.toggle('gptpdf-img-sel-checked', checked);
+        }
     }
+
+    function syncAllRow() {
+        if(!allRow) return;
+        const cb = allRow.querySelector('input[type=checkbox]');
+        if(!cb) return;
+        cb.checked = allMode;
+        // Ticked but with holes is neither on nor off — say so instead of
+        // showing a tick that promises a whole conversation.
+        cb.indeterminate = allMode && excludedKeys.size > 0;
+        allRow.classList.toggle('gptpdf-img-sel-checked', allMode);
+    }
+
+    // The two modes are exclusive: a manual pick and "everything minus" cannot
+    // both be true, so switching clears the other side.
+    function setAllMode(on) {
+        allMode = !!on;
+        excludedKeys.clear();
+        selectedBids.clear();
+        turnSnapshots.clear();
+        blockMap.forEach(paintBlock);
+        syncAllRow();
+        updateBar();
+    }
+
+    function buildAllRow() {
+        const row = document.createElement('div');
+        row.className = 'gptpdf-img-sel-row gptpdf-all-row';
+        row.innerHTML = SELECT_ALL_ROW_HTML;
+        row.addEventListener('click', function(e) {
+            if(e.target.type === 'checkbox') return; // handled by change
+            setAllMode(!allMode);
+        });
+        row.querySelector('input[type=checkbox]')
+            .addEventListener('change', function(e) {
+                setAllMode(e.target.checked);
+            });
+        return row;
+    }
+
+    // The row lives above the first block on the page. Block mode opens at the
+    // top of the thread, so that is where the eye already is; later ChatGPT may
+    // unmount that turn and take the row with it, so it is re-anchored to
+    // whichever block is topmost at the time.
+    function ensureAllRow() {
+        if(!inBlockMode) return;
+        const first = document.querySelector('[data-gptpdf-bid]');
+        if(!first || !first.parentElement) return;
+        // An image block carries its own "Select image block" row just above
+        // it — stand above that one too, or the pair reads back to front.
+        let anchor = first;
+        const prev = first.previousElementSibling;
+        if(prev && prev !== allRow && prev.classList &&
+           prev.classList.contains('gptpdf-img-sel-row')) {
+            anchor = prev;
+        }
+        if(!allRow) allRow = buildAllRow();
+        // Compared against the anchor, not moved blindly: re-inserting on every
+        // pass would feed the MutationObserver its own mutation for ever.
+        if(!document.contains(allRow) || allRow.nextElementSibling !== anchor) {
+            anchor.parentElement.insertBefore(allRow, anchor);
+        }
+        syncAllRow();
+    }
+
+    function findBlocks() { return gptpdfFindBlocks(document); }
 
     const isRuLang = false; // UI is English-only
 
     function attachBlock(el) {
         const bid = String(++bidCounter);
+        // Computed before we touch the DOM, and independent of the bid: this is
+        // what survives the block being unmounted and mounted again.
+        const key = gptpdfBlockKey(el);
         el.setAttribute('data-gptpdf-bid', bid);
 
         // For table containers: outer div is 100% wide but the inner
@@ -211,12 +402,21 @@ function setupBlockMode() {
             cb.checked = checked;
             visualEl.classList.toggle('gptpdf-block-checked', checked);
             if(selRow) selRow.classList.toggle('gptpdf-img-sel-checked', checked);
-            if(checked) selectedBids.add(bid);
-            else         selectedBids.delete(bid);
-            // Snapshot the whole message NOW (while mounted) so the selection
-            // survives ChatGPT unmounting it on scroll; restored at export time.
-            const _turn = el.closest('[data-testid^="conversation-turn"]');
-            if(_turn) turnSnapshots.set(_turn.getAttribute('data-testid'), _turn.outerHTML);
+            if(allMode) {
+                // Unchecking here means "leave this out of the whole". No
+                // snapshot is needed: the conversation comes from the harvest,
+                // not from what the user happened to click.
+                if(checked) excludedKeys.delete(key);
+                else        excludedKeys.add(key);
+                syncAllRow();
+            } else {
+                if(checked) selectedBids.add(bid);
+                else         selectedBids.delete(bid);
+                // Snapshot the whole message NOW (while mounted) so the selection
+                // survives ChatGPT unmounting it on scroll; restored at export time.
+                const _turn = el.closest('[data-testid^="conversation-turn"]');
+                if(_turn) turnSnapshots.set(_turn.getAttribute('data-testid'), _turn.outerHTML);
+            }
             updateBar();
         }
 
@@ -231,14 +431,19 @@ function setupBlockMode() {
         }
         clickTarget.addEventListener('click', onBlockClick);
 
-        blockMap.set(bid, {
+        const info = {
             el: el,
             visualEl: visualEl,
             selRow: selRow,
             cb: cb,
             clickHandler: onBlockClick,
-            clickTarget: clickTarget
-        });
+            clickTarget: clickTarget,
+            bid: bid,
+            key: key
+        };
+        blockMap.set(bid, info);
+        // A block scrolled into view while "all" is on arrives already ticked.
+        if(allMode) paintBlock(info);
     }
 
     function detachAll() {
@@ -257,6 +462,11 @@ function setupBlockMode() {
         blockMap.clear();
         turnSnapshots.clear();
         selectedBids.clear();
+        excludedKeys.clear();
+        allMode = false;
+        entryTurnCache = null; // handed over already if an export needed it
+        if(allRow && allRow.parentElement) allRow.remove();
+        allRow = null;
         bidCounter = 0;
     }
 
@@ -270,6 +480,7 @@ function setupBlockMode() {
         findBlocks().forEach(function(el) {
             if(!el.hasAttribute('data-gptpdf-bid')) attachBlock(el);
         });
+        ensureAllRow();
         updateBar();
     }
 
@@ -280,7 +491,12 @@ function setupBlockMode() {
     function updateMainBtnLabel() {
         const btnLabel = mainBtn && mainBtn.querySelector('.gptpdf-lg');
         if(!btnLabel) return;
-        if(inBlockMode) {
+        if(inBlockMode && allMode) {
+            const ex = excludedKeys.size;
+            btnLabel.textContent = ex
+                ? 'Export all but ' + ex
+                : 'Export all';
+        } else if(inBlockMode) {
             const n = selectedBids.size;
             btnLabel.textContent = n ? 'Export (' + n + ')' : 'Export (select blocks)';
         } else {
@@ -301,8 +517,11 @@ function setupBlockMode() {
         document.getElementById('gptpdf-extra-btns')
             .classList.add('gptpdf-hidden');
 
-        // 1. Harvest
-        try { await harvestVirtualizedTurns(); } catch(e) {}
+        // 1. Harvest. The cache is KEPT now: in "Select all" mode the export
+        // is the whole conversation, and handing this over spares the user a
+        // second climb through it at export time.
+        try { entryTurnCache = await harvestVirtualizedTurns(); }
+        catch(e) { entryTurnCache = null; }
         if(harvestCancelled) return;
 
         inBlockMode = true;
@@ -357,6 +576,22 @@ function setupBlockMode() {
     if(mainBtn) {
         mainBtn.addEventListener('click', function(e) {
             if(!inBlockMode) return; // normal convert handled elsewhere
+            if(allMode) {
+                // Rate Us has the button for the moment; let it have the click
+                // and keep the selection for the one after.
+                if(gptpdfRateUsMode) return;
+                // Do NOT intercept: "all minus these" is a full export with
+                // holes, so it goes down the normal path — the one that climbs
+                // to the real start of the chat, re-lays the turns in order and
+                // builds the table of contents. The holes are cut out of its
+                // clone by gptpdfApplyBlockExclusions().
+                sendGA4Event('export_selected_used',
+                    { mode: 'all', excluded: excludedKeys.size });
+                gptpdfPendingExclusions = new Set(excludedKeys);
+                gptpdfPendingTurnCache  = entryTurnCache;
+                exitBlockMode(); // take our checkboxes off the page first
+                return;
+            }
             if(selectedBids.size === 0) {
                 exitBlockMode();
                 return;

@@ -1,0 +1,170 @@
+<title>«Select all» — стенд ключа блока и вычитания</title>
+<!--
+  Проверяет ДВЕ чистые функции режима «Select all» (blockmode.js):
+    gptpdfBlockKey        — личность блока, переживающая перемонтирование
+    gptpdfApplyBlockExclusions — вырезание снятых блоков из клона полного экспорта
+
+  Зачем: «выбрать всё» — это не массовая простановка галочек. Блоков, до которых
+  человек не домотал, в странице нет вовсе, ставить галочку не на что. Поэтому
+  режим переворачивает смысл: берём весь диалог из харвеста, а снятые галочки
+  говорят, что ВЫРЕЗАТЬ. Значит снятое должно называться так, чтобы имя не
+  протухло: bid выдаётся при навешивании и у перемонтированного турна он уже
+  другой, а номер в data-testid считает загруженное окно и при подгрузке старых
+  страниц диалог перенумеровывается целиком (CHATGPT-DOM.md §3). Отсюда ключ из
+  серверного data-message-id + место блока внутри сообщения.
+
+  Запуск (без установки чего-либо):
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=4000 --dump-dom \
+      "file://$PWD/tests/select-all-test.html"
+  или просто открыть файл в браузере.
+
+  Границы: покрыта ТОЛЬКО чистая логика (ключ + вычитание из клона). Что
+  галочки живьём выставляются и переживают прокрутку виртуализированной ленты —
+  этим стендом НЕ проверяется, только руками на chatgpt.com.
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../blockmode.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, cond, detail) {
+    if (!cond) failed++;
+    out.push((cond ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+
+// Турн юзера: одно сообщение = один блок.
+function userTurn(n, msgId, text) {
+    return '<article data-testid="conversation-turn-' + n + '">' +
+        '<div data-message-id="' + msgId + '" data-message-author-role="user">' +
+        '<p>' + text + '</p></div></article>';
+}
+// Турн ассистента: каждый прямой ребёнок .markdown = отдельный блок.
+function aiTurn(n, msgId, parts) {
+    return '<article data-testid="conversation-turn-' + n + '">' +
+        '<div data-message-id="' + msgId + '" data-message-author-role="assistant">' +
+        '<div class="markdown">' +
+        parts.map(function(p) { return '<p>' + p + '</p>'; }).join('') +
+        '</div></div></article>';
+}
+function build(html) {
+    const main = document.createElement('main');
+    main.innerHTML = '<div class="thread">' + html + '</div>';
+    document.body.appendChild(main);
+    return main;
+}
+function keys(root) {
+    return gptpdfFindBlocks(root).map(gptpdfBlockKey);
+}
+function texts(root) {
+    return gptpdfFindBlocks(root).map(function(el) {
+        return el.textContent.trim();
+    });
+}
+function turnCount(root) {
+    return root.querySelectorAll('[data-testid^="conversation-turn"]').length;
+}
+
+const CHAT =
+    userTurn(1, 'm1', 'Q1') +
+    aiTurn(2, 'm2', ['A1a', 'A1b', 'A1c']) +
+    userTurn(3, 'm3', 'Q2') +
+    aiTurn(4, 'm4', ['A2a', 'A2b']);
+
+// ── Сцена 1: что считается блоком ──────────────────────────────────────────
+const live = build(CHAT);
+check('блоков найдено 7 (2 вопроса + 5 абзацев ответов)',
+      gptpdfFindBlocks(live).length === 7,
+      gptpdfFindBlocks(live).length + '');
+check('ключи различимы', new Set(keys(live)).size === 7);
+check('вопрос назван по сообщению, не по номеру турна',
+      keys(live)[0] === 'msg:m1#u', keys(live)[0]);
+
+// ── Сцена 2: перенумерация окна не трогает ключи ───────────────────────────
+// Тот же диалог, но номера турнов сдвинуты (подгрузились старые страницы) и
+// узлы свежие — как после перемонтирования. Имена обязаны совпасть.
+const renumbered = build(
+    userTurn(41, 'm1', 'Q1') +
+    aiTurn(42, 'm2', ['A1a', 'A1b', 'A1c']) +
+    userTurn(43, 'm3', 'Q2') +
+    aiTurn(44, 'm4', ['A2a', 'A2b']));
+check('ключи переживают перенумерацию и новые узлы',
+      keys(renumbered).join('|') === keys(live).join('|'),
+      keys(renumbered).join('|'));
+
+// ── Сцена 3: своя вставленная строка не сдвигает нумерацию ────────────────
+const before = keys(live).join('|');
+const row = document.createElement('div');
+row.className = 'gptpdf-img-sel-row gptpdf-all-row';
+const firstBlock = gptpdfFindBlocks(live)[1]; // первый абзац ответа
+firstBlock.parentElement.insertBefore(row, firstBlock);
+check('строка «Select all» не переименовывает блоки под собой',
+      keys(live).join('|') === before, keys(live).join('|'));
+row.remove();
+
+// ── Сцена 4: вычитание одного абзаца ──────────────────────────────────────
+const c1 = build(CHAT);
+gptpdfPendingExclusions = new Set(['msg:m2#1']); // средний абзац первого ответа
+gptpdfApplyBlockExclusions(c1);
+check('снятый абзац вырезан', texts(c1).indexOf('A1b') === -1, texts(c1).join(','));
+check('соседи по тому же ответу целы',
+      texts(c1).indexOf('A1a') !== -1 && texts(c1).indexOf('A1c') !== -1);
+check('турн с остатком остался на месте', turnCount(c1) === 4, turnCount(c1) + '');
+check('заявка одноразовая', gptpdfPendingExclusions === null);
+
+// ── Сцена 5: турн, из которого сняли ВСЁ, уходит целиком ──────────────────
+const c2 = build(CHAT);
+gptpdfPendingExclusions = new Set(['msg:m4#0', 'msg:m4#1']);
+gptpdfApplyBlockExclusions(c2);
+check('пустой турн удалён, а не оставлен скорлупой', turnCount(c2) === 3,
+      turnCount(c2) + '');
+check('вопрос перед ним не пострадал', texts(c2).indexOf('Q2') !== -1);
+
+// ── Сцена 6: снятый вопрос уносит свой турн ───────────────────────────────
+const c3 = build(CHAT);
+gptpdfPendingExclusions = new Set(['msg:m1#u']);
+gptpdfApplyBlockExclusions(c3);
+check('турн вопроса удалён', texts(c3).indexOf('Q1') === -1);
+check('ответ на него остался', texts(c3).indexOf('A1a') !== -1);
+
+// ── Сцена 7: турн без блоков (служебная строка) не трогаем ────────────────
+const c4 = build(CHAT +
+    '<article data-testid="conversation-turn-5"><div class="tool">system</div></article>');
+gptpdfPendingExclusions = new Set(['msg:m1#u']);
+gptpdfApplyBlockExclusions(c4);
+check('турн без блоков не удаляется заодно',
+      c4.querySelector('[data-testid="conversation-turn-5"]') !== null);
+
+// ── Сцена 8: пустая заявка — полный экспорт без дыр ───────────────────────
+const c5 = build(CHAT);
+gptpdfPendingExclusions = null;
+gptpdfApplyBlockExclusions(c5);
+check('без снятых блоков диалог цел', turnCount(c5) === 4 &&
+      gptpdfFindBlocks(c5).length === 7);
+
+// ── Сцена 9: харвест передаётся один раз ──────────────────────────────────
+gptpdfPendingTurnCache = new Map([['a', 1]]);
+const taken = gptpdfTakePrefetchedTurns();
+check('харвест из блок-режима отдан', taken instanceof Map && taken.size === 1);
+check('и не достаётся второй раз', gptpdfTakePrefetchedTurns() === null);
+
+// ── Сцена 10: наша разметка не уезжает в PDF ──────────────────────────────
+const c6 = build(CHAT);
+const b = gptpdfFindBlocks(c6)[0];
+b.setAttribute('data-gptpdf-bid', '7');
+b.classList.add('gptpdf-block-sel', 'gptpdf-block-checked');
+const cbWrap = document.createElement('div');
+cbWrap.className = 'gptpdf-block-cb';
+cbWrap.innerHTML = '<input type="checkbox">';
+b.appendChild(cbWrap);
+gptpdfPendingExclusions = null;
+gptpdfApplyBlockExclusions(c6);
+check('галочки и метки блок-режима вычищены из клона',
+      c6.querySelectorAll('.gptpdf-block-cb, .gptpdf-img-sel-row, [data-gptpdf-bid], .gptpdf-block-sel').length === 0);
+
+out.push('');
+out.push(failed ? '✗ ПРОВАЛОВ: ' + failed : '✓ всё зелено');
+document.getElementById('log').textContent = out.join('\n');
+document.body.querySelectorAll('main').forEach(function(m) { m.style.display = 'none'; });
+</script>

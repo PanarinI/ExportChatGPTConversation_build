@@ -558,6 +558,19 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,2
      background: rgba(234,76,58,0.15);
      border-color: #EA4C3A;
  }
+ /* "Select all" — the same selection row one level up: it stands above the
+    first block and speaks for every block under it, so it closes on all four
+    sides instead of sitting flush on top of one block. */
+ .gptpdf-all-row {
+     border-radius: 8px;
+     border-bottom: 2px dashed rgba(234,76,58,0.2);
+     border-style: dashed;
+     margin: 0 0 10px;
+ }
+ .gptpdf-all-row.gptpdf-img-sel-checked {
+     border-style: solid;
+     border-bottom: 2px solid #EA4C3A;
+ }
 
  /* ── Rate us stars ──────────────────────────────────────── */
  .gptpdf-rate-row {
@@ -1098,6 +1111,14 @@ html.dark #gptpdf-preview-label { color: rgba(255,255,255,0.28); }
 `;
 
 // Floating Export button + dropdown markup. Interpolates gptpdfShared.version
+// The "Select all" row of block mode: stands above the first block and speaks
+// for every block under it. Ticking it does not tick a hundred boxes — it flips
+// the selection over, so the boxes below say what to LEAVE OUT.
+const SELECT_ALL_ROW_HTML = `
+    <span style="font-size:13px;color:#EA4C3A;font-weight:600;user-select:none;pointer-events:none">Select all</span>
+    <span style="font-size:12px;color:#EA4C3A;opacity:.7;user-select:none;pointer-events:none">then uncheck what you don't need</span>
+    <input type="checkbox" style="width:16px;height:16px;accent-color:#EA4C3A;cursor:pointer;flex-shrink:0;margin-left:auto">`;
+
 // (defined in shared.js, loaded before this file).
 const EXPORT_BUTTON_HTML = `
     <button

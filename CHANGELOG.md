@@ -5,6 +5,18 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [Unreleased]
+### Added
+- **"Select to export" now has a Select all.** A row above the first block ticks
+  every block at once, so you can take the whole conversation and then uncheck
+  the few parts you don't want, instead of clicking your way through a hundred
+  boxes. Asked for by a reviewer who wanted "the whole Q&A in the right order"
+  and a "select all" for the blocks.
+  With it on, the export is a normal full export with holes: it still climbs to
+  the first message of the chat, keeps the messages in order and builds the
+  table of contents — only the blocks you unchecked are missing. On a long chat
+  that climb takes a while, and the page says how many messages it has loaded.
+
 ## [1.1.7] — 2026-08-27
 ### Fixed
 - **Long conversations were exported from the middle, not from the beginning.**

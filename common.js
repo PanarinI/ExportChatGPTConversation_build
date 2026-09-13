@@ -94,12 +94,23 @@ gptpdfChatGPT.init = function() {
             stopExportSpinner();
         }
 
-        // Harvest all virtualized turns before cloning the DOM
+        // Harvest all virtualized turns before cloning the DOM.
+        // Unless block mode's "Select all" already paid for one and handed it
+        // over — then we reuse it instead of climbing the same long chat twice.
+        const prefetched = gptpdfTakePrefetchedTurns();
+        if(prefetched) {
+            // Nothing is about to be harvested, so no stale cancel from an
+            // earlier one may stop this export at the gate below.
+            harvestCancelled = false;
+            // That mode means the WHOLE conversation. A stray text selection
+            // left by clicking checkboxes must not shrink the export to itself.
+            try { window.getSelection().removeAllRanges(); } catch(e) {}
+        }
         const selection = window.getSelection();
-        const hasSelection = selection &&
+        const hasSelection = !prefetched && selection &&
             !selection.isCollapsed && selection.rangeCount > 0;
-        let turnCache = null;
-        if(!hasSelection) {
+        let turnCache = prefetched;
+        if(!turnCache && !hasSelection) {
             try {
                 turnCache = await harvestVirtualizedTurns();
             } catch(e) {
@@ -173,6 +184,11 @@ gptpdfChatGPT.init = function() {
             });
 
             restoreVirtualizedTurns(main_clone, turnCache);
+
+            // Block mode's "Select all": the conversation is whole, now take
+            // out the blocks the user unchecked. Done here, before the images
+            // below are fetched — a block that is leaving costs no download.
+            gptpdfApplyBlockExclusions(main_clone);
 
             // Second-pass: convert any images that came in via virtualized turns
             // (they were captured as raw HTML with original URLs, not base64)

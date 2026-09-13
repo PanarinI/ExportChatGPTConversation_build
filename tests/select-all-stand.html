@@ -1,0 +1,61 @@
+<title>«Select all» — визуальный стенд строки</title>
+<!--
+  Показывает ровно ту строку, что блок-режим ставит над первым блоком
+  (SELECT_ALL_ROW_HTML + .gptpdf-all-row из templates.js) в трёх состояниях и
+  на светлой/тёмной странице. Открывать глазами — логику проверяет
+  select-all-test.html, а как это выглядит, автотест сказать не может.
+
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --window-size=760,720 --screenshot=/tmp/select-all.png \
+      "file://$PWD/tests/select-all-stand.html"
+-->
+<script src="../templates.js"></script>
+<style>
+ body { font: 14px/1.5 ui-sans-serif, system-ui; margin: 0; padding: 24px;
+        background: #fff; color: #111; }
+ .pane { max-width: 640px; margin: 0 0 26px; }
+ .pane.dark { background: #212121; color: #ececec; padding: 18px;
+              border-radius: 10px; }
+ h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+      opacity: .55; font-weight: 600; margin: 0 0 8px; }
+ .mock { border: 2px solid rgba(234,76,58,0.2); border-radius: 8px;
+         padding: 10px 12px; margin: 0 0 6px; }
+ .mock.on { border-color: #EA4C3A; background: rgba(234,76,58,0.15); }
+</style>
+<div id="host"></div>
+<script>
+const style = document.createElement('style');
+style.textContent = UI_CSS;
+document.head.appendChild(style);
+
+const STATES = [
+    ['снято — обычный ручной выбор', false, false],
+    ['выбрано всё', true, false],
+    ['всё, но два блока сняты (промежуточное)', true, true]
+];
+const host = document.getElementById('host');
+[false, true].forEach(function(dark) {
+    STATES.forEach(function(s) {
+        const pane = document.createElement('div');
+        pane.className = 'pane' + (dark ? ' dark' : '');
+        pane.innerHTML = '<h2>' + s[0] + (dark ? ' · тёмная' : ' · светлая') + '</h2>';
+        const row = document.createElement('div');
+        row.className = 'gptpdf-img-sel-row gptpdf-all-row';
+        row.innerHTML = SELECT_ALL_ROW_HTML;
+        const cb = row.querySelector('input');
+        cb.checked = s[1];
+        cb.indeterminate = s[2];
+        if(s[1]) row.classList.add('gptpdf-img-sel-checked');
+        pane.appendChild(row);
+        ['Первый вопрос диалога', 'Первый абзац ответа'].forEach(function(t, i) {
+            const m = document.createElement('div');
+            m.className = 'mock' + (s[1] && !(s[2] && i === 1) ? ' on' : '');
+            m.textContent = t;
+            pane.appendChild(m);
+        });
+        host.appendChild(pane);
+    });
+});
+if(document.querySelector('.pane.dark')) document.documentElement.classList.add('dark');
+</script>
