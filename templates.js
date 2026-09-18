@@ -1116,7 +1116,6 @@ html.dark #gptpdf-preview-label { color: rgba(255,255,255,0.28); }
 // the selection over, so the boxes below say what to LEAVE OUT.
 const SELECT_ALL_ROW_HTML = `
     <span style="font-size:13px;color:#EA4C3A;font-weight:600;user-select:none;pointer-events:none">Select all</span>
-    <span style="font-size:12px;color:#EA4C3A;opacity:.7;user-select:none;pointer-events:none">then uncheck what you don't need</span>
     <input type="checkbox" style="width:16px;height:16px;accent-color:#EA4C3A;cursor:pointer;flex-shrink:0;margin-left:auto">`;
 
 // (defined in shared.js, loaded before this file).

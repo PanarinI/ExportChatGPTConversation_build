@@ -6,6 +6,8 @@ Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
 ## [Unreleased]
+
+## [1.1.8] — 2026-09-18
 ### Added
 - **"Select to export" now has a Select all.** A row above the first block ticks
   every block at once, so you can take the whole conversation and then uncheck
