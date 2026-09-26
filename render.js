@@ -590,6 +590,101 @@ function buildRuleLHtml() {
     return '<hr style="border:none;border-top:1px solid #d0d0d0;margin:5px 0 18px">';
 }
 
+// ── Pair layout → classic turns ───────────────────────────────────────────
+// The pair layout (CHATGPT-DOM.md §9) keeps a question AND its answer in one
+// div[data-turn-key]. Everything below — cleanupForPdf, the question styles,
+// the TOC, "AI answers only", page breaks, code blocks — was written and
+// field-tested against the classic markup: one turn per message, the question
+// in [data-message-author-role="user"], the answer in `.markdown`. So the
+// export copy is translated instead of the pipeline being duplicated: each
+// pair becomes two classic turns. Taken: the question unit (the bubble with
+// its attachments) and every answer unit. Left behind with the pair's shell:
+// the "You said:" label, the date separator, the action rows and the rating
+// prompt — none of which belongs in a PDF. Runs on the copy only, never on
+// the live page.
+function gptpdfNormalizeTurns(root) {
+    const pairs = root.querySelectorAll('div[data-turn-key]');
+    let n = 0;
+    pairs.forEach(function(pair) {
+        const doc = pair.ownerDocument;
+        const key = pair.getAttribute('data-turn-key') || '';
+
+        let questions = gptpdfOutermost(pair.querySelectorAll(
+            '[data-chatgpt-search-unit-key$=":user"]'));
+        if(!questions.length) {
+            questions = gptpdfOutermost(pair.querySelectorAll(
+                '[data-user-message-bubble]'));
+        }
+        // Answer units: the unit around each "ChatGPT said:" marker — an
+        // image-only answer carries no unit key, but the marker is there
+        // (measured) — plus keyed units and bare markdown roots as a net.
+        const found = [];
+        pair.querySelectorAll('[data-conversation-role="assistant"]').forEach(
+            function(h) {
+                if(h.parentElement && h.parentElement !== pair) {
+                    found.push(h.parentElement);
+                }
+            });
+        pair.querySelectorAll('[data-chatgpt-search-unit-key$=":assistant"]')
+            .forEach(function(u) { found.push(u); });
+        pair.querySelectorAll('[data-markdown-text-style="assistant-message"]')
+            .forEach(function(md) {
+                found.push(md.closest('[data-chatgpt-search-message-ids]') || md);
+            });
+        const answers = gptpdfOutermost(found).filter(function(a) {
+            return !questions.some(function(q) {
+                return q.contains(a) || a.contains(q);
+            });
+        });
+
+        const turns = [];
+        if(questions.length) {
+            const msg = doc.createElement('div');
+            msg.setAttribute('data-message-author-role', 'user');
+            if(key) {
+                msg.setAttribute('data-message-id', key);
+            }
+            questions.forEach(function(q) { msg.appendChild(q); });
+            turns.push(gptpdfClassicTurn(doc, ++n, key, msg));
+        }
+        if(answers.length) {
+            const msg = doc.createElement('div');
+            msg.setAttribute('data-message-author-role', 'assistant');
+            const id = (answers[0].getAttribute(
+                'data-chatgpt-search-message-ids') || '').trim().split(/\s+/)[0];
+            if(id) {
+                msg.setAttribute('data-message-id', id);
+            }
+            answers.forEach(function(a) { msg.appendChild(a); });
+            msg.querySelectorAll('[data-markdown-text-style="assistant-message"]')
+                .forEach(function(md) { md.classList.add('markdown'); });
+            turns.push(gptpdfClassicTurn(doc, ++n, key, msg));
+        }
+        pair.replaceWith.apply(pair, turns);
+    });
+}
+
+function gptpdfClassicTurn(doc, n, pairKey, msg) {
+    const turn = doc.createElement('div');
+    turn.setAttribute('data-testid', 'conversation-turn-' + n);
+    if(pairKey) {
+        turn.setAttribute('data-gptpdf-pair', pairKey);
+    }
+    turn.appendChild(msg);
+    return turn;
+}
+
+// Distinct elements, none inside another, in document order.
+function gptpdfOutermost(list) {
+    const arr = Array.from(new Set(Array.from(list)));
+    return arr.filter(function(el) {
+        return !arr.some(function(o) { return o !== el && o.contains(el); });
+    }).sort(function(a, b) {
+        return (a.compareDocumentPosition(b) &
+                Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1;
+    });
+}
+
 // Builds a client-side TOC from user prompts (1 prompt = 1 entry).
 // Assigns anchor IDs to each user message element.
 // No page numbers (not available client-side).

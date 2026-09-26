@@ -1,0 +1,290 @@
+<title>Новая вёрстка ChatGPT (пары) — разборка копии для PDF</title>
+<!--
+  Проверяет путь экспорта на НОВОЙ вёрстке ChatGPT (раскатка по аккаунтам с ~21.09.2026,
+  CHATGPT-DOM.md §9): один турн — пара «вопрос + ответ» `div[data-turn-key]`.
+
+  Что проверяется:
+    1. restoreVirtualizedTurns: копия становится лентой и только ею — без шапки, поля
+       ввода, дисклеймера и без обёрток виртуализатора с инлайн-высотами.
+    2. gptpdfNormalizeTurns: каждая пара → два турна старого вида (вопрос / ответ),
+       порядок, id сообщений, ответ из нескольких частей, ответ из одной картинки.
+    3. cleanupForPdf поверх этого: ушли «You said:» / «ChatGPT said:», кнопки, опрос
+       «Do you like this personality?», разделитель даты; картинка и код остались.
+    4. Оглавление, метки разрывов страниц, «только ответы» прячет лишь вопросы.
+    5. Выделение текста мышью на новой вёрстке: турны — не соседи, диапазон всё равно целый.
+    6. blob:-картинка переводится в data: (так новая вёрстка отдаёт сгенерированные).
+    7. Старая вёрстка: переводчик и пересборка её не трогают.
+
+  Макет повторяет вложенность и метки живой страницы (слепок local-chat-app, замер
+  obsidian-AI-exporter 26.09); текст выдуман. Живую страницу он не заменяет.
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=5000 --dump-dom \
+      "file://$PWD/tests/pair-layout-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<div id="stage"></div>
+<script src="../helpers.js"></script>
+<script src="../theme.js"></script>
+<script src="../render.js"></script>
+<script src="../capture.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, cond, detail) {
+    if(!cond) failed++;
+    out.push((cond ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+const text = el => (el ? el.textContent : '').replace(/\s+/g, ' ').trim();
+
+// ── макет пары, как на живой странице ─────────────────────────────────
+function question(n, key, q) {
+    return '<div class="block-BQZwFn">' +
+        '<h4 class="sr-only m-0 select-none">You said:</h4>' +
+        '<div class="group/user-message flex flex-col items-end gap-2" ' +
+            'data-chatgpt-search-unit-key="fallback-turn-' + n + ':0:user" ' +
+            'data-chatgpt-search-message-ids="' + key + '">' +
+          '<div class="w-full" data-content-search-unit-key="fallback-turn-' + n + ':0:user">' +
+            '<div class="group/user-message flex w-full flex-col items-end justify-end gap-1">' +
+              '<div data-user-message-bubble="true" class="bg-user-message bubble-vBnidZ relative">' +
+                '<svg aria-hidden="true" class="temporaryOutline-bbkcxS"><rect x="0.5" y="0.5"></rect></svg>' +
+                '<div><div><div><div><div class="whitespace-pre-wrap">' + q + '</div></div></div></div></div>' +
+              '</div>' +
+              '<div><div><div>' +
+                '<span class="contents"><button type="button" aria-label="Copy message">⧉</button></span>' +
+                '<span class="contents"><button type="button" aria-label="Edit message">✎</button></span>' +
+              '</div></div></div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+    '</div>';
+}
+function answer(n, ids, blocks, keyed) {
+    return '<div class="block-BQZwFn">' +
+        '<span data-chatgpt-agent-turn-start=""></span>' +
+        '<div' + (keyed === false ? '' :
+            ' data-content-search-unit-key="fallback-turn-' + n + ':2:assistant"' +
+            ' data-chatgpt-search-unit-key="fallback-turn-' + n + ':2:assistant"') +
+            ' data-chatgpt-search-message-ids="' + ids.join(' ') + '">' +
+          '<h4 class="sr-only m-0 select-none" data-conversation-role="assistant">ChatGPT said:</h4>' +
+          blocks +
+        '</div>' +
+    '</div>';
+}
+function mdBlock(id, html) {
+    return '<div class="group" data-chatgpt-selection-message-id="' + id + '">' +
+        '<div class="MarkdownRoot-rZKhxa" data-markdown-text-style="assistant-message" ' +
+        'style="--markdown-link-color: currentColor">' + html + '</div></div>';
+}
+function pair(n, key, inner, separator) {
+    return '<div class="[&_[data-virtualized-turn-content]]:[content-visibility:visible]" data-turn-key="' + key + '">' +
+      '<div class="flex flex-col gap-1.5" data-content-search-turn-key="fallback-turn-' + n + '">' +
+        '<div class="contents"><div class="contents"><div class="group flex flex-col pb-2 pt-2">' +
+          '<div class="flex flex-col gap-3">' +
+            (separator ? '<div role="separator" aria-label="' + separator + '"><span>' + separator + '</span></div>' : '') +
+            inner +
+          '</div>' +
+        '</div></div></div>' +
+        '<div><div>' +
+          '<span class="contents"><button type="button" aria-label="Copy">⧉</button></span>' +
+          '<button type="button">Save local</button>' +
+          '<button type="button" aria-label="Regenerate response">↻</button>' +
+        '</div></div>' +
+        '<div><aside aria-label="Do you like this personality?"><div>' +
+          '<span>Do you like this personality?</span>' +
+          '<div><button aria-label="Yes">+</button><button aria-label="No">-</button></div>' +
+        '</div></aside></div>' +
+      '</div>' +
+    '</div>';
+}
+const PNG = (function() {
+    const c = document.createElement('canvas'); c.width = 4; c.height = 4;
+    const g = c.getContext('2d'); g.fillStyle = '#e33'; g.fillRect(0, 0, 4, 4);
+    return c.toDataURL('image/png');
+})();
+const Q = ['Как устроен цикл воды?', 'Покажи пример на Python', 'Нарисуй облако', 'строка один\nстрока два'];
+const PAIRS = [
+    pair(0, 'u1', question(0, 'u1', Q[0]) +
+        answer(0, ['a1', 'a1'], mdBlock('a1', '<p>Вода испаряется, конденсируется и выпадает осадками.</p>'))),
+    pair(1, 'u2', question(1, 'u2', Q[1]) +
+        answer(1, ['a2x', 'a2y'],
+            mdBlock('a2x', '<p>Сначала рассуждение.</p>') +
+            mdBlock('a2y', '<p>Вот код:</p><pre><code class="language-python">print("hi")\n</code></pre>'))),
+    pair(2, 'u3', question(2, 'u3', Q[2]) +
+        answer(2, ['a3'],
+            '<div data-testid="generated-image-gallery"><div data-image-transparency-backdrop-scope="">' +
+            '<button type="button" data-testid="generated-image-preview" aria-hidden="false">' +
+            '<img src="' + PNG + '" alt="Generated image 1" class="image-transparency-backdrop">' +
+            '</button></div></div>', false),
+        'Thu, Jan 29 at 4:47 PM'),
+    pair(3, 'u4', question(3, 'u4', Q[3]) +
+        answer(3, ['a4'], mdBlock('a4', '<p>Две строки получены.</p>')))
+];
+function page() {
+    return '<main id="page">' +
+      '<div id="page-header">ChatGPT · Chat | Work</div>' +
+      '<div data-app-action-timeline-scroll="" role="presentation" ' +
+        'style="display:flex;flex-direction:column-reverse;overflow-y:auto;height:300px">' +
+        '<div class="flex flex-col">' +
+          '<div class="relative shrink-0" style="height: 900px">' +
+            '<div class="flex flex-col" style="margin-top: 0px">' +
+              PAIRS.map((p, i) => '<div class="" style="margin-top: ' + (i ? 6 : 0) +
+                  'px; height: ' + (170 + i * 20) + 'px">' + p + '</div>').join('') +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<form data-type="unified-composer"><div contenteditable="true">Ask anything</div>' +
+        '<button type="submit" aria-label="Send prompt">↑</button></form>' +
+      '<div class="text-xs">ChatGPT can make mistakes. Check important info.</div>' +
+    '</main>';
+}
+
+(async function run() {
+    const stage = document.getElementById('stage');
+    stage.innerHTML = page();
+    const live = document.getElementById('page');
+
+    // ── 1. пересборка копии ───────────────────────────────────────────
+    out.push('— 1. Копия становится лентой —');
+    check('кнопка видит чат на новой вёрстке', gptpdfHasConversation(document));
+    check('и не видит его там, где турнов нет',
+          !gptpdfHasConversation(document.createElement('div')));
+    const clone = live.cloneNode(true);
+    restoreVirtualizedTurns(clone, null);
+    check('в копии осталась только лента',
+          clone.children.length === 1 && clone.firstElementChild.className === 'gptpdf-thread',
+          [...clone.children].map(c => c.className || c.tagName).join(','));
+    check('все 4 пары в порядке диалога',
+          [...clone.querySelectorAll('div[data-turn-key]')].map(t => t.getAttribute('data-turn-key')).join(',') === 'u1,u2,u3,u4');
+    check('обёрток с инлайн-высотой не осталось (они резали бы диалог)',
+          clone.querySelectorAll('[style*="height"]').length === 0,
+          clone.querySelectorAll('[style*="height"]').length + ' шт.');
+    check('шапка, поле ввода и дисклеймер ушли',
+          !/Ask anything|can make mistakes|Chat \| Work/.test(clone.textContent));
+
+    // ── 2. перевод пар в турны старого вида ───────────────────────────
+    gptpdfNormalizeTurns(clone);
+    const turns = [...clone.querySelectorAll('[data-testid^="conversation-turn"]')];
+    const roles = turns.map(t => {
+        const m = t.querySelector('[data-message-author-role]');
+        return m ? m.getAttribute('data-message-author-role') : '?';
+    });
+    out.push('');
+    out.push('— 2. Пара → вопрос + ответ старого вида —');
+    check('8 турнов: вопрос и ответ по очереди',
+          turns.length === 8 && roles.join(',') === 'user,assistant,user,assistant,user,assistant,user,assistant',
+          turns.length + ': ' + roles.join(','));
+    check('пар в копии больше нет', clone.querySelectorAll('[data-turn-key]').length === 0);
+    const users = [...clone.querySelectorAll('[data-message-author-role="user"]')];
+    const bubbleText = u => text(u.querySelector('.whitespace-pre-wrap'));
+    check('вопросы на месте и по порядку',
+          users.map(bubbleText).join(' | ') === Q.map(q => q.replace(/\s+/g, ' ')).join(' | '),
+          users.map(bubbleText).join(' | '));
+    check('id вопроса = ключ пары', users[0].getAttribute('data-message-id') === 'u1');
+    const answers = [...clone.querySelectorAll('[data-message-author-role="assistant"]')];
+    check('id ответа = первый id его сообщений', answers[1].getAttribute('data-message-id') === 'a2x',
+          answers[1].getAttribute('data-message-id'));
+    check('ответ из двух частей собран целиком и по порядку',
+          /Сначала рассуждение\..*Вот код:.*print\("hi"\)/.test(text(answers[1])), text(answers[1]).slice(0, 80));
+    check('ответ из одной картинки (без ключа единицы) не потерян',
+          !!answers[2].querySelector('img[alt="Generated image 1"]'));
+    check('тело ответа получило класс .markdown (на нём держится чистка)',
+          clone.querySelectorAll('[data-markdown-text-style].markdown').length === 4);
+    check('разделитель даты не попал в копию', !/Jan 29/.test(clone.textContent));
+
+    // ── 3. чистка поверх перевода ─────────────────────────────────────
+    cleanupForPdf(clone);
+    out.push('');
+    out.push('— 3. cleanupForPdf на переведённой копии —');
+    check('подписи «You said:» / «ChatGPT said:» ушли', !/You said|ChatGPT said/.test(clone.textContent));
+    check('опрос «Do you like this personality?» ушёл', !/personality/.test(clone.textContent));
+    check('кнопки ушли (Save local, Copy, Regenerate…)',
+          clone.querySelectorAll('button').length === 0 && !/Save local/.test(clone.textContent),
+          clone.querySelectorAll('button').length + ' кнопок');
+    check('в тексте вопросов не осталось значков кнопок',
+          users.map(text).join(' | ') === Q.map(q => q.replace(/\s+/g, ' ')).join(' | '),
+          users.map(text).join(' | '));
+    check('сгенерированная картинка осталась и вышла из кнопки',
+          clone.querySelectorAll('img').length === 1 && !clone.querySelector('button img'));
+    check('код остался', /print\("hi"\)/.test(clone.textContent));
+    check('рамка «временного чата» (svg) вокруг вопроса снята', clone.querySelectorAll('svg').length === 0,
+          clone.querySelectorAll('svg').length + ' svg');
+
+    // ── 4. оглавление, разрывы, «только ответы» ───────────────────────
+    out.push('');
+    out.push('— 4. Оглавление, разрывы страниц, «только ответы» —');
+    const toc = buildTocHtml({ toc: 'numbering' }, clone);
+    check('оглавление: 4 пункта', (toc.match(/<li /g) || []).length === 4, (toc.match(/<li /g) || []).length + ' пунктов');
+    check('якоря стоят на вопросах', users.every((u, i) => u.id === 'toc-q-' + (i + 1)));
+    const uTurns = [...clone.querySelectorAll('.gptpdf-user-turn')];
+    check('метка вопроса — только на турнах вопросов (иначе «только ответы» спрячет и ответ)',
+          uTurns.length === 4 && uTurns.every(t => t.querySelector('[data-message-author-role="user"]')));
+    check('разрыв перед каждым вопросом, кроме первого',
+          clone.querySelectorAll('.gptpdf-newpage').length === 3 && !uTurns[0].classList.contains('gptpdf-newpage'));
+    check('в режиме «только ответы» разрыв переезжает на ответ',
+          clone.querySelectorAll('.gptpdf-newpage-ai').length === 3 &&
+          [...clone.querySelectorAll('.gptpdf-newpage-ai')].every(t => t.querySelector('[data-message-author-role="assistant"]')));
+    check('имя файла по первому вопросу', firstPromptTitle(clone) === Q[0], firstPromptTitle(clone));
+
+    // ── 5. выделение мышью на новой вёрстке ───────────────────────────
+    out.push('');
+    out.push('— 5. Экспорт выделенного текста —');
+    const bubbles = live.querySelectorAll('.whitespace-pre-wrap');
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    const r = document.createRange();
+    r.setStart(bubbles[0].firstChild, 2);
+    r.setEnd(bubbles[2].firstChild, 3);
+    sel.addRange(r);
+    const picked = prepareSelection(live);
+    sel.removeAllRanges();
+    check('выделение от 1-й до 3-й пары даёт ровно три пары, хоть они и не соседи в DOM',
+          [...picked.querySelectorAll('div[data-turn-key]')].map(t => t.getAttribute('data-turn-key')).join(',') === 'u1,u2,u3',
+          [...picked.querySelectorAll('div[data-turn-key]')].map(t => t.getAttribute('data-turn-key')).join(','));
+
+    // ── 6. blob: → data: ─────────────────────────────────────────────
+    out.push('');
+    out.push('— 6. blob:-картинка —');
+    const blob = await new Promise(res => {
+        const c = document.createElement('canvas'); c.width = 3; c.height = 3;
+        c.getContext('2d').fillRect(0, 0, 3, 3);
+        c.toBlob(res, 'image/png');
+    });
+    const url = URL.createObjectURL(blob);
+    const direct = await gptpdfBlobToDataUrl(url);
+    check('blob читается напрямую (без картинки на странице)', (direct || '').startsWith('data:image/png'),
+          (direct || 'null').slice(0, 30));
+    const img = document.createElement('img');
+    img.setAttribute('src', url);
+    await gptpdfInlineBlobImage(img);
+    check('blob:-картинка переведена в data:image/png', (img.getAttribute('src') || '').startsWith('data:image/png'),
+          (img.getAttribute('src') || '').slice(0, 30));
+    const gone = document.createElement('img');
+    gone.setAttribute('src', 'blob:null/00000000-0000-0000-0000-000000000000');
+    await gptpdfInlineBlobImage(gone);
+    check('умерший blob не роняет экспорт — src просто остаётся', gone.getAttribute('src').startsWith('blob:'));
+
+    // ── 7. старая вёрстка не тронута ──────────────────────────────────
+    out.push('');
+    out.push('— 7. Старая вёрстка —');
+    const classic = document.createElement('main');
+    classic.innerHTML =
+        '<div class="thread"><article data-testid="conversation-turn-2"><div data-message-author-role="user" data-message-id="m1"><div>Q</div></div></article>' +
+        '<article data-testid="conversation-turn-3"><div data-message-author-role="assistant" data-message-id="m2"><div class="markdown"><p>A</p></div></div></article></div>' +
+        '<form><textarea>composer</textarea></form>';
+    const before = classic.innerHTML;
+    gptpdfNormalizeTurns(classic);
+    restoreVirtualizedTurns(classic, null);
+    check('переводчик и пересборка без харвеста её не меняют', classic.innerHTML === before);
+    check('кнопка по-прежнему видит старый чат', gptpdfHasConversation(classic));
+    check('«Select to export» не прячется на старой вёрстке', !gptpdfIsPairLayout(classic));
+
+    out.push('');
+    out.push(failed === 0 ? '✅ все проверки пройдены' : '❌ провалено проверок: ' + failed);
+    document.getElementById('log').textContent = out.join('\n');
+    stage.remove();
+})();
+</script>

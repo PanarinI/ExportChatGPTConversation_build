@@ -4,10 +4,88 @@
 // and each other, never init() state. Extracted from common.js; shared globally
 // across the content scripts (loaded before common.js).
 
+// ── Two ChatGPT layouts ───────────────────────────────────────────────────
+// Since ~2026-09-21 ChatGPT rolls out a new layout account by account, and a
+// tab opened before the switch keeps the old one until reload, so both live
+// side by side (CHATGPT-DOM.md §9):
+//   • classic — one turn per message: [data-testid="conversation-turn-N"],
+//     [data-message-author-role], [data-message-id], .markdown;
+//   • pair    — one turn per question AND its answer: div[data-turn-key].
+// The live page is read in whichever layout it has; the export copy is
+// translated to the classic shape (gptpdfNormalizeTurns, render.js), so the
+// cleanup, TOC, "answers only" and page breaks work on both unchanged.
+const GPTPDF_TURN = '[data-testid^="conversation-turn"], div[data-turn-key]';
+
+function gptpdfIsPairTurn(el) {
+    return !!(el && el.hasAttribute && el.hasAttribute('data-turn-key'));
+}
+
+function gptpdfIsPairLayout(root) {
+    return !!(root || document).querySelector('div[data-turn-key]');
+}
+
+// Analytics label for the page an export ran on: 'pair' | 'classic'.
+function gptpdfLayoutName() {
+    return gptpdfIsPairLayout() ? 'pair' : 'classic';
+}
+
+// Is a conversation open? The Export button lights up on this. Until 09-26 it
+// asked only for the classic user message, so on the pair layout the button
+// stayed dimmed on an open chat — "always said load a chat" (ГОЛОСА 09-26).
+function gptpdfHasConversation(root) {
+    return !!(root || document).querySelector(
+        '[data-message-author-role="user"], div[data-turn-key]');
+}
+
+// A blob: URL lives only inside this tab, so the render server can never open
+// it — the picture must travel inline. The pair layout serves generated images
+// this way (CHATGPT-DOM.md §9); before, blob: images were skipped and reached
+// the PDF as a broken-image glyph. Reading the blob keeps its own bytes and
+// format; a loaded <img> can also be copied through a canvas (a blob the page
+// made is same-origin, so the canvas is not tainted). Resolves to a data: URL,
+// or null when the blob is gone.
+function gptpdfBlobToDataUrl(src, img) {
+    return fetch(src).then(function(r) {
+        return r.blob();
+    }).then(function(blob) {
+        return new Promise(function(resolve) {
+            const fr = new FileReader();
+            fr.onload = function() { resolve(fr.result); };
+            fr.onerror = function() { resolve(null); };
+            fr.readAsDataURL(blob);
+        });
+    }).catch(function() {
+        return null;
+    }).then(function(dataUrl) {
+        if(dataUrl || !img || !img.complete || !img.naturalWidth) {
+            return dataUrl;
+        }
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            return canvas.toDataURL('image/png');
+        } catch(e) {
+            return null;
+        }
+    });
+}
+
+// Inline one blob: <img> in place; leaves its src alone if nothing came back.
+function gptpdfInlineBlobImage(img, liveImg) {
+    const src = img.getAttribute('src') || '';
+    return gptpdfBlobToDataUrl(src, liveImg || img).then(function(dataUrl) {
+        if(dataUrl) {
+            img.setAttribute('src', dataUrl);
+        }
+    });
+}
+
 function findRow(element) {
     return element.closest(
         'section[data-testid^="conversation-turn"]'
-    ) || element.closest('article');
+    ) || element.closest('div[data-turn-key]') || element.closest('article');
 }
 
 // Coarse bucket for a failed export, used as the `reason` param on the
@@ -122,6 +200,24 @@ function prepareSelection(element) {
 
                 const newContainer = document.createElement('main');
                 newContainer.classList.add('h-full', 'w-full');
+                if(gptpdfIsPairTurn(startElement)) {
+                    // Pair turns are not siblings: each sits in its own
+                    // virtualizer slot, so nextElementSibling ends the walk
+                    // after one turn. Take the range in document order.
+                    const all = Array.from(
+                        element.querySelectorAll('div[data-turn-key]'));
+                    const from = all.indexOf(startElement);
+                    let to = endElement ? all.indexOf(endElement) : -1;
+                    if(to < from) {
+                        to = all.length - 1;
+                    }
+                    for(let i = from; i <= to; i++) {
+                        const child_clone = all[i].cloneNode(true);
+                        newContainer.appendChild(child_clone);
+                        persistCanvases(all[i], child_clone);
+                    }
+                    return newContainer;
+                }
                 let currentElement = startElement;
                 while(currentElement) {
                     const child_clone = currentElement.cloneNode(true);
@@ -299,7 +395,7 @@ function isGenericChatTitle(t) {
 // the first turn is usually unmounted by the time we get here.
 function firstPromptTitle(root) {
     const first = (root || document).querySelector(
-        '[data-message-author-role="user"]');
+        '[data-message-author-role="user"], [data-user-message-bubble]');
     if(!first) {
         return '';
     }

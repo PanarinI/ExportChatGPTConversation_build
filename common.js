@@ -138,6 +138,12 @@ gptpdfChatGPT.init = function() {
                         img.setAttribute('data-gptpdf-h', Math.round(rect.height));
                     }
                 }
+                // blob: pictures (the pair layout's generated images) can only
+                // travel inline — see gptpdfBlobToDataUrl in helpers.js.
+                if (img.src && img.src.startsWith('blob:')) {
+                    imgPromises.push(gptpdfInlineBlobImage(img));
+                    return;
+                }
                 // Convert to base64 so Gotenberg can render without auth
                 if (img.src && !img.src.startsWith('data:') && !img.src.startsWith('blob:')) {
                     let needsBackgroundFetch = /oaiusercontent\.com|images\.openai\.com/.test(img.src);
@@ -195,7 +201,11 @@ gptpdfChatGPT.init = function() {
             const lateImgPromises = [];
             main_clone.querySelectorAll('img').forEach(function(img) {
                 const src = img.getAttribute('src') || '';
-                if (!src || src.startsWith('data:') || src.startsWith('blob:')) return;
+                if (!src || src.startsWith('data:')) return;
+                if (src.startsWith('blob:')) {
+                    lateImgPromises.push(gptpdfInlineBlobImage(img));
+                    return;
+                }
                 const capturedImg = img;
                 lateImgPromises.push(new Promise(function(resolve) {
                     chrome.runtime.sendMessage({
@@ -213,6 +223,10 @@ gptpdfChatGPT.init = function() {
             main_clone.querySelectorAll('.no-scrollbar img').forEach(function(img, i) {
                 const src = img.getAttribute('src') || '';
             });
+
+            // Pair layout: each question+answer turn becomes two classic
+            // turns, so everything from here on reads one markup (render.js).
+            gptpdfNormalizeTurns(main_clone);
 
             cleanupForPdf(main_clone);
 
@@ -592,9 +606,16 @@ gptpdfChatGPT.init = function() {
     function checkForContent() {
         const validUrl = !window.location.href.startsWith(
             'https://chatgpt.com/gpts/editor');
-        const hasMessages = !!document.querySelector(
-            '[data-message-author-role="user"]');
+        const hasMessages = gptpdfHasConversation();
         const mainBtn = document.getElementById('gptpdf-convert-main');
+
+        // "Select to export" does not know the pair layout yet (STATE 09-26):
+        // there it would open with nothing to pick, so it stays out of the
+        // menu until it does. A classic page shows it as always.
+        const blocksItem = document.getElementById('gptpdf-blocks');
+        if(blocksItem) {
+            blocksItem.style.display = gptpdfIsPairLayout() ? 'none' : '';
+        }
 
         if(validUrl && hasMessages) {
             // ── Normal conversation: full button ──────────────────────────
@@ -777,7 +798,7 @@ gptpdfChatGPT.showError = function(status, text, hideContact) {
   // server timeout and a blocked/offline request — is finally visible. Dev
   // builds are suppressed in background.js, so testing never counts.
   const reason = gptpdfFailureReason(status, text);
-  sendGA4Event('export_failed', { reason: reason });
+  sendGA4Event('export_failed', { reason: reason, layout: gptpdfLayoutName() });
   const html = [];
   // Gotenberg returns 503 with a raw "--api-timeout" message when rendering takes
   // too long — translate that into something a normal user can act on.
@@ -805,7 +826,10 @@ gptpdfChatGPT.showError = function(status, text, hideContact) {
 };
 
 gptpdfChatGPT.saveBlob = function(url, filename) {
-    sendGA4Event('export_completed');
+    // `layout` says which ChatGPT page the export ran on (helpers.js): the new
+    // one cannot be tested live from our account, so the field has to say
+    // whether exports there go through.
+    sendGA4Event('export_completed', { layout: gptpdfLayoutName() });
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;

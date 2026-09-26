@@ -1,0 +1,301 @@
+<title>harvestVirtualizedTurns — перевёрнутая лента новой вёрстки</title>
+<!--
+  Проверяет харвест (capture.js) на НОВОЙ вёрстке ChatGPT (раскатка по аккаунтам с
+  ~21.09.2026, CHATGPT-DOM.md §9). Замер чужого живого прогона 26.09:
+    • лента `div[data-app-action-timeline-scroll]` — flex column-reverse: scrollTop = 0
+      ВНИЗУ и отрицательный вверх; порядок турнов в DOM хронологический;
+    • турн — пара «вопрос + ответ» `div[data-turn-key]`, ключ не меняется;
+      `fallback-turn-N` считает смонтированное окно;
+    • смонтировано 3–6 турнов, остальные удалены;
+    • у верха подгружается старое (69–138 мс), вид держится за низ.
+  Ловушка: прочитанный как есть scrollTop говорит «наверху», стоя в самом низу, — харвест
+  не поднимается ни на шаг и отдаёт последние 3–6 пар как весь диалог.
+
+  Сцены:
+    A — контроль: чтение scrollTop «как есть» (прежний харвест) — стенд воспроизводит ловушку.
+    B — длинный чат, при открытии загружено 40 из 100, порции по 20: весь диалог и порядок,
+        плюс пересборка копии и перевод пар в турны старого вида end-to-end.
+    C — чат открыт ПОСЕРЕДИНЕ.
+    D — медленная подгрузка: 2.5 с на порцию.
+    E — короткий чат, помещается в экран: ждать нечего.
+    F — средний чат целиком в DOM, длиннее двух экранов: сторож ожидания наверху.
+    G — страховка: при подгрузке лента держится за ВЕРХ (вид прыгает на прибывшее) —
+        замер говорит «за низ», но если живая страница поведёт себя иначе, сбор не должен
+        ни терять, ни путать.
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=600000 --dump-dom \
+      "file://$PWD/tests/harvest-reversed-test.html"
+
+  Границы: лента и подгрузка ЭМУЛИРОВАНЫ по чужому замеру. Стенд доказывает логику на
+  перевёрнутой ленте, а не то, что живая страница ведёт себя ровно так.
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../helpers.js"></script>
+<script src="../theme.js"></script>
+<script src="../render.js"></script>
+<script src="../capture.js"></script>
+<script>
+const TOTAL = 100;          // пар в диалоге
+const PAGE = 20;            // сколько подгружается за раз
+const LOADED_AT_OPEN = 40;  // сколько лежит при открытии
+const TURN_H = 150;
+const VIEW_H = 400;
+const OVERSCAN = 150;       // → на странице 4–6 пар, как в замере
+
+const out = [];
+let failed = 0;
+function check(name, cond, detail) {
+    if(!cond) failed++;
+    out.push((cond ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+const expectedOrder = (n) => Array.from({ length: n }, (_, i) => 'turn:k' + (i + 1));
+
+function pairHtml(real, pos) {
+    return '<div class="[&_[data-virtualized-turn-content]]:[content-visibility:visible]" data-turn-key="k' + real + '">' +
+      '<div data-content-search-turn-key="fallback-turn-' + pos + '">' +
+        '<h4 class="sr-only">You said:</h4>' +
+        '<div data-chatgpt-search-unit-key="fallback-turn-' + pos + ':0:user" data-chatgpt-search-message-ids="k' + real + '">' +
+          '<div data-user-message-bubble="true"><div class="whitespace-pre-wrap">q' + real + '</div></div>' +
+        '</div>' +
+        '<div data-chatgpt-search-unit-key="fallback-turn-' + pos + ':1:assistant" data-chatgpt-search-message-ids="a' + real + '">' +
+          '<h4 class="sr-only" data-conversation-role="assistant">ChatGPT said:</h4>' +
+          '<div data-chatgpt-selection-message-id="a' + real + '">' +
+            '<div data-markdown-text-style="assistant-message"><p>a' + real + '</p></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+// ── сцена: перевёрнутая лента с подгрузкой сверху ───────────────────────
+function mountScene(opts) {
+    const old = document.getElementById('scene-main');
+    if(old) old.remove();
+    const main = document.createElement('main');
+    main.id = 'scene-main';
+    const scroller = document.createElement('div');
+    scroller.setAttribute('data-app-action-timeline-scroll', '');
+    scroller.style.cssText = 'height:' + VIEW_H + 'px;overflow-y:auto;' +
+        'display:flex;flex-direction:column-reverse';
+    const list = document.createElement('div');
+    list.className = 'flex flex-col';
+    scroller.appendChild(list);
+    main.appendChild(scroller);
+    document.body.appendChild(main);
+
+    const total = opts.count || TOTAL;
+    const ids = [];
+    let oldestLoaded = opts.count ? 1 : TOTAL - LOADED_AT_OPEN + 1;
+    let fetching = false, fetches = 0, maxMounted = 0;
+
+    // Расстояние от верха по определению (CSSOM: origin внизу, scrollTop ≤ 0) —
+    // записано здесь независимо от кода под проверкой.
+    const fromTop = () => scroller.scrollTop + scroller.scrollHeight - scroller.clientHeight;
+
+    function render() {
+        const d = fromTop(), top = d - OVERSCAN, bottom = d + VIEW_H + OVERSCAN;
+        let first = -1, last = -1;
+        for(let k = 0; k < ids.length; k++) {
+            const y0 = k * TURN_H;
+            if(y0 + TURN_H > top && y0 < bottom) {
+                if(first < 0) first = k;
+                last = k;
+            }
+        }
+        // Внешний блок — flex-колонка, как у живой страницы (Tailwind `flex
+        // flex-col`): иначе отступ внутреннего блока схлопнется наружу и
+        // раздует ленту — стенд проверял бы собственный артефакт.
+        let h = '<div class="relative shrink-0" style="display:flex;flex-direction:column;height: ' +
+                ids.length * TURN_H + 'px">' +
+                '<div class="flex flex-col" style="margin-top: ' + Math.max(0, first) * TURN_H + 'px">';
+        for(let k = Math.max(0, first); k <= last; k++) {
+            h += '<div class="" style="margin-top: 0px; height: ' + TURN_H + 'px">' +
+                 pairHtml(ids[k], k - first) + '</div>';
+        }
+        h += '</div></div>';
+        // Живая лента перерисовывается, не сдвигая вид (замер: при подгрузке
+        // сверху вид держится за низ). Замена innerHTML уничтожает узел-якорь,
+        // и Chrome мог бы переставить позицию — держим её сами. scrollTop у
+        // перевёрнутой ленты отсчитан от низа, так что это и есть «держаться за низ».
+        const keep = scroller.scrollTop;
+        list.innerHTML = h;
+        if(scroller.scrollTop !== keep) scroller.scrollTop = keep;
+        maxMounted = Math.max(maxMounted, last - first + 1);
+    }
+    function loadOlderPage() {
+        if(fetching || oldestLoaded <= 1) return;
+        fetching = true; fetches++;
+        setTimeout(function() {
+            const n = Math.min(PAGE, oldestLoaded - 1);
+            const head = [];
+            for(let i = oldestLoaded - n; i < oldestLoaded; i++) head.push(i);
+            oldestLoaded -= n;
+            ids.unshift.apply(ids, head);
+            // render() держит scrollTop, а он у перевёрнутой ленты отсчитан от
+            // низа: старое прибывает сверху, вид остаётся на месте (как в замере),
+            // и расстояние от верха снова становится положительным.
+            const keepTop = fromTop();
+            render();
+            if(opts.anchorTop) {
+                // Сцена G: страница держится за ВЕРХ — вид прыгает на прибывшее.
+                scroller.scrollTop = keepTop - (scroller.scrollHeight - scroller.clientHeight);
+                render();
+            }
+            fetching = false;
+        }, opts.delay || 100);
+    }
+    // Как и в стенде старой ленты: позицию опрашиваем таймером — в headless
+    // события прокрутки почти не доезжают.
+    let lastTop = null;
+    setInterval(function() {
+        if(!main.isConnected) return;
+        if(scroller.scrollTop !== lastTop) { lastTop = scroller.scrollTop; render(); }
+        if(fromTop() <= 50) loadOlderPage();
+    }, 50);
+
+    for(let i = oldestLoaded; i <= total; i++) ids.push(i);
+    render();
+    // чат открывается внизу (scrollTop 0) — или там, где его оставили
+    if(opts.startAt === 'middle') {
+        scroller.scrollTop = -Math.floor((scroller.scrollHeight - scroller.clientHeight) / 2);
+    }
+    render();
+    return { main, scroller, stats: () => ({ fetches, maxMounted }) };
+}
+
+// ── контроль: scrollTop «как есть», как читал его харвест до 26.09 ───────
+async function rawHarvest(scroller) {
+    const cache = new Map();
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    // «наверху?» — scrollTop 0 → да; идём вниз шагами, пока позиция двигается
+    scroller.scrollTop = 0;
+    await wait(450);
+    captureRenderedTurns(cache);
+    const step = Math.max(200, Math.floor(scroller.clientHeight * 0.7));
+    let stuck = 0;
+    for(let i = 0; i < 400; i++) {
+        const before = scroller.scrollTop;
+        scroller.scrollTop = before + step;
+        await wait(220);
+        captureRenderedTurns(cache);
+        if(scroller.scrollTop <= before + 2) { if(++stuck >= 4) break; } else stuck = 0;
+    }
+    return cache;
+}
+
+function endToEnd(scene, cache, n) {
+    const clone = scene.main.cloneNode(true);
+    restoreVirtualizedTurns(clone, cache);
+    const keys = [...clone.querySelectorAll('div[data-turn-key]')].map(t => 'turn:' + t.getAttribute('data-turn-key'));
+    gptpdfNormalizeTurns(clone);
+    const users = [...clone.querySelectorAll('[data-message-author-role="user"]')].map(u => u.textContent.trim());
+    const answers = [...clone.querySelectorAll('[data-message-author-role="assistant"] [data-markdown-text-style]')].map(a => a.textContent.trim());
+    return { keys, users, answers,
+             okKeys: JSON.stringify(keys) === JSON.stringify(expectedOrder(n)),
+             okUsers: users.length === n && users[0] === 'q1' && users[n - 1] === 'q' + n,
+             okAnswers: answers.length === n && answers[0] === 'a1' && answers[n - 1] === 'a' + n,
+             heights: clone.querySelectorAll('[style*="height"]').length };
+}
+
+(async function run() {
+    // ── A ────────────────────────────────────────────────────────────
+    let scene = mountScene({});
+    const raw = await rawHarvest(scene.scroller);
+    out.push('— A. Контроль: scrollTop «как есть» на перевёрнутой ленте —');
+    out.push('  поймано ' + raw.size + ' из ' + TOTAL + ', на странице одновременно до ' + scene.stats().maxMounted + ' пар');
+    check('на странице одновременно 3–6 пар, как в замере',
+          scene.stats().maxMounted >= 3 && scene.stats().maxMounted <= 6, 'до ' + scene.stats().maxMounted);
+    check('прежнее чтение попадает в ловушку: видит только низ ленты',
+          raw.size <= 6, 'поймано ' + raw.size);
+
+    // ── B ────────────────────────────────────────────────────────────
+    scene = mountScene({});
+    const b = await harvestVirtualizedTurns();
+    const bi = b.gptpdfHarvest || {};
+    out.push('');
+    out.push('— B. Длинный чат: 40 из 100 при открытии, порции по 20 —');
+    out.push('  поймано ' + b.size + ' из ' + TOTAL + ', подгрузок: ' + scene.stats().fetches +
+             ', top loaded: ' + bi.topLoads + 'x, ' + bi.seconds + ' с');
+    check('лента распознана как перевёрнутая', bi.reversed === true, 'reversed=' + bi.reversed);
+    check('пойман весь диалог', b.size === TOTAL, 'поймано ' + b.size);
+    check('порядок совпал с диалогом',
+          JSON.stringify(b.gptpdfOrder) === JSON.stringify(expectedOrder(TOTAL)),
+          'первые: ' + (b.gptpdfOrder || []).slice(0, 3).join(','));
+    check('верх разбудил подгрузку столько раз, сколько порций не хватало',
+          bi.topLoads === (TOTAL - LOADED_AT_OPEN) / PAGE, 'topLoads=' + bi.topLoads);
+    check('подъём кончился тишиной наверху', bi.quietAtTop === true, 'quietAtTop=' + bi.quietAtTop);
+    check('«сколько всего» страница не говорит — и отчёт этого не выдумывает',
+          bi.loaded === null && bi.missing === null, 'loaded=' + bi.loaded + ', missing=' + bi.missing);
+    const eb = endToEnd(scene, b, TOTAL);
+    check('копия пересобрана: 100 пар по порядку', eb.okKeys, eb.keys.length + ' пар, начало ' + eb.keys.slice(0, 2).join(','));
+    check('после перевода: 100 вопросов и 100 ответов, с первого по последний',
+          eb.okUsers && eb.okAnswers, eb.users.length + ' / ' + eb.answers.length);
+    check('обёрток виртуализатора с высотами в копии нет', eb.heights === 0, eb.heights + ' шт.');
+
+    // ── C ────────────────────────────────────────────────────────────
+    scene = mountScene({ startAt: 'middle' });
+    const c = await harvestVirtualizedTurns();
+    out.push('');
+    out.push('— C. Чат открыт посередине —');
+    out.push('  поймано ' + c.size + ' из ' + TOTAL + ', прыжков без перекрытия: ' + (c.gptpdfHarvest || {}).orderJumps);
+    check('пойман весь диалог', c.size === TOTAL, 'поймано ' + c.size);
+    check('порядок совпал с диалогом',
+          JSON.stringify(c.gptpdfOrder) === JSON.stringify(expectedOrder(TOTAL)),
+          'первые: ' + (c.gptpdfOrder || []).slice(0, 3).join(','));
+
+    // ── D ────────────────────────────────────────────────────────────
+    scene = mountScene({ delay: 2500 });
+    const d = await harvestVirtualizedTurns();
+    const di = d.gptpdfHarvest || {};
+    out.push('');
+    out.push('— D. Подгрузка 2.5 с на порцию —');
+    out.push('  поймано ' + d.size + ' из ' + TOTAL + ', ушло секунд: ' + di.seconds);
+    check('медленная страница всё равно доезжает до начала', d.size === TOTAL, 'поймано ' + d.size);
+    check('порядок целый', (d.gptpdfOrder || [])[0] === 'turn:k1', 'первый: ' + (d.gptpdfOrder || [])[0]);
+
+    // ── E ────────────────────────────────────────────────────────────
+    scene = mountScene({ count: 3 });
+    const t0 = performance.now();
+    const e = await harvestVirtualizedTurns();
+    const eMs = Math.round(performance.now() - t0);
+    out.push('');
+    out.push('— E. Короткий чат, помещается в экран —');
+    check('ждать нечего: харвест не крутит ленту', eMs < 1000, eMs + ' мс');
+    const ee = endToEnd(scene, e, 3);
+    check('копия всё равно пересобрана из того, что на странице', ee.okKeys && ee.okUsers && ee.okAnswers,
+          ee.keys.join(','));
+
+    // ── F ────────────────────────────────────────────────────────────
+    scene = mountScene({ count: 12 });
+    const f = await harvestVirtualizedTurns();
+    const fi = f.gptpdfHarvest || {};
+    out.push('');
+    out.push('— F. 12 пар, всё загружено, лента длиннее двух экранов —');
+    out.push('  поймано ' + f.size + ' из 12, ушло секунд: ' + fi.seconds +
+             '   подъём ' + fi.ms.climb + ' + спуск ' + fi.ms.down + ' + хвост ' + fi.ms.tail + ' мс');
+    check('пойман весь чат', f.size === 12, 'поймано ' + f.size);
+    check('порядок совпал', JSON.stringify(f.gptpdfOrder) === JSON.stringify(expectedOrder(12)));
+    check('не платит за ожидание больше, чем стоит полнота (как на старой ленте)',
+          fi.seconds <= 8, 'ушло ' + fi.seconds + ' с');
+
+    // ── G ────────────────────────────────────────────────────────────
+    scene = mountScene({ anchorTop: true });
+    const g = await harvestVirtualizedTurns();
+    const gi = g.gptpdfHarvest || {};
+    out.push('');
+    out.push('— G. Страховка: при подгрузке лента держится за ВЕРХ, а не за низ —');
+    out.push('  поймано ' + g.size + ' из ' + TOTAL + ', top loaded: ' + gi.topLoads + 'x, ' + gi.seconds + ' с');
+    check('пойман весь диалог', g.size === TOTAL, 'поймано ' + g.size);
+    check('порядок совпал с диалогом',
+          JSON.stringify(g.gptpdfOrder) === JSON.stringify(expectedOrder(TOTAL)),
+          'первые: ' + (g.gptpdfOrder || []).slice(0, 3).join(','));
+
+    out.push('');
+    out.push(failed === 0 ? '✅ все проверки пройдены' : '❌ провалено проверок: ' + failed);
+    document.getElementById('log').textContent = out.join('\n');
+    document.getElementById('scene-main').remove();
+})();
+</script>

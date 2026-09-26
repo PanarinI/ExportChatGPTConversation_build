@@ -5,8 +5,15 @@
 // (also read by convert() and block-mode in common.js).
 
 function findVirtualizedScroller() {
-    const turns = document.querySelectorAll(
-        '[data-testid^="conversation-turn"]');
+    // Pair layout: the thread scroller names itself. The sidebar has a
+    // scroller of its own, so the name, not "some scrollable ancestor", is
+    // what tells them apart (CHATGPT-DOM.md §9).
+    const named = document.querySelector('[data-app-action-timeline-scroll]');
+    if(named && named.querySelector('div[data-turn-key]') &&
+       named.scrollHeight > named.clientHeight + 100) {
+        return named;
+    }
+    const turns = document.querySelectorAll(GPTPDF_TURN);
     if(!turns.length) {
         return null;
     }
@@ -20,6 +27,42 @@ function findVirtualizedScroller() {
         el = el.parentElement;
     }
     return null;
+}
+
+// Scroll position as DISTANCE FROM THE TOP of the loaded thread, whichever way
+// the scroller runs. The pair layout's thread is flex column-reverse: its
+// scroll origin is the bottom, so scrollTop is 0 at the newest message and
+// negative upward (standard since Chrome 85). Read raw, "0" says "at the top"
+// while standing at the very bottom — the climb would see nothing to climb and
+// the export would ship the newest 3–6 turns as the whole chat; another
+// exporter shipped exactly that the same week (CHATGPT-DOM.md §9).
+// On a classic scroller the axis IS scrollTop, value for value, so every
+// decision the harvest makes there is unchanged.
+function gptpdfScrollAxis(s) {
+    let reversed = window.getComputedStyle(s).flexDirection === 'column-reverse';
+    if(!reversed && s.scrollTop === 0 && s.scrollHeight > s.clientHeight) {
+        // At rest a bottom-origin scroller also reads 0 (the chat opens at the
+        // bottom), so ask it directly: only such a scroller accepts a negative
+        // position. A classic one clamps -1 to 0 — no movement, no event.
+        s.scrollTop = -1;
+        reversed = s.scrollTop < 0;
+        s.scrollTop = 0;
+    }
+    const range = function() {
+        return Math.max(0, s.scrollHeight - s.clientHeight);
+    };
+    return {
+        get: function() {
+            if(s.scrollTop < 0) {
+                reversed = true;    // only a bottom-origin scroller goes below 0
+            }
+            return reversed ? s.scrollTop + range() : s.scrollTop;
+        },
+        set: function(d) {
+            s.scrollTop = reversed ? d - range() : d;
+        },
+        reversed: function() { return reversed; }
+    };
 }
 
 // Turn number out of data-testid="conversation-turn-N". The number runs across
@@ -117,18 +160,50 @@ function makeHarvestBudget() {
 // the same testid names different messages minutes apart. Keying a cache on it
 // silently merges two messages into one. `data-message-id` is the server's own
 // id for the message and holds still (confirmed present in the same measure).
+//
+// Pair layout: the turn names itself — `data-turn-key` is the question's
+// message id and holds across remounts (CHATGPT-DOM.md §9). An empty key is
+// replaced by a hash of the turn's text, so two such turns never merge.
 function turnKey(t) {
+    if(gptpdfIsPairTurn(t)) {
+        const key = t.getAttribute('data-turn-key');
+        return key ? 'turn:' + key : 'turn#' + textHash(t.textContent);
+    }
     const m = t.querySelector('[data-message-id]');
     const id = m && m.getAttribute('data-message-id');
     return id ? 'msg:' + id : (t.getAttribute('data-testid') || '');
 }
 
+function textHash(s) {
+    let h = 5381;
+    const text = String(s || '').slice(0, 2000);
+    for(let i = 0; i < text.length; i++) {
+        h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+    }
+    return (h >>> 0).toString(36);
+}
+
+// Where a turn stands in this snapshot. A classic turn says it in data-testid
+// (window-relative and shifting — recordTurnPositions absorbs the shift). A
+// pair turn states no number the DOM keeps: `fallback-turn-N` beside it is
+// renumbered per mounted window. But the mounted window is contiguous and in
+// conversation order, so the index inside it is exactly such a shifting
+// number, and the same anchoring places it.
+function turnNumber(t, indexInSnapshot) {
+    return gptpdfIsPairTurn(t) ? indexInSnapshot
+        : turnIndex(t.getAttribute('data-testid'));
+}
+
 // How many turns the page holds right now, read as the highest turn number in
 // the DOM. Numbering is window-relative, so this is the size of the LOADED
 // conversation at this moment — the only total the page ever states out loud.
+// The pair layout states no total at all → null ("unknown", not zero).
 function loadedTurnCount() {
     const turns = document.querySelectorAll(
         '[data-testid^="conversation-turn"]');
+    if(!turns.length && gptpdfIsPairLayout()) {
+        return null;
+    }
     let max = 0;
     for(let i = 0; i < turns.length; i++) {
         const n = turnIndex(turns[i].getAttribute('data-testid'));
@@ -160,6 +235,9 @@ function loadedTurnCount() {
 // file sat at 91% of another, and two of three opened on 25 Jan instead of
 // 18 Jan. Nothing was missing; everything was in the wrong place.
 function recordTurnPositions(cache, present) {
+    if(present.length && /^turn[:#]/.test(present[0].key)) {
+        return recordPairPositions(cache, present);
+    }
     if(!cache.gptpdfPos) {
         cache.gptpdfPos = new Map();
     }
@@ -187,18 +265,87 @@ function recordTurnPositions(cache, present) {
     return true;
 }
 
-// Порядок диалога = ключи, отсортированные по позиции.
+// Pair layout. Same coordinates, one difference: a snapshot that touches
+// nothing known is not dropped but kept as an ISLAND — its turns placed
+// against each other — and islands are sewn into the main line (or into each
+// other) by the first snapshot that holds turns of both. The classic rule
+// "no anchor, no position" leaves such turns to be placed later by some
+// overlapping snapshot; here that snapshot may never come. If the page keeps
+// the view on the TOP when an older stretch arrives, every stretch the climb
+// meets at the top is unanchored, and the downward pass walks through them
+// holding nothing it knows until it reaches the part seen first — the turns
+// before that point would ship in capture order, not conversation order
+// (tests/harvest-reversed-test.html, scene G). Measured behaviour is the
+// opposite (the view keeps the bottom), but it is somebody else's measurement
+// of a page we cannot open. Pair keys are stable, which is what makes an
+// island safe to keep: the same key will name the same turn when it joins.
+function recordPairPositions(cache, present) {
+    if(!cache.gptpdfPos) {
+        cache.gptpdfPos = new Map();
+    }
+    if(!cache.gptpdfIslands) {
+        cache.gptpdfIslands = [];
+    }
+    const frames = [cache.gptpdfPos].concat(cache.gptpdfIslands);
+    const median = (a) => a.sort((x, y) => x - y)[a.length >> 1];
+    // Which frames this snapshot touches, and each one's shift.
+    const touched = [];
+    frames.forEach(function(f) {
+        const deltas = [];
+        present.forEach(function(p) {
+            if(f.has(p.key)) {
+                deltas.push(p.n - f.get(p.key));
+            }
+        });
+        if(deltas.length) {
+            touched.push({ frame: f, d: median(deltas) });
+        }
+    });
+    let target, d;
+    if(touched.length) {
+        target = touched[0].frame;    // the main line comes first when touched
+        d = touched[0].d;
+    } else if(cache.gptpdfPos.size === 0) {
+        target = cache.gptpdfPos;     // the first snapshot starts the main line
+        d = 0;
+    } else {
+        target = new Map();           // an island
+        cache.gptpdfIslands.push(target);
+        d = 0;
+    }
+    // Sew every other touched frame into the target.
+    for(let i = 1; i < touched.length; i++) {
+        const f = touched[i].frame;
+        const shift = touched[i].d - d;
+        f.forEach(function(p, key) { target.set(key, p + shift); });
+        cache.gptpdfIslands = cache.gptpdfIslands.filter(x => x !== f);
+    }
+    present.forEach(function(p) {
+        if(!target.has(p.key)) {
+            target.set(p.key, p.n - d);
+        }
+    });
+    return target === cache.gptpdfPos;
+}
+
+// Порядок диалога = ключи, отсортированные по позиции. Острова (только новая
+// вёрстка, см. recordPairPositions), так и не пришитые к основной линии, идут
+// следом в порядке появления: выбросить сообщение хуже, чем поставить не туда.
 function orderFromPositions(cache) {
     if(!cache.gptpdfPos) {
         return [];
     }
-    return Array.from(cache.gptpdfPos.entries())
+    const order = Array.from(cache.gptpdfPos.entries())
         .sort((a, b) => a[1] - b[1]).map(e => e[0]);
+    (cache.gptpdfIslands || []).forEach(function(island) {
+        Array.from(island.entries()).sort((a, b) => a[1] - b[1])
+            .forEach(e => order.push(e[0]));
+    });
+    return order;
 }
 
 function captureRenderedTurns(cache) {
-    const turns = document.querySelectorAll(
-        '[data-testid^="conversation-turn"]');
+    const turns = document.querySelectorAll(GPTPDF_TURN);
     const present = [];
     for(let i = 0; i < turns.length; i++) {
         const t = turns[i];
@@ -207,8 +354,7 @@ function captureRenderedTurns(cache) {
             continue;
         }
         const id = turnKey(t);
-        present.push({ key: id,
-                       n: turnIndex(t.getAttribute('data-testid')) });
+        present.push({ key: id, n: turnNumber(t, i) });
         // ChatGPT fills citation hrefs asynchronously: an early snapshot can have
         // hrefless (blue, non-clickable) links. Track resolved-link counts so we
         // keep the richest snapshot and know which turns still need their links.
@@ -287,7 +433,9 @@ function hideLoadingOverlay() {
 // So walk UP the way a reader would — step by step, capturing on the way — and
 // at the top wait for the next page to be prepended. Done when the smallest
 // turn number stops falling. Returns whether the first turn was reached.
-async function climbToConversationStart(scroller, cache, budget) {
+// Position is read and set through `ax` (gptpdfScrollAxis): distance from the
+// top, which on a classic scroller is scrollTop itself.
+async function climbToConversationStart(scroller, ax, cache, budget) {
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
     const up = Math.max(200, Math.floor(scroller.clientHeight * 0.7));
     let quietSince = 0;
@@ -312,13 +460,13 @@ async function climbToConversationStart(scroller, cache, budget) {
         if(harvestCancelled || budget.expired()) {
             break;
         }
-        const before = scroller.scrollTop;
+        const before = ax.get();
         const seen = cache.size;
         if(++sinceGain > 200) {
             break;
         }
         if(before > 0) {
-            scroller.scrollTop = Math.max(0, before - up);
+            ax.set(Math.max(0, before - up));
             await wait(200);
             captureRenderedTurns(cache);
             if(cache.size > seen) {
@@ -329,7 +477,7 @@ async function climbToConversationStart(scroller, cache, budget) {
                 }
                 lastArrival = Date.now();
             }
-            if(cache.size > seen || scroller.scrollTop < before - 2) {
+            if(cache.size > seen || ax.get() < before - 2) {
                 budget.progress();
             }
             quietSince = 0;
@@ -348,9 +496,9 @@ async function climbToConversationStart(scroller, cache, budget) {
             // made ZERO network calls either way, so it bought nothing — and it
             // was the likeliest trigger for the yank-to-bottom below.)
             const h0 = scroller.scrollHeight;
-            scroller.scrollTop = 60;
+            ax.set(60);
             await wait(60);
-            scroller.scrollTop = 0;
+            ax.set(0);
             await wait(CLIMB_NUDGE_MS);
             captureRenderedTurns(cache);
             // Only the list GROWING means content arrived. scrollTop being
@@ -376,8 +524,8 @@ async function climbToConversationStart(scroller, cache, budget) {
             } else {
                 // Yanked back down with nothing gained: return to the top in
                 // one move instead of climbing a screen at a time.
-                if(scroller.scrollTop > scroller.clientHeight) {
-                    scroller.scrollTop = 0;
+                if(ax.get() > scroller.clientHeight) {
+                    ax.set(0);
                 }
                 // Whole conversation fits on screen and nothing has ever
                 // arrived from above: there is no top to wait for. A long chat
@@ -419,7 +567,8 @@ async function harvestVirtualizedTurns() {
     if(!scroller) {
         return cache;
     }
-    const origScroll = scroller.scrollTop;
+    const origScroll = scroller.scrollTop;   // raw: handed back as it was
+    const ax = gptpdfScrollAxis(scroller);
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
     showLoadingOverlay();
     setHarvestProgress('Loading conversation...');
@@ -430,7 +579,7 @@ async function harvestVirtualizedTurns() {
         // Up first, then down. Until 2026-08 the harvest only went down from
         // `scrollTop = 0`, which is the top of the loaded window, not the top
         // of the conversation — see climbToConversationStart().
-        climb = await climbToConversationStart(scroller, cache, budget);
+        climb = await climbToConversationStart(scroller, ax, cache, budget);
         const _tClimb = budget.elapsed();
         if(harvestCancelled) {
             await restoreScroll(scroller, origScroll);
@@ -440,8 +589,8 @@ async function harvestVirtualizedTurns() {
         // The climb can end anywhere (start reached, nothing more arriving,
         // budget spent) — the downward pass must start from the top of what is
         // now loaded, not from wherever the climb happened to stop.
-        const atTop = scroller.scrollTop <= 2;
-        scroller.scrollTop = 0;
+        const atTop = ax.get() <= 2;
+        ax.set(0);
         await wait(atTop ? 120 : 350);   // после подъёма мы уже наверху
         captureRenderedTurns(cache);
         const step = Math.max(
@@ -458,13 +607,13 @@ async function harvestVirtualizedTurns() {
             if(harvestCancelled || budget.expired()) {
                 break;
             }
-            const before = scroller.scrollTop;
+            const before = ax.get();
             const seen = cache.size;
             const maxScroll =
                 scroller.scrollHeight - scroller.clientHeight;
             const next = before + step;
             if(next >= maxScroll) {
-                scroller.scrollTop = scroller.scrollHeight;
+                ax.set(scroller.scrollHeight);
                 await wait(250);
                 captureRenderedTurns(cache);
                 if(scroller.scrollHeight === lastHeight) {
@@ -479,7 +628,7 @@ async function harvestVirtualizedTurns() {
                 }
                 continue;
             }
-            scroller.scrollTop = next;
+            ax.set(next);
             await wait(220);
             captureRenderedTurns(cache);
             if(cache.size > seen) {
@@ -490,7 +639,7 @@ async function harvestVirtualizedTurns() {
             }
             // Position refusing to advance means the real bottom, even while
             // scrollHeight keeps shifting under us.
-            if(scroller.scrollTop <= before + 2) {
+            if(ax.get() <= before + 2) {
                 stuckTries++;
                 if(stuckTries >= 4) {
                     break;
@@ -508,7 +657,7 @@ async function harvestVirtualizedTurns() {
         // were unmounted behind us are handled by the gap sweep below.
         for(let attempt = 0; attempt < 3 && !harvestCancelled; attempt++) {
             const pending = Array.from(document.querySelectorAll(
-                '[data-testid^="conversation-turn"]'
+                GPTPDF_TURN
             )).filter(t => {
                 const c = cache.get(turnKey(t));
                 return !c || c.unresolved > 0;   // uncaptured, or links not resolved
@@ -535,15 +684,19 @@ async function harvestVirtualizedTurns() {
         // Gap sweep. The completeness pass above can only see turns still
         // mounted; a stretch the fast pass flew past is gone from the DOM and
         // shows up only as a hole in the numbering. Re-sweep slower to fill it.
-        const stillMissing = () =>
-            Math.max(0, loadedTurnCount() - cache.size);
+        // A pair-layout page states no total (loadedTurnCount → null), so
+        // there is no hole to count and the sweep does not run there.
+        const stillMissing = () => {
+            const loaded = loadedTurnCount();
+            return loaded === null ? 0 : Math.max(0, loaded - cache.size);
+        };
         for(let pass = 0; pass < 2 && !harvestCancelled; pass++) {
             if(budget.expired() || stillMissing() === 0) {
                 break;
             }
             setHarvestProgress('Filling in ' + stillMissing() +
                 ' missing messages...');
-            scroller.scrollTop = 0;
+            ax.set(0);
             await wait(450);
             captureRenderedTurns(cache);
             const slow = Math.max(
@@ -552,9 +705,9 @@ async function harvestVirtualizedTurns() {
                 if(harvestCancelled || budget.expired()) {
                     break;
                 }
-                const before = scroller.scrollTop;
+                const before = ax.get();
                 const seen = cache.size;
-                scroller.scrollTop = before + slow;
+                ax.set(before + slow);
                 await wait(260);
                 captureRenderedTurns(cache);
                 // Nothing left to fill — walking the rest of the chat again
@@ -562,7 +715,7 @@ async function harvestVirtualizedTurns() {
                 if(stillMissing() === 0) {
                     break;
                 }
-                if(scroller.scrollTop <= before + 2) {
+                if(ax.get() <= before + 2) {
                     break;
                 }
                 budget.progress();
@@ -571,11 +724,14 @@ async function harvestVirtualizedTurns() {
                 }
             }
         }
-        const _loaded = loadedTurnCount();
+        const _loaded = loadedTurnCount();   // null: the page states no total
+        const _missing = _loaded === null ? null
+            : Math.max(0, _loaded - cache.size);
         cache.gptpdfOrder = orderFromPositions(cache);
         cache.gptpdfHarvest = {
             turns: cache.size, loaded: _loaded,
-            missing: Math.max(0, _loaded - cache.size),
+            missing: _missing,
+            reversed: ax.reversed(),
             topLoads: climb.topLoads, quietAtTop: climb.quietAtTop,
             maxArrivalGap: climb.maxArrivalGap,
             ordered: cache.gptpdfOrder.length,
@@ -591,8 +747,10 @@ async function harvestVirtualizedTurns() {
         // the conversation the page ended up holding; `top loaded: 0x` on a long
         // chat means standing at the top never made ChatGPT fetch an older
         // stretch — that is the thing to chase, and it is not about time.
-        console.log('[gptpdf] harvest: ' + cache.size + ' of ' + _loaded +
-            ' loaded turns, missing: ' + Math.max(0, _loaded - cache.size) +
+        console.log('[gptpdf] harvest: ' + cache.size + ' of ' +
+            (_loaded === null ? '?' : _loaded) +
+            ' loaded turns, missing: ' + (_missing === null ? '?' : _missing) +
+            (ax.reversed() ? ', bottom-origin thread' : '') +
             ', ordered: ' + cache.gptpdfOrder.length +
             ', top loaded: ' + climb.topLoads + 'x' +
             (climb.quietAtTop ? ' (top went quiet)' : ' (stopped early)') +
@@ -632,6 +790,10 @@ async function restoreScroll(scroller, origScroll) {
 // turns in numeric order, leaving the container's other children (spacers,
 // disclaimer) where they are.
 function restoreVirtualizedTurns(clone, cache) {
+    if(gptpdfIsPairLayout(clone)) {
+        restorePairThread(clone, cache);
+        return;
+    }
     if(!cache || cache.size === 0) {
         return;
     }
@@ -701,6 +863,65 @@ function restoreVirtualizedTurns(clone, cache) {
     });
     container.insertBefore(frag, live[0]);
     live.forEach(t => t.remove());
+}
+
+// Pair layout: the export copy becomes the thread and nothing else. Two
+// reasons it cannot be patched in place like the classic one. Every turn sits
+// in a virtualizer slot with a fixed inline height ("height: 172px") around a
+// box sized for the mounted window ("height: 408px"): ChatGPT's stylesheet,
+// which normally has the last word, is not in the export, so those heights
+// would clip the conversation the moment all of it is laid out. And the page
+// around the thread — header, composer, banners — has no place in a PDF.
+// Runs with or without a harvest: a short chat or a text selection has only
+// the turns already in the copy, and they still need their slots taken off.
+function restorePairThread(clone, cache) {
+    const merged = new Map();
+    const live = clone.querySelectorAll('div[data-turn-key]');
+    live.forEach(t => {
+        merged.set(turnKey(t), {
+            html: t.outerHTML,
+            hrefs: t.querySelectorAll('a[href]').length,
+            len: t.innerHTML.length
+        });
+    });
+    if(cache) {
+        cache.forEach((cached, id) => {
+            const cur = merged.get(id);
+            if(!cur || cached.hrefs > cur.hrefs ||
+               (cached.hrefs === cur.hrefs && cached.len > cur.len)) {
+                merged.set(id, cached);
+            }
+        });
+    }
+    // Order from the harvest; then anything it never placed — the copy's own
+    // turns in document order first, which is conversation order here.
+    const known = !cache ? [] : (cache.gptpdfOrder && cache.gptpdfOrder.length)
+        ? cache.gptpdfOrder : orderFromPositions(cache);
+    const ordered = [];
+    const placed = new Set();
+    const place = k => {
+        if(merged.has(k) && !placed.has(k)) {
+            placed.add(k);
+            ordered.push(k);
+        }
+    };
+    known.forEach(place);
+    live.forEach(t => place(turnKey(t)));
+    merged.forEach((_v, k) => place(k));
+
+    const thread = document.createElement('div');
+    thread.className = 'gptpdf-thread';
+    const box = document.createElement('div');
+    ordered.forEach(id => {
+        box.innerHTML = merged.get(id).html;
+        while(box.firstChild) {
+            thread.appendChild(box.firstChild);
+        }
+    });
+    while(clone.firstChild) {
+        clone.removeChild(clone.firstChild);
+    }
+    clone.appendChild(thread);
 }
 
 // ─────────────────────────────────────────────────────────────────────

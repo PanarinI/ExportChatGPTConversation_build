@@ -7,6 +7,26 @@ history and working notes.
 
 ## [Unreleased]
 
+## [1.1.9] — 2026-09-26
+### Fixed
+- **The extension stopped working on ChatGPT's new layout.** Since around
+  21 September ChatGPT has been moving accounts, one by one, to a redesigned
+  page (the one with the Chat / Work switch). On it the Export button stayed
+  dimmed on an open conversation and said "Open a conversation first", so
+  nothing could be exported. The extension now reads both the old and the new
+  page: it recognises the open chat, climbs the new thread (which scrolls from
+  the bottom up) to the first message, and lays each question and its answer
+  out in the PDF exactly as before — same cleanup, table of contents,
+  "AI answers only" and page breaks.
+- **Generated images could be missing from the PDF.** Pictures that ChatGPT
+  serves as temporary in-page links (`blob:`), which the new layout does for
+  generated images, are now embedded in the file instead of turning into a
+  broken-image mark.
+
+### Changed
+- On the new layout, "Select to export" is hidden from the menu for now; it
+  returns once it has learned that page. The old layout keeps it as before.
+
 ## [1.1.8] — 2026-09-18
 ### Added
 - **"Select to export" now has a Select all.** A row above the first block ticks
