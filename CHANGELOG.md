@@ -6,6 +6,10 @@ Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
 ## [Unreleased]
+### Changed
+- **A rating of 1–3 stars now opens a short "What went wrong?" page** (one
+  field and a Send button) instead of a Google Form. The answer goes to the
+  same place as before, so nothing is lost.
 
 ## [1.1.9] — 2026-09-26
 ### Fixed

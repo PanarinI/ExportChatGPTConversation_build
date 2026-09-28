@@ -385,7 +385,7 @@ gptpdfChatGPT.init = function() {
                     const n = parseInt(s.dataset.n);
                     const url = n >= 4
                         ? (gptpdfShared.rateUsLink || '#')
-                        : (gptpdfShared.feedbackFormLink || gptpdfShared.rateUsLink || '#');
+                        : (gptpdfShared.feedbackFormLink ? gptpdfShared.feedbackFormLink + '?stars=' + n : (gptpdfShared.rateUsLink || '#'));
                     window.open(url, '_blank');
                 });
             });
@@ -474,7 +474,7 @@ gptpdfChatGPT.init = function() {
             const n = parseInt(s.dataset.n);
             const url = n >= 4
                 ? (gptpdfShared.rateUsLink || '#')
-                : (gptpdfShared.feedbackFormLink || gptpdfShared.rateUsLink || '#');
+                : (gptpdfShared.feedbackFormLink ? gptpdfShared.feedbackFormLink + '?stars=' + n : (gptpdfShared.rateUsLink || '#'));
             chrome.storage.local.set({ gptpdf_rated: true });
             gptpdfRevertToExport();
             window.open(url, '_blank');

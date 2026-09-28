@@ -90,8 +90,10 @@ gptpdfShared.build = 'source';
 console.log('[gptpdf] build ' + gptpdfShared.build);
 
 gptpdfShared.rateUsLink = '#';
-// For 1–3 stars: redirect to private feedback form instead of public CWS review
-gptpdfShared.feedbackFormLink = 'https://forms.gle/tXvfsrDsYbMprwiR7';
+// For 1–3 stars: our "What went wrong?" page instead of the public CWS review (with ?stars=N).
+// The page posts into the uninstall form — one table, a Source column says "rating N★" or "uninstall".
+// Until 2026-09-28 this was the separate Google Form ExportGPT_low_rating (forms.gle/tXvfsrDsYbMprwiR7).
+gptpdfShared.feedbackFormLink = 'https://panarini.github.io/ExportChatGPTConversation/feedback.html';
 gptpdfShared.hasOptions = true;
 if (typeof GM_info !== 'undefined') {
     gptpdfShared.rateUsLink = 'https://greasyfork.org/en/scripts/484463-save-chatgpt-as-pdf/feedback#post-discussion';
