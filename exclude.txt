@@ -17,3 +17,5 @@ icons/3rd/pdfcrowd.svg
 dist
 html_pdf_converter
 schemas
+dizajn
+research

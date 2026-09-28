@@ -1,0 +1,987 @@
+dateHour_property_tz,country,region,city,first_visits
+2026072921,United States,Washington,Redmond,3
+2026081010,Philippines,Central Visayas,Cebu City,3
+2026062110,Brazil,State of Rio de Janeiro,Rio de Janeiro,2
+2026062121,Kazakhstan,Almaty Region,Almaty,2
+2026062321,United States,Virginia,Ashburn,2
+2026062404,Japan,(not set),(not set),2
+2026062708,India,Delhi Division,Delhi,2
+2026062915,South Korea,Seoul,Seoul,2
+2026063000,United States,Virginia,Ashburn,2
+2026063018,South Korea,Gyeonggi-do,Goyang-si,2
+2026070306,South Korea,Seoul,Seoul,2
+2026070421,Italy,Calabria,Reggio Calabria,2
+2026070820,United States,(not set),(not set),2
+2026071218,Brazil,State of Sao Paulo,Sao Paulo,2
+2026072016,Canada,Quebec,Montreal,2
+2026072219,United States,Virginia,Ashburn,2
+2026080520,Vietnam,Quang Tri,Quang Tri,2
+2026081809,Thailand,Nakhon Sawan,Nakhon Sawan,2
+2026082122,United States,Virginia,Ashburn,2
+2026082519,Vietnam,Quang Tri,(not set),2
+2026082520,China,Beijing,Beijing,2
+2026083108,Israel,Tel Aviv District,Tel Aviv-Yafo,2
+2026090408,China,Guangdong Province,Shenzhen,2
+2026091616,Ukraine,(not set),(not set),2
+2026092203,Türkiye,Istanbul,Istanbul,2
+2026092222,United States,California,Los Angeles,2
+2026092314,Germany,North Rhine-Westphalia,Monchengladbach,2
+2026092520,Japan,Tokyo,Minato City,2
+2026092600,South Korea,Seoul,Seoul,2
+2026092622,United Arab Emirates,Abu Dhabi,Al Ain,2
+2026060904,Russia,Moscow,Moscow,1
+2026060914,United Kingdom,England,London,1
+2026061001,Taiwan,Taipei City,Wanhua District,1
+2026061002,China,Guangdong Province,Shenzhen,1
+2026061003,China,(not set),(not set),1
+2026061003,Indonesia,Aceh,Grong-grong,1
+2026061007,China,Guangdong Province,Shenzhen,1
+2026061019,Japan,Tokyo,(not set),1
+2026061108,Bangladesh,Khulna Division,(not set),1
+2026061120,United States,Texas,El Paso,1
+2026061120,United States,Virginia,Ashburn,1
+2026061207,Peru,Cajamarca,Cajamarca,1
+2026061302,Uzbekistan,(not set),Tashkent,1
+2026061311,Italy,Lazio,Rome,1
+2026061312,Georgia,Tbilisi,Tbilisi,1
+2026061313,Türkiye,Istanbul,Istanbul,1
+2026061319,Indonesia,East Java,Surabaya,1
+2026061323,Spain,(not set),(not set),1
+2026061406,Sweden,Uppsala County,Uppsala,1
+2026061505,Hong Kong,(not set),Hong Kong,1
+2026061623,(not set),(not set),(not set),1
+2026061701,Türkiye,Izmir,Izmir,1
+2026061708,Russia,Moscow Oblast,Pushkino,1
+2026061708,Uzbekistan,(not set),Tashkent,1
+2026061709,Russia,Yaroslavl Oblast,Yaroslavl,1
+2026061709,United States,California,Florence-Graham,1
+2026061709,Uzbekistan,(not set),Samarkand,1
+2026061719,Australia,New South Wales,Sydney,1
+2026061721,United States,Virginia,Ashburn,1
+2026061722,Kazakhstan,East Kazakhstan Region,Oskemen,1
+2026061800,Kazakhstan,Almaty Region,Almaty,1
+2026061800,Uzbekistan,(not set),Tashkent,1
+2026061802,Russia,Mari El Republic,Yoshkar-Ola,1
+2026061803,Kazakhstan,Turkistan Region,Pyervomayevka,1
+2026061804,Russia,Tyumen Oblast,Tyumen,1
+2026061807,Germany,North Rhine-Westphalia,Paderborn,1
+2026061809,Russia,Kursk Oblast,Kursk,1
+2026061810,Kazakhstan,West Kazakhstan Region,Uralsk,1
+2026061810,Russia,Bryansk Oblast,Bryansk,1
+2026061810,Russia,Samara Oblast,Samara,1
+2026061811,Russia,Yaroslavl Oblast,Yaroslavl,1
+2026061821,Kazakhstan,Astana,Astana,1
+2026061903,United Kingdom,England,(not set),1
+2026061907,Kyrgyzstan,Bishkek City,Bishkek,1
+2026061907,Poland,Masovian Voivodeship,Warsaw,1
+2026061907,Russia,Saratov Oblast,Saratov,1
+2026061909,Georgia,Tbilisi,Tbilisi,1
+2026061912,Russia,North Ossetia–Alania Republic,Vladikavkaz,1
+2026061917,United States,Illinois,Glenview,1
+2026061919,Greece,"Decentralized Administration of Peloponnese, Western Greece and the Ionian",(not set),1
+2026061920,Indonesia,West Java,Cikampek,1
+2026061923,Taiwan,Kaohsiung City,(not set),1
+2026062001,Iran,(not set),Tehran,1
+2026062001,Kazakhstan,Almaty Region,Almaty,1
+2026062001,Kazakhstan,Astana,Astana,1
+2026062002,Kazakhstan,Astana,Astana,1
+2026062003,Tajikistan,(not set),Dushanbe,1
+2026062004,Kazakhstan,Astana,Astana,1
+2026062006,Russia,Kirov Oblast,(not set),1
+2026062006,United States,Florida,(not set),1
+2026062008,Kazakhstan,Almaty Region,Almaty,1
+2026062014,Germany,Saxony,Leipzig,1
+2026062017,Kazakhstan,Shymkent,Shymkent,1
+2026062019,Netherlands,North Holland,Amsterdam,1
+2026062020,United States,Georgia,Loganville,1
+2026062101,Kazakhstan,Turkistan Region,Turkistan,1
+2026062103,Belarus,Minsk Region,Barysaw,1
+2026062103,Russia,Krasnodar Krai,Armavir,1
+2026062104,Germany,Hessen,Frankfurt am Main,1
+2026062104,Tajikistan,(not set),Dushanbe,1
+2026062106,South Korea,Seoul,Seoul,1
+2026062107,Indonesia,Jakarta,Jakarta,1
+2026062109,China,Beijing,Beijing,1
+2026062109,Germany,Saxony,Leipzig,1
+2026062109,Vietnam,Ho Chi Minh,Ho Chi Minh City,1
+2026062110,Russia,Rostov Oblast,(not set),1
+2026062112,Kazakhstan,(not set),Semey,1
+2026062116,Brazil,State of Rio Grande do Sul,Porto Alegre,1
+2026062116,Russia,Moscow,Moscow,1
+2026062119,Finland,Uusimaa,Vantaa,1
+2026062119,Russia,Chelyabinsk Oblast,Magnitogorsk,1
+2026062121,Kazakhstan,West Kazakhstan Region,Uralsk,1
+2026062122,Kazakhstan,Kyzylorda Region,Aral,1
+2026062122,United States,California,Los Angeles,1
+2026062202,Japan,Tokyo,(not set),1
+2026062211,United States,Massachusetts,Franklin,1
+2026062214,United States,Georgia,Atlanta,1
+2026062220,United States,California,Los Angeles,1
+2026062222,India,Telangana,Hyderabad,1
+2026062300,Indonesia,East Java,(not set),1
+2026062300,Japan,Tokyo,Koto City,1
+2026062301,South Korea,Busan,Busan,1
+2026062308,Iran,(not set),Isfahan,1
+2026062309,Singapore,(not set),(not set),1
+2026062312,Poland,Podkarpackie Voivodeship,Rzeszow,1
+2026062313,Indonesia,South Sumatra,32312,1
+2026062400,Czechia,Pardubice Region,Pardubice,1
+2026062407,South Korea,Gyeonggi-do,Yongin-si,1
+2026062409,Italy,Lazio,Civitavecchia,1
+2026062410,Colombia,Bogota,Bogota,1
+2026062416,India,Delhi Division,Delhi,1
+2026062417,Japan,Tokyo,(not set),1
+2026062418,United States,(not set),(not set),1
+2026062418,United States,California,Los Angeles,1
+2026062422,Italy,Lazio,Civitavecchia,1
+2026062423,United States,California,San Jose,1
+2026062500,Bulgaria,Sofia,Sofia,1
+2026062500,Norway,Oslo,Oslo Municipality,1
+2026062503,Austria,Vienna,Vienna,1
+2026062503,Switzerland,Zurich,Zurich,1
+2026062504,Hungary,Budapest,Budapest,1
+2026062505,Argentina,Buenos Aires Province,San Justo,1
+2026062508,Pakistan,Islamabad Capital Territory,Islamabad,1
+2026062510,Brazil,State of Amazonas,Manaus,1
+2026062510,Pakistan,Punjab,(not set),1
+2026062515,Türkiye,Kayseri,Kayseri,1
+2026062515,United Kingdom,Scotland,Paisley,1
+2026062517,Russia,Sverdlovsk Oblast,Yekaterinburg,1
+2026062517,United States,Texas,Leander,1
+2026062518,South Korea,Seoul,Seoul,1
+2026062602,Andorra,(not set),Andorra la Vella,1
+2026062604,Poland,Kuyavian-Pomeranian Voivodeship,Bydgoszcz,1
+2026062605,Japan,Tokyo,(not set),1
+2026062607,United States,New York,New York,1
+2026062608,Poland,Masovian Voivodeship,Warsaw,1
+2026062609,Japan,Tokyo,Shinagawa City,1
+2026062609,United Kingdom,England,Fleet,1
+2026062611,Chile,Santiago Metropolitan Region,Santiago,1
+2026062615,United States,California,Los Angeles,1
+2026062700,India,Maharashtra,Mumbai,1
+2026062701,Singapore,(not set),(not set),1
+2026062702,India,Uttar Pradesh,Agra,1
+2026062702,Indonesia,West Java,Depok,1
+2026062702,Türkiye,Ankara,Ankara,1
+2026062707,Indonesia,Special Region of Yogyakarta,Bantul,1
+2026062711,United States,Texas,Leander,1
+2026062713,Denmark,Capital Region of Denmark,Copenhagen,1
+2026062720,Poland,Podkarpackie Voivodeship,Sanok,1
+2026062803,United States,Georgia,Sugar Hill,1
+2026062804,Japan,Tokyo,(not set),1
+2026062806,France,Normandy,(not set),1
+2026062806,Indonesia,Jakarta,Jakarta,1
+2026062809,Poland,Masovian Voivodeship,Warsaw,1
+2026062810,Poland,Lower Silesian Voivodeship,Wroclaw,1
+2026062817,Argentina,Buenos Aires,Buenos Aires,1
+2026062817,Brazil,State of Minas Gerais,Belo Horizonte,1
+2026062818,United States,Texas,Fort Worth,1
+2026062819,South Korea,Jeju-do,Seogwipo-si,1
+2026062821,India,Bihar,Patna,1
+2026062902,Portugal,Porto District,Pacos de Ferreira,1
+2026062905,(not set),(not set),(not set),1
+2026062905,Australia,New South Wales,Sydney,1
+2026062905,India,Telangana,Hyderabad,1
+2026062906,Indonesia,Bali,Kuta Selatan,1
+2026062907,Brazil,State of Rio Grande do Sul,Dois Irmaos,1
+2026062910,Indonesia,Jakarta,Jakarta,1
+2026062910,United States,Michigan,Ann Arbor,1
+2026062911,Poland,Pomeranian Voivodeship,Gdansk,1
+2026062911,Ukraine,Zhytomyr Oblast,Zhytomyr,1
+2026062914,Greece,Crete,Rethimno,1
+2026062918,South Korea,Gyeongsangbuk-do,Seongju-gun,1
+2026062919,Vietnam,Ha Noi,Hanoi,1
+2026062920,Singapore,(not set),Singapore,1
+2026062923,Russia,Krasnodar Krai,Krasnodar,1
+2026063001,Peru,Lima Province,(not set),1
+2026063001,Romania,Constanta,Tuzla,1
+2026063002,India,Gujarat,Ahmedabad,1
+2026063004,Slovakia,Bratislava Region,Bratislava,1
+2026063005,Malaysia,Johor,Johor Bahru,1
+2026063005,Türkiye,Elazig,Elazig,1
+2026063006,China,Guangdong Province,Guangzhou,1
+2026063006,Jordan,Amman Governorate,Amman,1
+2026063009,Taiwan,Tainan City,East District,1
+2026063010,Brazil,State of Sao Paulo,Pindamonhangaba,1
+2026063011,Mexico,Mexico City,Mexico City,1
+2026063013,Brazil,State of Sao Paulo,Indaiatuba,1
+2026063021,South Korea,Busan,Busan,1
+2026070101,Hungary,Pest County,Budaors,1
+2026070102,Portugal,Beja District,(not set),1
+2026070105,Netherlands,South Holland,Rotterdam,1
+2026070106,Malaysia,Federal Territory of Kuala Lumpur,Kuala Lumpur,1
+2026070107,Ukraine,Mykolaiv Oblast,Mykolaiv,1
+2026070108,Türkiye,Istanbul,Istanbul,1
+2026070109,United States,California,Los Angeles,1
+2026070113,Brazil,State of Sao Paulo,Sao Paulo,1
+2026070114,Italy,Sicily,Palermo,1
+2026070115,Brazil,State of Espirito Santo,Cachoeiro de Itapemirim,1
+2026070118,Brazil,Federal District,Brasilia,1
+2026070118,United States,California,San Jose,1
+2026070121,Japan,Tokyo,Setagaya City,1
+2026070123,Italy,Calabria,(not set),1
+2026070200,Japan,Tokyo,(not set),1
+2026070201,United States,California,San Rafael,1
+2026070202,(not set),(not set),(not set),1
+2026070202,Canada,Ontario,Toronto,1
+2026070206,Brazil,State of Rio Grande do Sul,(not set),1
+2026070206,Taiwan,Tainan City,East District,1
+2026070209,Vietnam,Ho Chi Minh,Ho Chi Minh City,1
+2026070211,India,Delhi Division,Delhi,1
+2026070211,United Kingdom,England,Holbeach,1
+2026070211,United States,Florida,Coral Springs,1
+2026070212,Indonesia,East Java,Kediri,1
+2026070213,Türkiye,Istanbul,Istanbul,1
+2026070214,United States,Mississippi,Kiln,1
+2026070216,Brazil,State of Sergipe,Itabaiana,1
+2026070216,Taiwan,Taipei City,Wanhua District,1
+2026070216,United States,Florida,Coral Springs,1
+2026070218,Japan,Tokyo,Minato City,1
+2026070219,Chile,Bio Bio,Concepcion,1
+2026070219,Japan,Tokyo,(not set),1
+2026070219,Taiwan,Taipei City,Zhongzheng District,1
+2026070301,Ukraine,(not set),(not set),1
+2026070302,United States,California,(not set),1
+2026070304,South Korea,Seoul,Seoul,1
+2026070307,Canada,Alberta,Calgary,1
+2026070307,Italy,Lombardy,Milan,1
+2026070307,Kyrgyzstan,Bishkek City,Bishkek,1
+2026070308,China,Jiangsu,Suzhou,1
+2026070310,Spain,Madrid,Madrid,1
+2026070323,Japan,Tokyo,(not set),1
+2026070402,Portugal,Porto District,Ermesinde,1
+2026070406,United Kingdom,England,London,1
+2026070407,France,Occitanie,(not set),1
+2026070412,Russia,Republic of Tatarstan,Kazan,1
+2026070412,Türkiye,Istanbul,Istanbul,1
+2026070414,Türkiye,Istanbul,Istanbul,1
+2026070504,India,Jharkhand,Jamshedpur,1
+2026070510,France,Nouvelle-Aquitaine,(not set),1
+2026070510,Portugal,Lisbon,Famoes,1
+2026070517,India,Haryana,Sirsa,1
+2026070518,China,Guangdong Province,Guangzhou,1
+2026070519,United States,New Mexico,Albuquerque,1
+2026070520,Indonesia,Special Region of Yogyakarta,Depok,1
+2026070602,Türkiye,Istanbul,Istanbul,1
+2026070603,United States,California,Los Angeles,1
+2026070605,China,Guangdong Province,Guangzhou,1
+2026070607,Singapore,(not set),Singapore,1
+2026070610,Brazil,State of Rio Grande do Sul,Caxias do Sul,1
+2026070615,Peru,Lima Province,(not set),1
+2026070618,Singapore,(not set),Singapore,1
+2026070619,United States,Missouri,St. Louis,1
+2026070621,Taiwan,Tainan City,East District,1
+2026070700,Brazil,State of Parana,Foz do Iguacu,1
+2026070700,Taiwan,Taipei City,Neihu District,1
+2026070701,South Korea,Gangwon-do,Inje-gun,1
+2026070704,Romania,Satu Mare,Carei,1
+2026070705,United Kingdom,England,Beeston,1
+2026070707,China,Hunan,Changsha,1
+2026070707,Taiwan,Changhua County,Dacun Township,1
+2026070708,Japan,Tokyo,(not set),1
+2026070708,Türkiye,Istanbul,Istanbul,1
+2026070708,United States,Florida,Coral Springs,1
+2026070710,Czechia,Central Bohemian Region,Kolin,1
+2026070710,Spain,Madrid,Madrid,1
+2026070711,Indonesia,East Java,(not set),1
+2026070712,Brazil,State of Bahia,Lauro de Freitas,1
+2026070712,Italy,Apulia,Monopoli,1
+2026070712,Russia,Moscow,Moscow,1
+2026070719,Dominican Republic,(not set),Santiago De Los Caballeros,1
+2026070800,China,Guangdong Province,Guangzhou,1
+2026070801,United States,California,(not set),1
+2026070801,United States,California,San Jose,1
+2026070805,Spain,Galicia,A Coruna,1
+2026070806,Argentina,Buenos Aires Province,La Lonja,1
+2026070806,Brazil,State of Piaui,Teresina,1
+2026070806,Indonesia,East Java,Surabaya,1
+2026070806,Russia,Moscow,Moscow,1
+2026070807,Taiwan,Taipei City,Wanhua District,1
+2026070808,Indonesia,East Java,Surabaya,1
+2026070808,Japan,(not set),(not set),1
+2026070809,South Korea,Gyeonggi-do,Seongnam-si,1
+2026070810,United States,New Mexico,Albuquerque,1
+2026070811,Brazil,State of Minas Gerais,Uberlandia,1
+2026070811,Spain,Canary Islands,Playa de las Americas,1
+2026070813,Türkiye,Mersin,Mersin,1
+2026070814,Ukraine,Kyiv city,Kyiv,1
+2026070817,Brazil,State of Rio Grande do Sul,(not set),1
+2026070818,India,Delhi Division,Delhi,1
+2026070818,United States,Illinois,Glenview,1
+2026070819,Hong Kong,(not set),(not set),1
+2026070820,India,Telangana,Hyderabad,1
+2026070820,United States,California,San Francisco,1
+2026070904,China,Guangdong Province,Huizhou,1
+2026070909,Mexico,State of Mexico,Tlalnepantla de Baz,1
+2026070911,Brazil,State of Sao Paulo,Sao Paulo,1
+2026070911,United States,Iowa,Ankeny,1
+2026070912,Russia,Moscow,Moscow,1
+2026070913,Canada,Ontario,Toronto,1
+2026070918,India,Karnataka,Bengaluru,1
+2026070919,Taiwan,Taichung City,Shalu District,1
+2026070921,Mexico,Mexico City,Mexico City,1
+2026070922,Russia,Republic of Tatarstan,Naberezhnye Chelny,1
+2026071001,Belgium,Wallonia,Wavre,1
+2026071001,Japan,Tokyo,Kita City,1
+2026071002,India,Delhi Division,New Delhi,1
+2026071003,Egypt,Cairo Governorate,Cairo,1
+2026071005,Brazil,State of Parana,Curitiba,1
+2026071006,Brazil,State of Sao Paulo,Moji-Mirim,1
+2026071007,Singapore,(not set),(not set),1
+2026071008,Brazil,State of Sao Paulo,Guarulhos,1
+2026071012,United States,Missouri,St. Louis,1
+2026071020,Japan,Tokyo,Koto City,1
+2026071020,Mexico,Baja California,Ensenada,1
+2026071021,Estonia,Harju County,Tallinn,1
+2026071022,South Korea,Gyeonggi-do,Seongnam-si,1
+2026071102,United States,Utah,Draper,1
+2026071107,Belgium,Wallonia,Nivelles,1
+2026071107,Norway,Oslo,Oslo Municipality,1
+2026071109,Vietnam,Ho Chi Minh,Ho Chi Minh City,1
+2026071110,Brazil,State of Goias,Trindade,1
+2026071114,Jordan,Amman Governorate,Amman,1
+2026071114,Lithuania,Vilnius County,Vilnius,1
+2026071115,Israel,Haifa District,Pardes Hanna-Karkur,1
+2026071116,Czechia,Prague,Prague,1
+2026071117,Brazil,State of Sao Paulo,Guarulhos,1
+2026071122,France,Ile-de-France,Ivry-sur-Seine,1
+2026071122,Indonesia,West Java,Bandung,1
+2026071122,Thailand,Songkhla,Hat Yai,1
+2026071204,Taiwan,New Taipei City,Sanchong District,1
+2026071207,United Kingdom,England,Leeds,1
+2026071209,Czechia,Pardubice Region,Pardubice,1
+2026071216,Brazil,State of Minas Gerais,Montes Claros,1
+2026071217,South Korea,Gyeonggi-do,Yongin-si,1
+2026071220,United States,California,San Jose,1
+2026071221,India,Delhi Division,Delhi,1
+2026071221,Indonesia,West Java,Bandung,1
+2026071223,Russia,Moscow,Moscow,1
+2026071300,Portugal,Porto District,Matosinhos,1
+2026071300,United States,California,Los Angeles,1
+2026071301,Russia,Novosibirsk Oblast,Novosibirsk,1
+2026071302,Singapore,(not set),Singapore,1
+2026071304,Algeria,Annaba Province,Oued El Aneb,1
+2026071306,Australia,New South Wales,Sydney,1
+2026071307,Singapore,(not set),(not set),1
+2026071308,China,Guangdong Province,(not set),1
+2026071310,Brazil,State of Minas Gerais,Uberlandia,1
+2026071312,New Zealand,Auckland,Auckland,1
+2026071313,United States,Texas,Fort Worth,1
+2026071315,India,Andhra Pradesh,(not set),1
+2026071321,South Korea,Chungcheongnam-do,Cheonan-si,1
+2026071322,(not set),(not set),(not set),1
+2026071323,Romania,Cluj County,Cluj-Napoca,1
+2026071323,Singapore,(not set),(not set),1
+2026071400,United States,Texas,Lindale,1
+2026071401,Australia,New South Wales,Sydney,1
+2026071401,China,Shanghai,Shanghai,1
+2026071403,Germany,(not set),(not set),1
+2026071403,Russia,Moscow Oblast,Korolyov,1
+2026071403,United States,California,Los Angeles,1
+2026071406,Germany,Lower Saxony,Wolfsburg,1
+2026071409,United States,Arizona,Phoenix,1
+2026071411,Brazil,State of Sergipe,Aracaju,1
+2026071412,Kazakhstan,Astana,Astana,1
+2026071414,Hong Kong,(not set),(not set),1
+2026071414,United States,New Mexico,Clovis,1
+2026071415,Russia,Moscow,Moscow,1
+2026071416,Germany,North Rhine-Westphalia,Schoppingen,1
+2026071417,India,Karnataka,Bengaluru,1
+2026071417,United States,Florida,St. Cloud,1
+2026071418,United States,California,East Los Angeles,1
+2026071421,Hong Kong,(not set),(not set),1
+2026071422,Taiwan,Taichung City,Xitun District,1
+2026071423,China,Sichuan,Chengdu,1
+2026071500,United States,California,(not set),1
+2026071502,Russia,Moscow Oblast,Lytkarino,1
+2026071503,China,Guangdong Province,Shenzhen,1
+2026071503,China,Sichuan,Chengdu,1
+2026071503,Russia,Moscow,Moscow,1
+2026071508,Philippines,Metro Manila,Pasay City,1
+2026071508,South Korea,(not set),Sejong-si,1
+2026071509,Vietnam,Dong Thap,(not set),1
+2026071513,South Korea,(not set),Sejong-si,1
+2026071518,Japan,Tokyo,(not set),1
+2026071600,China,Heilongjiang,Harbin,1
+2026071602,Japan,Tokyo,Minato City,1
+2026071603,South Korea,Seoul,Seoul,1
+2026071607,Israel,Haifa District,Hadera,1
+2026071609,Brazil,State of Sao Paulo,Sao Paulo,1
+2026071618,China,Guangdong Province,Shenzhen,1
+2026071618,Japan,Osaka,Osaka,1
+2026071619,Canada,Ontario,Hamilton,1
+2026071620,United States,California,Los Angeles,1
+2026071621,Russia,Tomsk Oblast,Tomsk,1
+2026071623,United States,Tennessee,Germantown,1
+2026071700,China,Shanghai,Shanghai,1
+2026071701,United States,Virginia,Ashburn,1
+2026071705,Australia,New South Wales,Sydney,1
+2026071705,Singapore,(not set),Singapore,1
+2026071705,Türkiye,Hatay,Iskenderun,1
+2026071706,China,Zhejiang,Hangzhou,1
+2026071707,Indonesia,Central Java,Purwokerto,1
+2026071801,France,Brittany,Concarneau,1
+2026071803,Italy,Tuscany,Fucecchio,1
+2026071805,Taiwan,New Taipei City,Banqiao District,1
+2026071806,Brazil,State of Santa Catarina,Blumenau,1
+2026071811,United States,Virginia,Ashburn,1
+2026071819,Netherlands,North Holland,Haarlem,1
+2026071900,Australia,Victoria,Melbourne,1
+2026071901,Iran,(not set),Tehran,1
+2026071902,Iran,(not set),(not set),1
+2026071907,United States,California,Bell Gardens,1
+2026071910,South Korea,Gyeonggi-do,Seongnam-si,1
+2026071912,United States,Louisiana,Carlyss,1
+2026071916,China,Guangdong Province,Shenzhen,1
+2026071918,Japan,Tokyo,(not set),1
+2026071921,Vietnam,Quang Tri,(not set),1
+2026072001,Indonesia,Jakarta,Jakarta,1
+2026072002,India,Gujarat,Ahmedabad,1
+2026072002,Iran,(not set),Zanjan,1
+2026072004,Brazil,State of Santa Catarina,Blumenau,1
+2026072006,Switzerland,Vaud,Lausanne,1
+2026072009,Colombia,Valle del Cauca,Cali,1
+2026072010,Mexico,Michoacan,Morelia,1
+2026072010,United States,Michigan,Auburn Hills,1
+2026072012,Russia,Chelyabinsk Oblast,Chelyabinsk,1
+2026072014,(not set),(not set),(not set),1
+2026072015,United States,Alabama,(not set),1
+2026072015,United States,Illinois,(not set),1
+2026072015,United States,Illinois,Glenview,1
+2026072015,United States,Iowa,Council Bluffs,1
+2026072016,Brazil,State of Bahia,Santaluz,1
+2026072019,United States,Texas,(not set),1
+2026072020,Russia,Nizhny Novgorod Oblast,Nizhny Novgorod,1
+2026072021,United States,Oregon,Boardman,1
+2026072023,Pakistan,Punjab,Lahore,1
+2026072023,Spain,Andalusia,Seville,1
+2026072102,Hong Kong,(not set),Hong Kong,1
+2026072103,Italy,Lombardy,Milan,1
+2026072103,Japan,Tokyo,(not set),1
+2026072104,Iran,(not set),Rasht,1
+2026072104,Peru,Ica,Parcona District,1
+2026072106,Hong Kong,(not set),Hong Kong,1
+2026072107,China,Guangdong Province,Guangzhou,1
+2026072109,United States,Florida,Jupiter,1
+2026072119,United States,Oregon,Boardman,1
+2026072202,India,Karnataka,Bengaluru,1
+2026072202,United States,Oklahoma,Edmond,1
+2026072208,Russia,Moscow,Moscow,1
+2026072208,United States,California,San Francisco,1
+2026072214,United States,Ohio,Beckett Ridge,1
+2026072217,Brazil,State of Rio de Janeiro,Rio de Janeiro,1
+2026072219,Netherlands,North Holland,Haarlem,1
+2026072220,Vietnam,Quang Tri,(not set),1
+2026072223,Vietnam,Ho Chi Minh,Ho Chi Minh City,1
+2026072300,India,Maharashtra,(not set),1
+2026072301,South Korea,Daegu,Daegu,1
+2026072302,South Korea,Gyeongsangbuk-do,Pohang-si,1
+2026072303,Türkiye,Antalya,Antalya,1
+2026072304,Brazil,State of Sao Paulo,Sao Paulo,1
+2026072304,Japan,Tokyo,(not set),1
+2026072306,Vietnam,Quang Tri,(not set),1
+2026072307,United States,Texas,Bastrop,1
+2026072309,South Korea,Seoul,Seoul,1
+2026072310,Brazil,State of Sao Paulo,Votuporanga,1
+2026072310,United States,California,Los Angeles,1
+2026072319,South Korea,Jeju-do,Seogwipo-si,1
+2026072323,Honduras,Yoro Department,El Progreso,1
+2026072400,India,Haryana,Gurugram,1
+2026072401,Italy,Lombardy,Milan,1
+2026072401,Türkiye,Ankara,Ankara,1
+2026072404,India,Assam,Guwahati,1
+2026072408,Angola,Luanda Province,Luanda,1
+2026072408,China,Jiangsu,Nanjing,1
+2026072412,Brazil,State of Sao Paulo,Sao Paulo,1
+2026072420,Australia,New South Wales,Sydney,1
+2026072421,Chile,Santiago Metropolitan Region,Santiago,1
+2026072502,Japan,Tokyo,(not set),1
+2026072510,Kazakhstan,Akmola Region,Kokshetau,1
+2026072515,Brazil,State of Minas Gerais,Belo Horizonte,1
+2026072516,Argentina,Buenos Aires Province,Moreno,1
+2026072521,Taiwan,Taipei City,(not set),1
+2026072522,China,Guangdong Province,Shantou,1
+2026072601,Japan,Osaka,Osaka,1
+2026072606,Philippines,Western Visayas,Kalibo,1
+2026072612,Brazil,State of Sao Paulo,Sao Paulo,1
+2026072614,Morocco,Casablanca-Settat,Casablanca,1
+2026072615,Azerbaijan,Baku,Baku,1
+2026072623,India,Tamil Nadu,Chengalpattu,1
+2026072623,India,Tamil Nadu,Chennai,1
+2026072700,Indonesia,Jakarta,Jakarta,1
+2026072700,Poland,Masovian Voivodeship,Warsaw,1
+2026072706,Colombia,Valle del Cauca,Cali,1
+2026072707,India,West Bengal,Kolkata,1
+2026072708,Finland,Uusimaa,Helsinki,1
+2026072708,Japan,Tokyo,(not set),1
+2026072709,Peru,Lima Province,(not set),1
+2026072710,Brazil,State of Goias,Goiania,1
+2026072717,United States,Washington,Manson,1
+2026072718,United States,(not set),(not set),1
+2026072723,Japan,Tokyo,Shinjuku City,1
+2026072800,South Korea,Busan,Busan,1
+2026072801,Hong Kong,(not set),Hong Kong,1
+2026072801,United States,(not set),(not set),1
+2026072805,China,Guangdong Province,Shenzhen,1
+2026072810,Brazil,State of Bahia,(not set),1
+2026072823,Japan,Osaka,Osaka,1
+2026072901,Netherlands,North Holland,Amsterdam,1
+2026072902,Spain,Catalonia,Barcelona,1
+2026072906,Germany,Baden-Wurttemberg,Karlsruhe,1
+2026072907,Azerbaijan,Baku,Baku,1
+2026072910,United States,(not set),(not set),1
+2026072911,Brazil,State of Minas Gerais,Belo Horizonte,1
+2026072912,India,Maharashtra,Pune,1
+2026072920,Australia,New South Wales,Sydney,1
+2026073010,Japan,Tokyo,(not set),1
+2026073013,Brazil,State of Bahia,(not set),1
+2026073018,United States,Florida,Horizon West,1
+2026073104,Hungary,Budapest,Budapest,1
+2026073106,United States,California,San Jose,1
+2026073108,Malaysia,Federal Territory of Kuala Lumpur,Kuala Lumpur,1
+2026073122,China,Beijing,Beijing,1
+2026080111,Brazil,State of Sao Paulo,Sao Paulo,1
+2026080114,Sweden,Stockholm County,Stockholm,1
+2026080203,Spain,Catalonia,Terrassa,1
+2026080205,United Arab Emirates,Sharjah,Sharjah,1
+2026080209,Japan,Tokyo,(not set),1
+2026080220,United States,Virginia,Ashburn,1
+2026080222,United States,California,Edwards Air Force Base,1
+2026080301,Vietnam,Ho Chi Minh,Ho Chi Minh City,1
+2026080304,Hungary,Budapest,Budapest,1
+2026080306,Brazil,State of Sao Paulo,Sao Paulo,1
+2026080309,Egypt,Al-Qalyubia Governorate,Banha,1
+2026080314,Brazil,State of Bahia,Camacari,1
+2026080315,Brazil,State of Rio de Janeiro,Nova Iguacu,1
+2026080315,Netherlands,North Brabant,Eindhoven,1
+2026080321,South Korea,Busan,Busan,1
+2026080323,China,Guangdong Province,Shenzhen,1
+2026080323,India,Telangana,Hyderabad,1
+2026080400,India,Telangana,Hyderabad,1
+2026080400,Serbia,Vojvodina,Stara Pazova,1
+2026080402,United States,(not set),(not set),1
+2026080406,Russia,Lipetsk Oblast,Lipetsk,1
+2026080407,Germany,Berlin,Berlin,1
+2026080408,United States,California,Los Angeles,1
+2026080411,Brazil,State of Sergipe,Aracaju,1
+2026080413,Brazil,State of Sergipe,Aracaju,1
+2026080422,Singapore,(not set),Singapore,1
+2026080502,Singapore,(not set),Singapore,1
+2026080505,Germany,(not set),(not set),1
+2026080511,South Korea,Gyeonggi-do,Goyang-si,1
+2026080513,India,Delhi Division,Delhi,1
+2026080515,Japan,Saitama,Kawagoe,1
+2026080522,Russia,Republic of Tatarstan,Naberezhnye Chelny,1
+2026080522,Sudan,Khartoum,Omdurman,1
+2026080522,United States,Oregon,Portland,1
+2026080601,Japan,Tokyo,(not set),1
+2026080613,Saudi Arabia,Al Qassim Province,Buraydah,1
+2026080617,Japan,Saitama,Saitama,1
+2026080618,Japan,Saitama,Saitama,1
+2026080623,United States,California,Mountain View,1
+2026080623,United States,Washington,Bellevue,1
+2026080700,Brazil,State of Parana,Maringa,1
+2026080700,Lithuania,Kaunas County,Kaunas,1
+2026080702,China,Guangdong Province,Guangzhou,1
+2026080706,Vietnam,Quang Tri,Dong Ha,1
+2026080707,United States,Oregon,Beaverton,1
+2026080708,Brazil,State of Parana,Maringa,1
+2026080709,Iran,(not set),Tehran,1
+2026080710,Romania,Satu Mare,Tasnad,1
+2026080713,Brazil,State of Maranhao,Sao Luis,1
+2026080720,Singapore,(not set),Singapore,1
+2026080802,Hungary,Vas County,Gencsapati,1
+2026080807,Taiwan,New Taipei City,Banqiao District,1
+2026080807,Taiwan,New Taipei City,Zhonghe District,1
+2026080809,France,Brittany,Plescop,1
+2026080817,Brazil,State of Parana,Maringa,1
+2026080903,China,Zhejiang,Hangzhou,1
+2026080911,Türkiye,Ankara,Ankara,1
+2026080913,Argentina,Buenos Aires Province,La Plata,1
+2026080916,Argentina,Buenos Aires Province,La Plata,1
+2026080918,Taiwan,Taoyuan City,Taoyuan District,1
+2026080919,Colombia,Bogota,Bogota,1
+2026080919,Singapore,(not set),Singapore,1
+2026080919,Taiwan,Taoyuan City,Taoyuan District,1
+2026080919,United States,Virginia,Ashburn,1
+2026080920,United States,(not set),(not set),1
+2026080921,United States,California,Los Angeles,1
+2026081000,China,Zhejiang,Hangzhou,1
+2026081002,India,West Bengal,Ashoknagar Kalyangarh,1
+2026081012,India,Andhra Pradesh,Guntur,1
+2026081021,Philippines,Central Visayas,Cebu City,1
+2026081102,India,Tamil Nadu,Chennai,1
+2026081102,United Kingdom,England,London,1
+2026081105,United States,Washington,Burien,1
+2026081106,Japan,Osaka,Osaka,1
+2026081109,Germany,Baden-Wurttemberg,Balingen,1
+2026081119,China,Guangdong Province,Guangzhou,1
+2026081121,China,Guangdong Province,Shenzhen,1
+2026081201,United States,(not set),(not set),1
+2026081207,India,Ropar Division,Chandigarh,1
+2026081207,Indonesia,North Sumatra,Medan,1
+2026081208,Pakistan,Khyber Pakhtunkhwa,Peshawar,1
+2026081215,South Korea,Chungcheongnam-do,Gyeryong-si,1
+2026081221,India,Assam,Guwahati,1
+2026081302,Indonesia,Jakarta,Jakarta,1
+2026081303,Türkiye,Ankara,Ankara,1
+2026081303,Vietnam,Quang Tri,(not set),1
+2026081306,Vietnam,Ho Chi Minh,Ho Chi Minh City,1
+2026081307,Netherlands,North Holland,Amsterdam,1
+2026081310,India,Tamil Nadu,Chennai,1
+2026081313,Spain,Andalusia,Motril,1
+2026081314,India,Haryana,Gurugram,1
+2026081321,United States,California,Santa Clara,1
+2026081321,Vietnam,Quang Tri,(not set),1
+2026081406,United States,Arizona,Phoenix,1
+2026081410,Belgium,Wallonia,Rochefort,1
+2026081413,Russia,Moscow,Moscow,1
+2026081417,Israel,Center District,Yavne,1
+2026081507,Indonesia,Riau,Pekanbaru,1
+2026081514,United States,Utah,Summit Park,1
+2026081515,Iran,(not set),Isfahan,1
+2026081518,United States,Tennessee,Nashville,1
+2026081520,United States,New York,New York,1
+2026081521,Thailand,Samut Sakhon,Tha Chin,1
+2026081523,United States,California,Los Angeles,1
+2026081700,United States,(not set),(not set),1
+2026081702,Japan,Osaka,Osaka,1
+2026081708,China,Guangdong Province,Shenzhen,1
+2026081709,Brazil,Federal District,Brasilia,1
+2026081710,United States,New York,New York,1
+2026081720,Colombia,Santander,Bucaramanga,1
+2026081721,China,Guangdong Province,Shenzhen,1
+2026081722,Pakistan,Punjab,(not set),1
+2026081801,Hungary,Budapest,Budapest,1
+2026081804,South Korea,Gwangju,Gwangju,1
+2026081808,United Kingdom,England,London,1
+2026081810,Brazil,State of Espirito Santo,Colatina,1
+2026081810,Brazil,State of Sergipe,Itabaiana,1
+2026081810,Russia,Saint Petersburg,Saint Petersburg,1
+2026081811,Thailand,Phitsanulok,Tha Pho,1
+2026081813,Mexico,Baja California,Tijuana,1
+2026081818,Japan,Osaka,Osaka,1
+2026081820,South Korea,Seoul,Seoul,1
+2026081905,Spain,Catalonia,Montcada i Reixac,1
+2026081918,South Korea,Seoul,Seoul,1
+2026081918,United States,Oregon,Boardman,1
+2026081922,Russia,Belgorod Oblast,Belgorod,1
+2026082005,South Korea,Seoul,Seoul,1
+2026082011,Taiwan,Yilan County,Jiaoxi Township,1
+2026082019,Japan,Tokyo,(not set),1
+2026082100,Thailand,Phitsanulok,Phitsanulok,1
+2026082101,Egypt,Cairo Governorate,Nozha 2,1
+2026082101,Hungary,Budapest,Budapest,1
+2026082102,China,Guangdong Province,Shenzhen,1
+2026082103,Australia,Victoria,Melbourne,1
+2026082106,Pakistan,Punjab,Gujrat,1
+2026082107,Italy,Lombardy,Trescore Balneario,1
+2026082109,Poland,Greater Poland Voivodeship,Nowy Tomysl,1
+2026082111,Puerto Rico,San Juan,San Juan,1
+2026082121,Greece,Decentralized Administration of Macedonia and Thrace,Thessaloniki,1
+2026082121,Indonesia,East Java,Surabaya,1
+2026082202,United States,District of Columbia,Washington,1
+2026082202,Vietnam,Quang Tri,(not set),1
+2026082206,South Korea,Incheon,Incheon,1
+2026082208,India,Delhi Division,Delhi,1
+2026082208,Portugal,Porto District,Sao Cosme,1
+2026082209,China,Shanghai,Shanghai,1
+2026082214,Brazil,State of Sao Paulo,Guarulhos,1
+2026082214,United States,Florida,Coral Springs,1
+2026082219,United States,Virginia,Ashburn,1
+2026082300,Australia,New South Wales,Sydney,1
+2026082303,Jordan,Amman Governorate,Amman,1
+2026082308,Nepal,Bagmati Province,Chandragiri,1
+2026082322,Vietnam,Ho Chi Minh,Ho Chi Minh City,1
+2026082402,Netherlands,North Holland,Amsterdam,1
+2026082405,Singapore,(not set),Singapore,1
+2026082406,United States,California,Los Angeles,1
+2026082406,United States,California,Santa Clara,1
+2026082416,United States,Utah,St. George,1
+2026082420,Brazil,State of Rio Grande do Sul,Porto Alegre,1
+2026082421,Israel,Haifa District,Haifa,1
+2026082501,India,Tamil Nadu,Coimbatore,1
+2026082504,Hungary,Budapest,Budapest,1
+2026082507,India,Karnataka,Bengaluru,1
+2026082509,China,Zhejiang,Hangzhou,1
+2026082509,Iran,(not set),Tehran,1
+2026082511,South Korea,Seoul,Seoul,1
+2026082520,Israel,South District,Be'er Sheva,1
+2026082600,Taiwan,Tainan City,(not set),1
+2026082600,United States,Virginia,Ashburn,1
+2026082605,India,Tamil Nadu,Coimbatore,1
+2026082608,Cambodia,Phnom Penh,Phnom Penh,1
+2026082612,Algeria,Guelma Province,Guelma,1
+2026082619,Cambodia,Sihanoukville,Preah Sihanouk,1
+2026082619,Japan,Tokyo,Minato City,1
+2026082622,United States,California,Mountain View,1
+2026082623,Vietnam,Quang Tri,Quang Tri,1
+2026082706,Brazil,State of Bahia,Salvador,1
+2026082706,China,Guangdong Province,Dongguan,1
+2026082708,Netherlands,(not set),(not set),1
+2026082710,Guatemala,Guatemala Department,Guatemala City,1
+2026082713,Ukraine,Kyiv city,Kyiv,1
+2026082718,Russia,Moscow,Moscow,1
+2026082719,United States,Virginia,Ashburn,1
+2026082809,Germany,Bavaria,Hepberg,1
+2026082809,Japan,Kyoto,Kyoto,1
+2026082810,Japan,(not set),(not set),1
+2026082813,Spain,Catalonia,Terrassa,1
+2026082814,Indonesia,East Java,Jember,1
+2026082814,United States,Connecticut,New Haven,1
+2026082819,China,Inner Mongolia,Hohhot,1
+2026082901,India,Rajasthan,Jaipur,1
+2026082904,United States,Florida,Gainesville,1
+2026082910,Canada,New Brunswick,Moncton,1
+2026082910,Indonesia,Central Java,Surakarta,1
+2026082911,Russia,Moscow,Moscow,1
+2026082919,South Korea,Gyeonggi-do,Goyang-si,1
+2026083002,South Korea,Busan,Busan,1
+2026083006,South Korea,Busan,Busan,1
+2026083008,Japan,Tokyo,Shinagawa City,1
+2026083014,Brazil,State of Rio de Janeiro,Duque de Caxias,1
+2026083017,Belgium,Flanders,Antwerp,1
+2026083019,South Korea,Busan,Busan,1
+2026083020,Singapore,(not set),Singapore,1
+2026083101,France,(not set),(not set),1
+2026083104,Madagascar,Analamanga,Antananarivo,1
+2026083108,Indonesia,Special Region of Yogyakarta,Yogyakarta,1
+2026083111,Germany,(not set),(not set),1
+2026083112,United States,Texas,Fort Worth,1
+2026083122,Iran,(not set),Isfahan,1
+2026083123,South Korea,Seoul,Seoul,1
+2026090104,Russia,Vologda Oblast,Vologda,1
+2026090107,Brazil,State of Goias,Cidade Ocidental,1
+2026090109,South Korea,Seoul,Seoul,1
+2026090110,Russia,Vologda Oblast,Vologda,1
+2026090121,Sri Lanka,Western Province,(not set),1
+2026090219,United States,California,Foster City,1
+2026090222,Taiwan,Taipei City,(not set),1
+2026090304,Romania,Constanta,Constanta,1
+2026090305,Japan,Osaka,Osaka,1
+2026090306,Russia,Moscow,Moscow,1
+2026090307,Hong Kong,(not set),Hong Kong,1
+2026090308,China,Guangdong Province,Shenzhen,1
+2026090312,Nepal,Bagmati Province,Kathmandu,1
+2026090319,Japan,Tokyo,(not set),1
+2026090320,China,(not set),(not set),1
+2026090320,China,Shanghai,Shanghai,1
+2026090400,China,Beijing,Beijing,1
+2026090401,Japan,Tokyo,(not set),1
+2026090404,Bangladesh,Dhaka Division,Dhaka,1
+2026090404,India,Telangana,Hyderabad,1
+2026090405,Brazil,State of Rio Grande do Sul,Porto Alegre,1
+2026090408,Guatemala,Guatemala Department,Guatemala City,1
+2026090409,Türkiye,Ankara,Ankara,1
+2026090411,Colombia,Meta,Villavicencio,1
+2026090414,Brazil,State of Sao Paulo,Sao Paulo,1
+2026090414,Japan,Tokyo,Minato City,1
+2026090421,Australia,Victoria,Melbourne,1
+2026090502,Italy,Liguria,Sestri Levante,1
+2026090502,Vietnam,Ho Chi Minh,Ho Chi Minh City,1
+2026090505,United Kingdom,Northern Ireland,Derry/Londonderry,1
+2026090509,Russia,Moscow,Moscow,1
+2026090509,Russia,Vologda Oblast,Vologda,1
+2026090511,United States,Connecticut,Suffield,1
+2026090516,Brazil,State of Sao Paulo,Itapevi,1
+2026090516,China,Zhejiang,Hangzhou,1
+2026090517,Singapore,(not set),Singapore,1
+2026090519,Russia,Moscow,Moscow,1
+2026090605,Iran,(not set),Tabriz,1
+2026090605,Poland,Lower Silesian Voivodeship,Wroclaw,1
+2026090606,China,Guangdong Province,Shenzhen,1
+2026090607,Japan,Hokkaido,Sapporo,1
+2026090609,India,Assam,Guwahati,1
+2026090610,Ukraine,Kyiv city,Kyiv,1
+2026090611,Türkiye,Izmir,Izmir,1
+2026090613,United States,Texas,Cedar Hill,1
+2026090615,Russia,Moscow,Moscow,1
+2026090703,Egypt,Minya Governorate,Minya,1
+2026090705,United Kingdom,Wales,Tycroes,1
+2026090709,United States,Florida,Clearwater,1
+2026090710,Czechia,Pardubice Region,Pardubice,1
+2026090711,India,Maharashtra,Mumbai,1
+2026090717,Peru,Huanuco,Huanuco,1
+2026090718,Thailand,Bangkok,Bangkok,1
+2026090800,India,Madhya Pradesh,Indore,1
+2026090800,Russia,Moscow Oblast,Lyubertsy,1
+2026090809,Israel,South District,Be'er Sheva,1
+2026090809,South Korea,Daejeon,Daejeon,1
+2026090816,United Arab Emirates,Abu Dhabi,Abu Dhabi,1
+2026090817,Brazil,State of Rio de Janeiro,Rio de Janeiro,1
+2026090821,India,Andhra Pradesh,Visakhapatnam,1
+2026090823,Iran,(not set),Tehran,1
+2026090901,Taiwan,New Taipei City,Banqiao District,1
+2026090902,Italy,Lombardy,Crema,1
+2026090905,China,Shanghai,Shanghai,1
+2026090908,United States,New York,Monsey,1
+2026090917,India,Uttar Pradesh,Atarra,1
+2026090919,United States,Texas,Mansfield,1
+2026091004,China,Guangdong Province,Shenzhen,1
+2026091005,Kazakhstan,Almaty Region,Almaty,1
+2026091005,Vietnam,Ha Noi,Hanoi,1
+2026091014,Brazil,State of Sao Paulo,Sao Paulo,1
+2026091018,Australia,New South Wales,Sydney,1
+2026091022,(not set),(not set),(not set),1
+2026091103,Thailand,Phitsanulok,Phitsanulok,1
+2026091106,Israel,Center District,Rishon LeZion,1
+2026091108,China,Sichuan,Chengdu,1
+2026091109,Russia,Moscow,Moscow,1
+2026091113,Brazil,State of Rio Grande do Sul,Porto Alegre,1
+2026091200,Brazil,State of Rio Grande do Sul,Porto Alegre,1
+2026091200,United States,California,Los Angeles,1
+2026091203,Laos,Vientiane Prefecture,Vientiane,1
+2026091204,Australia,Victoria,Melbourne,1
+2026091209,China,Beijing,Beijing,1
+2026091211,Congo - Kinshasa,(not set),Kinshasa,1
+2026091223,France,Grand Est,Colmar,1
+2026091302,Israel,Center District,Rishon LeZion,1
+2026091307,Laos,Vientiane Prefecture,Vientiane,1
+2026091308,Portugal,Lisbon,Carcavelos,1
+2026091310,United States,Virginia,Tysons,1
+2026091312,Nigeria,Federal Capital Territory,Abuja,1
+2026091314,Portugal,Lisbon,Lisbon,1
+2026091319,Laos,Vientiane Prefecture,Vientiane,1
+2026091321,Taiwan,Yilan County,Jiaoxi Township,1
+2026091322,Taiwan,Yilan County,Jiaoxi Township,1
+2026091323,Japan,Tokyo,(not set),1
+2026091400,India,Tamil Nadu,Chennai,1
+2026091400,Japan,Hyogo,Kobe,1
+2026091401,Indonesia,East Java,Surabaya,1
+2026091406,India,West Bengal,(not set),1
+2026091407,Germany,Hessen,Frankfurt am Main,1
+2026091407,Singapore,(not set),Singapore,1
+2026091408,Philippines,Northern Mindanao,Lagonglong,1
+2026091411,Brazil,State of Sao Paulo,Sao Paulo,1
+2026091411,United States,Missouri,Kansas City,1
+2026091414,United States,Texas,Cedar Hill,1
+2026091418,Taiwan,Yilan County,Jiaoxi Township,1
+2026091419,Taiwan,Yilan County,Jiaoxi Township,1
+2026091420,Niger,Niamey Urban Community,Niamey,1
+2026091421,Russia,Moscow,Moscow,1
+2026091422,Hong Kong,(not set),(not set),1
+2026091506,India,Maharashtra,Hingoli,1
+2026091507,China,Guangdong Province,Shenzhen,1
+2026091508,Latvia,Riga,Riga,1
+2026091508,Russia,Moscow,Moscow,1
+2026091508,Russia,Saint Petersburg,Saint Petersburg,1
+2026091515,United States,Texas,Mansfield,1
+2026091519,Japan,Tokyo,(not set),1
+2026091519,Singapore,(not set),Singapore,1
+2026091520,China,Guangdong Province,Guangzhou,1
+2026091521,India,Tamil Nadu,Chennai,1
+2026091523,Taiwan,Taichung City,Shengang District,1
+2026091601,Russia,Moscow,Moscow,1
+2026091603,Hungary,Pest County,2767,1
+2026091603,United States,California,Los Angeles,1
+2026091607,United States,Texas,Fort Worth,1
+2026091608,Algeria,Biskra Province,Biskra,1
+2026091608,Taiwan,Taipei City,Da’an District,1
+2026091609,India,Meghalaya,(not set),1
+2026091612,Ukraine,Luhansk Oblast,Luhansk,1
+2026091613,India,Karnataka,Bengaluru,1
+2026091621,United States,(not set),(not set),1
+2026091622,Laos,Vientiane Prefecture,Vientiane,1
+2026091700,France,Normandy,Dieppe,1
+2026091700,United States,Kansas,Kansas City,1
+2026091701,Australia,New South Wales,Sydney,1
+2026091701,Russia,Moscow,Moscow,1
+2026091706,Russia,Moscow,Moscow,1
+2026091707,Netherlands,North Holland,Amsterdam,1
+2026091708,Russia,Komi Republic,Syktyvkar,1
+2026091709,China,Shanghai,Shanghai,1
+2026091709,Germany,North Rhine-Westphalia,Duisburg,1
+2026091717,United States,California,San Jose,1
+2026091719,Laos,Vientiane Prefecture,Vientiane,1
+2026091722,China,Guangdong Province,Guangzhou,1
+2026091800,Laos,Vientiane Prefecture,Vientiane,1
+2026091801,Vietnam,Ha Noi,Hanoi,1
+2026091803,Russia,Moscow,Moscow,1
+2026091804,Iran,(not set),Karaj,1
+2026091807,China,Shanghai,Shanghai,1
+2026091808,India,Rajasthan,Kota,1
+2026091810,Japan,Tokyo,Suginami City,1
+2026091812,United States,Virginia,Ashburn,1
+2026091813,India,Assam,Guwahati,1
+2026091819,India,Jharkhand,Ranchi,1
+2026091822,Australia,New South Wales,Sydney,1
+2026091906,China,Guangdong Province,Shenzhen,1
+2026091907,Japan,Kanagawa,Yokohama,1
+2026091915,Poland,Lodz Voivodeship,Rawa Mazowiecka,1
+2026091923,India,Karnataka,Bengaluru,1
+2026092001,Laos,Vientiane Prefecture,Vientiane,1
+2026092002,Australia,Victoria,Melbourne,1
+2026092003,Germany,North Rhine-Westphalia,Erkrath,1
+2026092004,India,Bihar,Patna,1
+2026092004,India,Telangana,Hyderabad,1
+2026092004,Russia,Moscow,Moscow,1
+2026092005,Peru,Lima Province,(not set),1
+2026092006,United States,Nevada,Las Vegas Valley,1
+2026092008,Russia,Moscow,Moscow,1
+2026092008,Russia,Saint Petersburg,Saint Petersburg,1
+2026092011,Serbia,Vojvodina,Belgrade,1
+2026092019,Japan,Aichi,Nagoya,1
+2026092020,United States,California,Los Angeles,1
+2026092021,China,Shanghai,Shanghai,1
+2026092022,Taiwan,Yilan County,Jiaoxi Township,1
+2026092104,Brazil,Ceara,Fortaleza,1
+2026092104,Taiwan,Taipei City,Da’an District,1
+2026092105,Italy,Campania,Monterusciello,1
+2026092109,Russia,Saratov Oblast,Saratov,1
+2026092116,Egypt,Cairo Governorate,Cairo,1
+2026092118,Laos,Vientiane Prefecture,Vientiane,1
+2026092120,Japan,Tokyo,Shinjuku City,1
+2026092120,United States,New Jersey,Piscataway,1
+2026092122,Hong Kong,(not set),Hong Kong,1
+2026092123,Russia,Kursk Oblast,Kursk,1
+2026092205,Egypt,Gharbia Governorate,Tanta,1
+2026092207,Taiwan,Taipei City,Da’an District,1
+2026092207,United States,California,San Jose,1
+2026092212,Taiwan,New Taipei City,Zhonghe District,1
+2026092218,United States,Michigan,Caro,1
+2026092218,Vietnam,Ha Noi,Hanoi,1
+2026092223,Italy,Tuscany,Arezzo,1
+2026092223,Russia,Komi Republic,Syktyvkar,1
+2026092300,Laos,Vientiane Prefecture,Vientiane,1
+2026092302,United States,Utah,Clearfield,1
+2026092303,Netherlands,(not set),(not set),1
+2026092305,Argentina,Cordoba Province,Cordoba,1
+2026092306,Russia,Moscow,Moscow,1
+2026092307,France,Ile-de-France,Paris,1
+2026092307,India,Karnataka,Bengaluru,1
+2026092307,South Korea,Chungcheongbuk-do,Cheongju-si,1
+2026092308,Japan,Tokyo,(not set),1
+2026092308,United States,California,Santa Clara,1
+2026092309,Egypt,Gharbia Governorate,Tanta,1
+2026092309,Russia,Moscow,Moscow,1
+2026092310,Indonesia,East Java,Jember,1
+2026092314,Russia,Krasnodar Krai,Krasnodar,1
+2026092323,Slovakia,Banska Bystrica Region,Brezno,1
+2026092323,South Korea,Gyeonggi-do,Seongnam-si,1
+2026092402,Russia,Moscow,Moscow,1
+2026092404,Japan,Tokyo,Shinjuku City,1
+2026092404,Philippines,Davao Region,Davao City,1
+2026092405,Réunion,Saint-Denis,Saint-Denis,1
+2026092407,Singapore,(not set),Singapore,1
+2026092409,Russia,Novosibirsk Oblast,Novosibirsk,1
+2026092417,Egypt,Gharbia Governorate,Tanta,1
+2026092418,Brazil,State of Sao Paulo,Sao Paulo,1
+2026092419,Italy,Lazio,Rome,1
+2026092421,Dominican Republic,Santo Domingo Province,(not set),1
+2026092503,China,Guangdong Province,Guangzhou,1
+2026092503,United Kingdom,England,London,1
+2026092504,Russia,Moscow,Moscow,1
+2026092504,Russia,Nizhny Novgorod Oblast,Nizhny Novgorod,1
+2026092505,China,Guangdong Province,Shenzhen,1
+2026092507,India,Tripura,Agartala,1
+2026092510,China,Guangxi,Guilin,1
+2026092514,Taiwan,Miaoli County,Miaoli City,1
+2026092517,Brazil,State of Bahia,Jequie,1
+2026092519,Russia,Voronezh Oblast,Voronezh,1
+2026092522,Russia,Zabaykalsky Krai,Chita,1
+2026092522,United States,Louisiana,Zachary,1
+2026092600,Russia,Zabaykalsky Krai,Chita,1
+2026092608,Colombia,Valle del Cauca,Jamundi,1
+2026092610,Russia,Krasnodar Krai,Krasnodar,1
+2026092614,Lebanon,Mount Lebanon Governorate,Aley,1
+2026092616,Mexico,Colima,Manzanillo,1
