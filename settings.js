@@ -62,6 +62,15 @@ function gptpdfGetTheme() {
     return a ? a.dataset.value : '';
 }
 
+// Rows that only mean something on a paginated PDF.
+function gptpdfShowPagedRows(paged) {
+    ['gptpdf-page-break', 'gptpdf-page-numbers'].forEach(function(id) {
+        const el = document.getElementById(id);
+        const row = el && el.closest('.gptpdf-row');
+        if(row) row.style.display = paged ? '' : 'none';
+    });
+}
+
 function gptpdfLoadSettings(opts) {
     gptpdfSetSegment('gptpdf-page-size', opts.page_size || 'a4');
     gptpdfSetSegment('gptpdf-orientation', opts.orientation || '');
@@ -77,8 +86,8 @@ function gptpdfLoadSettings(opts) {
     const customMargins = document.getElementById('gptpdf-margins-custom');
     if(customMargins) customMargins.style.display = opts.margins === 'custom' ? 'flex' : 'none';
     gptpdfSetSegment('gptpdf-page-break', opts.page_break || '');
-    const pageBreakRow = document.getElementById('gptpdf-page-break') && document.getElementById('gptpdf-page-break').closest('.gptpdf-row');
-    if(pageBreakRow) pageBreakRow.style.display = opts.single_page ? 'none' : '';
+    const pn = document.getElementById('gptpdf-page-numbers'); if(pn) pn.checked = opts.page_numbers !== false;
+    gptpdfShowPagedRows(!opts.single_page);
     // Theme palette
     const savedTheme = opts.q_color || 'default';
     const qColorInput = document.getElementById('gptpdf-q-color-value');
@@ -92,7 +101,6 @@ function gptpdfLoadSettings(opts) {
     gptpdfSetSegment('gptpdf-title-mode', opts.title_mode || '');
     gptpdfSetSegment('gptpdf-datetime', opts.datetime_format || 'none');
     gptpdfSetSegment('gptpdf-toc', opts.toc || '');
-    const mn = document.getElementById('gptpdf-model-name'); if(mn) mn.checked = !!opts.model_name;
     const sl = document.getElementById('gptpdf-source-link'); if(sl) sl.checked = !!opts.source_link;
 }
 
@@ -119,7 +127,7 @@ function gptpdfGetSettings() {
         datetime_format: gptpdfGetSegment('gptpdf-datetime'),
         single_page: !!(document.getElementById('gptpdf-singlepage-toggle') || {}).checked,
         toc: gptpdfGetSegment('gptpdf-toc'),
-        model_name: !!(document.getElementById('gptpdf-model-name') || {}).checked,
+        page_numbers: !!(document.getElementById('gptpdf-page-numbers') || {}).checked,
         source_link: !!(document.getElementById('gptpdf-source-link') || {}).checked,
     };
 }
@@ -235,11 +243,11 @@ function gptpdfUpdatePreview(opts) {
         dateEl.style.background = isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.15)';
     }
 
-    // Model name indicator
-    const modelEl = doc.querySelector('.gptpdf-prev-model');
-    if(modelEl) {
-        modelEl.style.display = o.model_name ? 'block' : 'none';
-        modelEl.style.background = isDark ? 'rgba(120,180,255,0.35)' : 'rgba(74,144,217,0.3)';
+    // Page number indicator — bottom centre; a single long page has none
+    const pageNumEl = doc.querySelector('.gptpdf-prev-pagenum');
+    if(pageNumEl) {
+        pageNumEl.style.display = (o.page_numbers && !o.single_page) ? 'block' : 'none';
+        pageNumEl.style.background = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)';
     }
 
     // Source link indicator
@@ -284,9 +292,6 @@ function gptpdfUpdatePreview(opts) {
         });
         tocEl.querySelectorAll('.gptpdf-toc-line').forEach((el, i) => {
             el.style.background = i === 0 ? `rgba(${tocBlue},0.6)` : `rgba(${tocBlue},0.42)`;
-        });
-        tocEl.querySelectorAll('.gptpdf-toc-pg').forEach(el => {
-            el.style.background = `rgba(${tocBlue},0.3)`;
         });
     }
 
@@ -372,6 +377,12 @@ function wireSettings() {
     });
 
     // Toggles
+    // A single long page has no page breaks and no page numbers to set.
+    const singlePage = document.getElementById('gptpdf-singlepage-toggle');
+    if(singlePage) singlePage.addEventListener('change', function() {
+        gptpdfShowPagedRows(!singlePage.checked);
+    });
+
     document.querySelectorAll('#gptpdf-settings-modal .gptpdf-toggle input').forEach(function(cb) {
         cb.addEventListener('change', function() { gptpdfUpdatePreview(null); });
     });

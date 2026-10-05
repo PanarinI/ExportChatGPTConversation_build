@@ -5,11 +5,61 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
-## [Unreleased]
+## [1.1.11] — 2026-10-04
+### Added
+- **Page numbers** at the bottom of every page ("3 / 12"), on by default and
+  switchable in Settings. A single long page has none.
+- **Dark pages get margins on every page.** The dark theme used to have its
+  spacing only at the very start and end of the document, so from the second
+  page on the text ran right up to the top edge; it now has the same margins
+  as the light theme, with the whole sheet dark.
+- **Bookmarks.** With the table of contents on, the PDF also gets bookmarks in
+  the viewer's side panel — one per question, with the headings of each answer
+  nested under it.
+
 ### Changed
+- **A clean header for new users.** The export date and the link to the chat
+  are now off by default; anyone can turn them on in Settings. "Reset to
+  defaults" now lands on exactly what a new user starts with — before, the two
+  disagreed. Settings people already have are left as they are.
+- **"Include model name" is gone.** It showed the model currently selected at
+  the top of ChatGPT, not the model that wrote the answers.
+- **Settings, tidied.** "Style" is now "Question color" and sits next to the
+  color theme; "Creation date" is "Export date", because that is what it is;
+  "Single page" moved below the page settings, and page breaks and page numbers
+  step aside while it is on.
 - **A rating of 1–3 stars now opens a short "What went wrong?" page** (one
   field and a Send button) instead of a Google Form. The answer goes to the
   same place as before, so nothing is lost.
+
+### Fixed
+- **ChatGPT's date lines no longer reach the PDF.** The new ChatGPT page puts a
+  date line ("Wed, Sep 9 at 2:57") into the conversation; it showed up above
+  the first question of the PDF.
+- **"Select to export" ignored the paper settings.** It always made a portrait
+  A4 page; it now uses your paper size, orientation and single-page choice.
+- **"Select to export" is back on ChatGPT's new layout.** 1.1.9 brought the
+  export back to the redesigned page (the one with the Chat / Work switch) but
+  hid "Select to export" there, because it could not yet find the messages on
+  that page. It now picks blocks there as on the old page: a question is one
+  block, an answer splits into its paragraphs, code blocks, lists and pictures,
+  and "Select all" works as well. Whatever is picked is laid out in the order
+  of the conversation, however far apart it was scrolled.
+- **Picked blocks no longer look unpicked after scrolling back.** ChatGPT keeps
+  only part of a long chat on the page and re-draws the rest as you scroll.
+  A message you had ticked came back with empty boxes: it was still going into
+  the PDF, but the page said otherwise, and an empty box could not be unticked.
+  The ticks now come back with the message.
+- **Pictures in "Select to export" from messages you had scrolled past** are
+  now embedded in the PDF, the way the full export always did it, instead of
+  going out as links the PDF could not open.
+- **"Select all": unticking a picture could also cut a paragraph** of the same
+  answer (and the other way round) when the two happened to sit at the same
+  place in their lists. They are now told apart.
+- **Turned-off settings no longer come back on after an update.** Since 1.1.2
+  every update of the extension switched the table of contents, the creation
+  date and the source link back on for anyone who had turned them off. An
+  update now only fills in settings that did not exist yet.
 
 ## [1.1.9] — 2026-09-26
 ### Fixed

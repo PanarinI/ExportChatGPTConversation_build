@@ -194,6 +194,20 @@ function page() {
     check('тело ответа получило класс .markdown (на нём держится чистка)',
           clone.querySelectorAll('[data-markdown-text-style].markdown').length === 4);
     check('разделитель даты не попал в копию', !/Jan 29/.test(clone.textContent));
+    // Разделитель даты ВНУТРИ единицы вопроса — так он дошёл до PDF автора 04.10
+    // («ср, 9 сент. в 2:57» над первым вопросом): перевод в старый вид его не отрезает,
+    // убирает чистка. Черта <hr> в ответе — тоже separator по роли, но остаётся.
+    const inner = document.createElement('div');
+    inner.innerHTML = pair(9, 'u9', question(9, 'u9', 'Вопрос с датой').replace(
+        '<div data-user-message-bubble', '<div role="separator" aria-label="ср, 9 сент. в 2:57"><span>ср, 9 сент. в 2:57</span></div><div data-user-message-bubble') +
+        answer(9, ['a9'], mdBlock('a9', '<p>До черты.</p><hr><p>После черты.</p>')));
+    restoreVirtualizedTurns(inner, null);
+    gptpdfNormalizeTurns(inner);
+    check('дата внутри вопроса доживает до чистки (так было у автора)', /9 сент/.test(inner.textContent));
+    cleanupForPdf(inner);
+    check('чистка убирает дату внутри вопроса', !/9 сент/.test(inner.textContent));
+    check('вопрос при этом цел', /Вопрос с датой/.test(inner.textContent));
+    check('черта <hr> в ответе осталась', inner.querySelectorAll('hr').length === 1);
 
     // ── 3. чистка поверх перевода ─────────────────────────────────────
     cleanupForPdf(clone);

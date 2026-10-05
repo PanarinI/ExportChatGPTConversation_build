@@ -287,6 +287,12 @@ gptpdfChatGPT.init = function() {
                     options
                 );
                 applyMarginSettings(data, options);
+                // Page numbers on every page but a single long one; bookmarks
+                // in the viewer's side panel whenever the table of contents is
+                // on — they are the same list (background.js, render.js).
+                data.page_numbers = !!options.page_numbers && !singlePagePrint;
+                data.outline = !!options.toc && !options.no_questions;
+                if(data.outline) gptpdfMarkOutline(main_clone);
 
                 const classes = buildCssClasses(options, singlePagePrint);
                 if(isDarkMode) {
@@ -608,14 +614,6 @@ gptpdfChatGPT.init = function() {
             'https://chatgpt.com/gpts/editor');
         const hasMessages = gptpdfHasConversation();
         const mainBtn = document.getElementById('gptpdf-convert-main');
-
-        // "Select to export" does not know the pair layout yet (STATE 09-26):
-        // there it would open with nothing to pick, so it stays out of the
-        // menu until it does. A classic page shows it as always.
-        const blocksItem = document.getElementById('gptpdf-blocks');
-        if(blocksItem) {
-            blocksItem.style.display = gptpdfIsPairLayout() ? 'none' : '';
-        }
 
         if(validUrl && hasMessages) {
             // ── Normal conversation: full button ──────────────────────────

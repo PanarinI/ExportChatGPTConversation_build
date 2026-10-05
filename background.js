@@ -45,6 +45,26 @@ function blobToDataURL(blob, callback) {
     reader.readAsDataURL(blob);
 }
 
+// Room the page-number footer needs at the bottom of the page, in inches.
+const FOOTER_ROOM_IN = 0.35;
+
+// The page-number footer Gotenberg prints on every page. Measured on our
+// server 04.10: the template box starts at the top of the bottom margin, a
+// percentage height does not resolve inside it, and a background on it spreads
+// over the WHOLE page (a dark export came out as a blank dark sheet with only
+// the number on it). So it carries no background, and the number is pushed
+// down by the margin's own height — it lands about 0.25in above the page edge
+// whatever the margin, clear of the last line of text.
+function pageNumberFooter(bottomIn) {
+    const drop = Math.max(0, bottomIn - 0.21).toFixed(2);
+    return '<html><head><style>' +
+        'html,body{margin:0;padding:0}' +
+        '.n{box-sizing:border-box;width:100%;padding-top:' + drop + 'in;text-align:center;' +
+        'font:9px/1 Helvetica,Arial,sans-serif;color:#999}' +
+        '</style></head><body><div class="n"><span class="pageNumber"></span>' +
+        '&nbsp;/&nbsp;<span class="totalPages"></span></div></body></html>';
+}
+
 function sendToGotenberg(htmlContent, params, sendResponse) {
 
     // Inject custom CSS
@@ -68,37 +88,17 @@ function sendToGotenberg(htmlContent, params, sendResponse) {
         return String(parseFloat(s) || 0.4);
     }
 
-    // Calculate padding values from settings
-    let pt, pb, pl, pr;
-    if (params.no_margins) {
-        pt = pb = pl = pr = '0.1in';
-    } else if (params.margin_left !== undefined) {
-        pt = toInches(params.margin_top)    + 'in';
-        pb = toInches(params.margin_bottom) + 'in';
-        pl = toInches(params.margin_left)   + 'in';
-        pr = toInches(params.margin_right)  + 'in';
-    } else {
-        pt = pb = pl = pr = '0.4in';
-    }
-
-    // Dark mode: set background + use CSS padding instead of Gotenberg margins
+    // Dark theme: @page paints the whole sheet, margins included, so a dark
+    // page keeps the same margins as a light one — on every page, not just the
+    // first. Until 1.1.11 dark pages had zero margins (Chromium leaves a margin
+    // white) and the spacing was body padding, which only the first and last
+    // page got; zero margins also left no room for the page-number footer.
+    // Measured on our server 04.10: no white strip, text clear of the number.
     if (isDark) {
-        let dp;
-        if (params.no_margins) {
-            dp = '0.1in';
-        } else if (params.margin_left !== undefined) {
-            const t = toInches(params.margin_top)    || '0.4';
-            const b = toInches(params.margin_bottom) || '0.4';
-            const l = toInches(params.margin_left)   || '0.4';
-            const r = toInches(params.margin_right)  || '0.4';
-            dp = t + 'in ' + r + 'in ' + b + 'in ' + l + 'in';
-        } else {
-            dp = '0.4in';
-        }
         htmlContent = htmlContent.replace('</head>',
             '<style>' +
+            '@page{background:#' + bg + '}' +
             'html,body{background:#' + bg + ' !important;margin:0 !important}' +
-            'body{padding:' + dp + ' !important;box-sizing:border-box !important}' +
             '</style></head>'
         );
     }
@@ -129,27 +129,39 @@ function sendToGotenberg(htmlContent, params, sendResponse) {
         : (isLandscape ? shortSide : longSide));
 
     // Margins
-    if (isDark) {
-        // Dark mode: always zero Gotenberg margins, CSS padding handles spacing
-        formData.append('marginTop',    '0');
-        formData.append('marginBottom', '0');
-        formData.append('marginLeft',   '0');
-        formData.append('marginRight',  '0');
-    } else if (params.no_margins) {
-        formData.append('marginTop',    '0.1');
-        formData.append('marginBottom', '0.1');
-        formData.append('marginLeft',   '0.1');
-        formData.append('marginRight',  '0.1');
+    let margins;
+    if (params.no_margins) {
+        margins = ['0.1', '0.1', '0.1', '0.1'];
     } else if (params.margin_left !== undefined) {
-        formData.append('marginTop',    toInches(params.margin_top));
-        formData.append('marginBottom', toInches(params.margin_bottom));
-        formData.append('marginLeft',   toInches(params.margin_left));
-        formData.append('marginRight',  toInches(params.margin_right));
+        margins = [toInches(params.margin_top), toInches(params.margin_bottom),
+                   toInches(params.margin_left), toInches(params.margin_right)];
     } else {
-        formData.append('marginTop',    '0.4');
-        formData.append('marginBottom', '0.4');
-        formData.append('marginLeft',   '0.4');
-        formData.append('marginRight',  '0.4');
+        margins = ['0.4', '0.4', '0.4', '0.4'];
+    }
+
+    // Page numbers: Chromium prints footer.html into the bottom margin of every
+    // page and fills in pageNumber / totalPages itself (measured on our server
+    // 04.10). The footer needs room — a minimal bottom margin would cut it
+    // off — so that margin is raised to fit it. A single long page has nothing
+    // to number.
+    if (params.page_numbers && !isSinglePage) {
+        margins[1] = String(Math.max(parseFloat(margins[1]) || 0, FOOTER_ROOM_IN));
+        formData.append('files',
+            new Blob([pageNumberFooter(parseFloat(margins[1]))], {type: 'text/html'}),
+            'footer.html');
+    }
+    formData.append('marginTop',    margins[0]);
+    formData.append('marginBottom', margins[1]);
+    formData.append('marginLeft',   margins[2]);
+    formData.append('marginRight',  margins[3]);
+
+    // Bookmarks: with the table of contents on, the PDF also gets an outline in
+    // the viewer's side panel. Chromium builds it from headings, and only into
+    // a tagged PDF — the outline flag alone gave none (measured 04.10). The
+    // questions are marked as headings in render.js (gptpdfMarkOutline).
+    if (params.outline) {
+        formData.append('generateDocumentOutline', 'true');
+        formData.append('generateTaggedPdf', 'true');
     }
 
     formData.append('printBackground', 'true');
@@ -257,28 +269,11 @@ chrome.runtime.onInstalled.addListener((details) => {
         chrome.storage.local.set({ gptpdfHighlightBtn: true });
         chrome.tabs.create({ url: 'https://panarini.github.io/ExportChatGPTConversation/' });
     }
-    if (details.reason === 'install') {
-        chrome.storage.sync.set({ options: {
-            margins: '', theme: '', zoom: 100, no_questions: false,
-            q_color: 'default', q_color_picker: '#ecf9f2',
-            q_fg_color: 'default', q_fg_color_picker: '#000',
-            title_mode: '', margin_left: '0.4in', margin_right: '0.4in',
-            margin_top: '0.4in', margin_bottom: '0.4in', page_break: '',
-            toc: 'basic', no_icons: true, model_name: false, source_link: true,
-            datetime_format: 'date_only', single_page: false, q_align: 'right', q_rounded: true
-        }});
-    }
-    if (details.reason === 'update' || details.reason === 'install') {
-        chrome.storage.sync.get('options', function(data) {
-            const opts = data.options;
-            if (!opts) return;
-            const updated = Object.assign({}, opts);
-            let changed = false;
-            if (!opts.toc) { updated.toc = 'basic'; changed = true; }
-            if (!opts.source_link) { updated.source_link = true; changed = true; }
-            if (!opts.datetime_format || opts.datetime_format === 'none') { updated.datetime_format = 'date_only'; changed = true; }
-            if (opts.single_page === undefined) { updated.single_page = false; changed = true; }
-            if (changed) chrome.storage.sync.set({ options: updated });
-        });
-    }
+    // Settings: nothing is written here, on install or on update. The one set
+    // of defaults lives in shared.js and getOptions lays a person's saved values
+    // over it, so a key someone never set reads the default, and a value they
+    // chose is never touched. Until 1.1.11 the install wrote its own defaults
+    // (date and source link on, unlike Reset to defaults), and until 1.1.10
+    // every update switched the TOC, date and source link back on for anyone
+    // who had turned them off (tests/settings-update-test.js).
 });

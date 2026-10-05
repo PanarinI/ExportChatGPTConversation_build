@@ -52,6 +52,11 @@ gptpdfShared.defaultPageSize = function() {
     }
 };
 
+// The ONE set of defaults. A new install stores nothing (background.js), and
+// getOptions lays whatever a person saved over these — so a key someone never
+// set reads from here, and "Reset to defaults" lands on the same values a new
+// person starts with. Until 1.1.11 the install wrote its own set (date and
+// source link on) and Reset used this one (off) — two answers to one question.
 gptpdfShared.defaultOptions = {
     margins: '',
     theme: '',
@@ -69,9 +74,9 @@ gptpdfShared.defaultOptions = {
     page_break: '',
     toc: 'basic',
     no_icons: true,
-    model_name: false,
     source_link: false,
     datetime_format: 'none',
+    page_numbers: true,
     q_align: 'right',
     q_rounded: true,
     page_size: gptpdfShared.defaultPageSize(),

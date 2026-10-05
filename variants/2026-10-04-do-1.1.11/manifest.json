@@ -1,0 +1,65 @@
+{
+    "manifest_version": 3,
+    "name": "__MSG_appName__",
+    "version": "1.1.10",
+    "description": "__MSG_shortDesc__",
+    "default_locale": "en",
+    "action": {
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "24": "icons/icon24.png",
+            "32": "icons/icon32.png",
+            "48": "icons/icon48.png",
+            "64": "icons/icon64.png",
+            "128": "icons/icon128.png"
+        }
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "24": "icons/icon24.png",
+        "32": "icons/icon32.png",
+        "48": "icons/icon48.png",
+        "64": "icons/icon64.png",
+        "128": "icons/icon128.png"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "*://chatgpt.com/*",
+                "*://chat.com/*"
+            ],
+            "js": [
+                "shared.js",
+                "templates.js",
+                "helpers.js",
+                "theme.js",
+                "render.js",
+                "capture.js",
+                "settings.js",
+                "blockmode.js",
+                "common.js",
+                "request.js"
+            ]
+        }
+    ],
+    "permissions": [
+        "storage",
+        "tabs"
+    ],
+    "host_permissions": [
+        "https://www.google-analytics.com/",
+        "https://export-gpt.duckdns.org/*",
+        "*://*.oaiusercontent.com/*",
+        "*://files.oaiusercontent.com/*",
+        "*://images.openai.com/*"
+    ],
+    "minimum_chrome_version": "100",
+    "externally_connectable": {
+        "matches": [
+            "https://panarini.github.io/*"
+        ]
+    }
+}

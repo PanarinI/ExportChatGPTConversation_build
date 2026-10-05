@@ -1,0 +1,289 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>«Select to export» — живой стенд на макете страницы</title>
+<!--
+  Настоящий интерфейс расширения (все content-скрипты в порядке манифеста) поверх МАКЕТА
+  страницы ChatGPT с виртуализатором: на странице держится лишь окно из нескольких турнов,
+  ушедшие из окна узлы удаляются, вернувшиеся строятся заново (как у живого React).
+  Отправка на сервер перехвачена: то, что ушло бы на Gotenberg (после сжатия картинок),
+  показывается справа, с тем же CSS, что сервер вклеивает в страницу.
+
+  Вёрстка выбирается адресом:
+    blockmode-live-stand.html                 — новая (пары, лента перевёрнута, CHATGPT-DOM.md §9)
+    blockmode-live-stand.html?layout=classic  — старая (турн на сообщение, лента сверху)
+
+  Как гонять: открыть файл в браузере → Export ▾ → «Select to export» → отметить блоки,
+  прокрутить, вернуться, снять/поставить → Export. Справа — что ушло бы в PDF.
+  window.__payload — последний HTML, window.__ga — события аналитики.
+
+  Границы: страница — эмуляция по чужому замеру, а не chatgpt.com. Стенд доказывает, что
+  наш код делает то, что задумано, на такой разметке, — не то, что живая страница устроена
+  ровно так. В пакет не входит (exclude.txt: tests/).
+-->
+<style>
+  html, body { margin: 0; height: 100%; font: 15px/1.5 system-ui, sans-serif; background: #fff; color: #111; }
+  #app { display: flex; height: 100vh; }
+  #left { flex: 1 1 54%; min-width: 0; display: flex; flex-direction: column; }
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  #page-top { padding: 10px 16px; border-bottom: 1px solid #e5e5e5; font-weight: 600; }
+  #side { flex: 1 1 46%; min-width: 0; border-left: 1px solid #ddd; display: flex; flex-direction: column; }
+  #side-head { padding: 10px 14px; border-bottom: 1px solid #e5e5e5; font-size: 13px; color: #555; }
+  #out { flex: 1; border: 0; width: 100%; }
+  .stand-scroller { flex: 1; overflow-y: auto; padding: 0 16px; }
+  .bubble { background: #f1f1f1; border-radius: 18px; padding: 8px 14px; display: inline-block; max-width: 70%; }
+  .q-row { display: flex; justify-content: flex-end; }
+  .markdown p, [data-markdown-text-style] p { margin: 6px 0; }
+  pre { background: #f6f6f6; padding: 8px; border-radius: 6px; }
+  [data-testid="generated-image-preview"] { border: 0; padding: 0; background: none; }
+  [data-testid="generated-image-preview"] img { width: 160px; height: 100px; display: block; border-radius: 8px; }
+  .slot { box-sizing: border-box; overflow: hidden; border-bottom: 1px dashed #eee; }
+  /* стили ChatGPT растягивают контур пузыря по нему самому; без них svg — пустое поле 300×150 */
+  .bubble { position: relative; }
+  .bubble svg.temporaryOutline { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; pointer-events: none; }
+</style>
+<div id="app">
+  <div id="left"><div id="page-top">Макет ChatGPT · <span id="layout-name"></span></div><main></main></div>
+  <div id="side"><div id="side-head">Здесь появится то, что ушло бы в PDF.</div><iframe id="out"></iframe></div>
+</div>
+<script>
+'use strict';
+const LAYOUT = /layout=classic/.test(location.search) ? 'classic' : 'pair';
+document.getElementById('layout-name').textContent = LAYOUT === 'pair'
+    ? 'новая вёрстка (пары, лента снизу вверх)' : 'старая вёрстка (турн на сообщение)';
+
+// ── заглушка браузерного API расширения ───────────────────────────────
+window.__ga = [];
+window.__payload = null;
+const PNG_SMALL = (function() {
+    const c = document.createElement('canvas'); c.width = 4; c.height = 4;
+    c.getContext('2d').fillRect(0, 0, 4, 4); return c.toDataURL('image/png');
+})();
+const memory = { sync: {}, local: {} };
+// ?pdftheme=dark — тёмный лист, как у человека, чей ChatGPT в тёмной теме (выгрузка 04.10 вышла пустой)
+if(/pdftheme=dark/.test(location.search)) memory.sync.options = { theme: 'dark' };
+function area(name) {
+    return {
+        get: function(k, cb) {
+            const o = {};
+            (Array.isArray(k) ? k : (k ? [k] : Object.keys(memory[name]))).forEach(function(x) {
+                if(x in memory[name]) o[x] = memory[name][x];
+            });
+            if(cb) setTimeout(function() { cb(o); }, 0);
+        },
+        set: function(o, cb) { Object.assign(memory[name], o); if(cb) setTimeout(cb, 0); },
+        remove: function(k, cb) { [].concat(k).forEach(function(x) { delete memory[name][x]; }); if(cb) setTimeout(cb, 0); }
+    };
+}
+window.chrome = {
+    runtime: {
+        id: 'stand',
+        sendMessage: function(msg, cb) {
+            if(msg && msg.action === 'ga4Event') { window.__ga.push([msg.eventName, msg.eventParams || {}]); return; }
+            if(msg && msg.action === 'fetchImageAsBase64') { setTimeout(function() { cb && cb({ data: PNG_SMALL }); }, 10); return; }
+            if(cb) setTimeout(function() { cb({}); }, 0);
+        },
+        onMessage: { addListener: function() {} },
+        getURL: function(p) { return '../' + p; }
+    },
+    storage: { sync: area('sync'), local: area('local') }
+};
+
+// ── картинка, которую страница отдаёт как blob: (так новая вёрстка показывает сгенерированные) ──
+function blobImage(label, color) {
+    const c = document.createElement('canvas'); c.width = 160; c.height = 100;
+    const g = c.getContext('2d');
+    g.fillStyle = color; g.fillRect(0, 0, 160, 100);
+    g.fillStyle = '#fff'; g.font = 'bold 22px sans-serif'; g.fillText(label, 14, 58);
+    const bin = atob(c.toDataURL('image/png').split(',')[1]);
+    const bytes = new Uint8Array(bin.length);
+    for(let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return URL.createObjectURL(new Blob([bytes], { type: 'image/png' }));
+}
+
+// ?demo=1 — правдоподобный английский чат для витрины (баннер CWS снят с настоящего PDF, а не нарисован)
+const DEMO = /demo=1/.test(location.search) ? [
+  ['Plan a 3-day trip to Lisbon for two, mid-range budget.',
+   '<h3>Your 3-day Lisbon plan</h3><p>A relaxed pace: one big sight each morning, free evenings.</p>' +
+   '<table><thead><tr><th>Day</th><th>Morning</th><th>Afternoon</th><th>Evening</th></tr></thead><tbody>' +
+   '<tr><td>1</td><td>Alfama walk</td><td>São Jorge Castle</td><td>Fado dinner</td></tr>' +
+   '<tr><td>2</td><td>Belém Tower</td><td>Jerónimos Monastery</td><td>Pastéis de Belém</td></tr>' +
+   '<tr><td>3</td><td>Train to Sintra</td><td>Pena Palace</td><td>Sunset at a miradouro</td></tr>' +
+   '</tbody></table><ul><li>Get a Viva Viagem card for trams and the metro.</li>' +
+   '<li>Book Pena Palace tickets online a few days ahead.</li></ul>'],
+  ['Split a €900 budget across the three days in Python.',
+   '<p>Here is a small helper that splits the budget by weight:</p>' +
+   '<pre><code>def split_budget(total, weights):\n    s = sum(weights)\n    return [round(total * w / s, 2) for w in weights]\n\n' +
+   'print(split_budget(900, [3, 3, 4]))  # [270.0, 270.0, 360.0]</code></pre>' +
+   '<p>Day 3 gets more because of the Sintra train and palace tickets.</p>'],
+  ['What should we pack for early October?',
+   '<ul><li><strong>Layers:</strong> days around 22 °C, cooler evenings by the river.</li>' +
+   '<li><strong>Comfortable shoes:</strong> Lisbon is hilly and paved with slippery stone.</li>' +
+   '<li><strong>A light rain jacket:</strong> the first autumn showers are common.</li></ul>'],
+  ['Summarize the plan in three bullet points.',
+   '<ul><li><strong>Day 1:</strong> old town, castle and fado.</li>' +
+   '<li><strong>Day 2:</strong> Belém monuments and pastries.</li>' +
+   '<li><strong>Day 3:</strong> Sintra palaces, sunset back in the city.</li></ul>' +
+   '<p>Enjoy the trip!</p>']
+] : null;
+if(DEMO) document.title = 'Lisbon trip: 3-day plan';
+
+// ── диалог: 12 вопросов и ответов, у некоторых — части, код, список, картинка ──
+const N = DEMO ? DEMO.length : 12;
+const IMG = blobImage('IMG 5', '#2a7');
+function answerParts(i) {
+    if(DEMO) return [['a' + i, DEMO[i][1]]];
+    if(i === 2) return [['r' + i, '<p>Ответ 3, часть 1: рассуждение.</p>'],
+                        ['a' + i, '<p>Ответ 3, часть 2: код.</p><pre><code>print("три")</code></pre>']];
+    if(i === 7) return [['a' + i, '<p>Ответ 8, список:</p><ul><li>пункт один</li><li>пункт два</li></ul><hr><p>Ответ 8, после черты.</p>']];
+    if(i === 4) return null;   // ответ из одной картинки
+    return [['a' + i, '<p>Ответ ' + (i + 1) + ', абзац 1.</p><p>Ответ ' + (i + 1) + ', абзац 2.</p>']];
+}
+function pairHtml(i) {
+    const key = 'u' + i;
+    const q = '<div data-chatgpt-search-unit-key="fallback-turn-' + i + ':0:user" data-chatgpt-search-message-ids="' + key + '">' +
+        '<div class="q-row"><div data-user-message-bubble="true" class="bubble">' +
+        '<svg aria-hidden="true" class="temporaryOutline"><rect x="0.5" y="0.5"></rect></svg>' +
+        '<div class="whitespace-pre-wrap">' + (DEMO ? DEMO[i][0] : 'Вопрос ' + (i + 1) + '?') + '</div></div></div>' +
+        '<div><button type="button" aria-label="Copy message">⧉</button>' +
+        '<button type="button" aria-label="Edit message">✎</button></div></div>';
+    const parts = answerParts(i);
+    const body = parts
+        ? parts.map(function(p) {
+            return '<div data-chatgpt-selection-message-id="' + p[0] + '">' +
+                '<div data-markdown-text-style="assistant-message">' + p[1] + '</div></div>';
+          }).join('')
+        : '<div data-testid="generated-image-gallery"><div>' +
+          '<button type="button" data-testid="generated-image-preview">' +
+          '<img src="' + IMG + '" alt="Generated image 1"></button></div></div>';
+    const ids = parts ? parts.map(function(p) { return p[0]; }).join(' ') : 'a' + i;
+    const a = '<div' + (parts ? ' data-chatgpt-search-unit-key="fallback-turn-' + i + ':2:assistant"' : '') +
+        ' data-chatgpt-search-message-ids="' + ids + '">' +
+        '<h4 class="sr-only" style="position:absolute;left:-9999px" data-conversation-role="assistant">ChatGPT said:</h4>' +
+        body + '</div>';
+    return '<div data-turn-key="' + key + '"><div data-content-search-turn-key="fallback-turn-' + i + '">' +
+        '<h4 class="sr-only" style="position:absolute;left:-9999px">You said:</h4>' + q + a +
+        '<div><button type="button" aria-label="Copy">⧉</button></div>' +
+        '<div><aside aria-label="Do you like this personality?"><span>Do you like this personality?</span></aside></div>' +
+        '</div></div>';
+}
+function classicHtml(m) {
+    // m: 0..2N-1 — чётные вопросы, нечётные ответы
+    const i = m >> 1;
+    if(m % 2 === 0) {
+        return '<article data-testid="conversation-turn-' + (m + 1) + '">' +
+            '<h5 class="sr-only" style="position:absolute;left:-9999px">You said:</h5>' +
+            '<div data-message-author-role="user" data-message-id="u' + i + '"><div class="q-row"><div class="bubble">' +
+            '<div class="whitespace-pre-wrap">Вопрос ' + (i + 1) + '?</div></div></div></div></article>';
+    }
+    const parts = answerParts(i);
+    const md = parts ? parts.map(function(p) { return p[1]; }).join('') : '';
+    return '<article data-testid="conversation-turn-' + (m + 1) + '">' +
+        '<h6 class="sr-only" style="position:absolute;left:-9999px">ChatGPT said:</h6>' +
+        '<div data-message-author-role="assistant" data-message-id="a' + i + '">' +
+        '<div class="markdown prose">' + md + '</div></div>' +
+        (parts ? '' : '<div class="imagegen-image"><img src="' + IMG + '" alt="Generated image 1" ' +
+            'style="width:160px;height:100px;display:block;border-radius:8px"></div>') +
+        '</article>';
+}
+
+// ── виртуализатор: держит окно турнов, ушедшие узлы удаляет, вернувшиеся строит заново ──
+const COUNT = LAYOUT === 'pair' ? N : 2 * N;
+const H = LAYOUT === 'pair' ? 230 : 130;
+const OVERSCAN = 120;
+const main = document.querySelector('main');
+const scroller = document.createElement('div');
+scroller.className = 'stand-scroller';
+if(LAYOUT === 'pair') {
+    scroller.setAttribute('data-app-action-timeline-scroll', '');
+    scroller.style.display = 'flex';
+    scroller.style.flexDirection = 'column-reverse';
+}
+const outer = document.createElement('div');
+outer.style.cssText = 'position:relative;flex-shrink:0;display:flex;flex-direction:column;height:' + (COUNT * H) + 'px';
+const win = document.createElement('div');
+win.style.cssText = 'display:flex;flex-direction:column';
+outer.appendChild(win);
+scroller.appendChild(outer);
+main.appendChild(scroller);
+const mounted = new Map();
+const fromTop = function() {
+    return LAYOUT === 'pair'
+        ? scroller.scrollTop + scroller.scrollHeight - scroller.clientHeight
+        : scroller.scrollTop;
+};
+function render() {
+    const d = fromTop(), top = d - OVERSCAN, bottom = d + scroller.clientHeight + OVERSCAN;
+    let first = -1, last = -1;
+    for(let k = 0; k < COUNT; k++) {
+        if(k * H + H > top && k * H < bottom) { if(first < 0) first = k; last = k; }
+    }
+    mounted.forEach(function(el, k) {
+        if(k < first || k > last) { el.remove(); mounted.delete(k); }
+    });
+    for(let k = first; k <= last && k >= 0; k++) {
+        if(mounted.has(k)) continue;
+        // Новая вёрстка держит каждую пару в слоте виртуализатора с инлайн-высотой;
+        // у старой турны — соседи в одном контейнере (на этом стоит её пересборка).
+        let slot;
+        if(LAYOUT === 'pair') {
+            slot = document.createElement('div');
+            slot.innerHTML = pairHtml(k);
+        } else {
+            const box = document.createElement('div');
+            box.innerHTML = classicHtml(k);
+            slot = box.firstElementChild;
+        }
+        slot.classList.add('slot');
+        slot.style.height = H + 'px';
+        let next = null;
+        mounted.forEach(function(el, j) { if(j > k && (!next || j < next.j)) next = { j: j, el: el }; });
+        win.insertBefore(slot, next ? next.el : null);
+        mounted.set(k, slot);
+    }
+    win.style.marginTop = (Math.max(0, first) * H) + 'px';
+}
+let lastTop = null;
+setInterval(function() {
+    if(scroller.scrollTop !== lastTop) { lastTop = scroller.scrollTop; render(); }
+}, 50);
+render();
+</script>
+<script src="../shared.js"></script>
+<script src="../templates.js"></script>
+<script src="../helpers.js"></script>
+<script src="../theme.js"></script>
+<script src="../render.js"></script>
+<script src="../capture.js"></script>
+<script src="../settings.js"></script>
+<script src="../blockmode.js"></script>
+<script src="../common.js"></script>
+<script src="../request.js"></script>
+<script>
+// Перехват отправки: то, что ушло бы на сервер (после сжатия картинок), — справа.
+gptpdfChatGPT.sendChunkedData = function(htmlContent, params, fileName, fnCleanup) {
+    window.__payload = { html: htmlContent, params: params, fileName: fileName };
+    const withCss = params && params.custom_css
+        ? htmlContent.replace('</head>', '<style>' + params.custom_css + '</style></head>')
+        : htmlContent;
+    document.getElementById('out').srcdoc = withCss;
+    document.getElementById('side-head').textContent = 'Ушло бы в PDF: «' + fileName + '», ' +
+        Math.round(htmlContent.length / 1024) + ' КБ';
+    setTimeout(fnCleanup, 30);
+};
+
+// ?auto=export — без рук: нажать Export, когда кнопка проснётся, и выложить выгрузку
+// в блок payload-dump для headless-прогона (tests/e2e-render.js шлёт её на сервер).
+// Интерфейс так не проверяют — для него клики руками; это только снять HTML и параметры.
+if(/auto=export/.test(location.search)) {
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    (async function() {
+        for(let i = 0; i < 100 && !document.querySelector('.gptpdf-block:not(.gptpdf-hidden) #gptpdf-convert-main'); i++) await wait(100);
+        document.getElementById('gptpdf-convert-main').click();
+        for(let i = 0; i < 600 && !window.__payload; i++) await wait(100);
+        const pre = document.createElement('pre');
+        pre.id = 'payload-dump';
+        pre.textContent = JSON.stringify(window.__payload || null);
+        document.body.appendChild(pre);
+    })();
+}
+</script>

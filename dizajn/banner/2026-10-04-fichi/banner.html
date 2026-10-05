@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Баннер CWS 1280×800 — фичи (04.10.2026)</title>
+<!--
+  Баннер для страницы расширения в Chrome Web Store (канон 3.1: большой баннер 1280×800, суть
+  продукта, короткий текст, контрастный фон). Листы справа — НАСТОЯЩИЕ PDF, выгруженные
+  расширением 1.1.11 через наш сервер (стенд tests/blockmode-live-stand.html?demo=1, светлая и тёмная
+  тема), а не нарисованный макет. Фичи — только правда: без регистрации, без дневного лимита, без
+  водяного знака (у лидеров рынка — 3 PDF в день, вход, логотип), оглавление и номера страниц (1.1.11).
+  Слово «free» по канону в листинге запрещено — здесь его нет.
+  Снимок: headless Chrome --screenshot --window-size=1280,800.
+-->
+<style>
+  html, body { margin: 0; width: 1280px; height: 800px; overflow: hidden; }
+  body {
+    position: relative;
+    background: linear-gradient(135deg, #f45b35 0%, #e9442d 52%, #d6321f 100%);
+    font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+    color: #fff;
+  }
+  .left { position: absolute; left: 76px; top: 150px; width: 620px; }
+  h1 { margin: 0 0 50px; font-size: 72px; line-height: 1.02; font-weight: 800; letter-spacing: -1.5px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { display: flex; align-items: center; gap: 20px; margin: 0 0 28px; font-size: 37px; white-space: nowrap; font-weight: 650; letter-spacing: -0.3px; }
+  .tick { flex: 0 0 48px; height: 48px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; }
+  .tick svg { width: 28px; height: 28px; }
+  .sheet { position: absolute; width: 350px; border-radius: 6px; box-shadow: 0 24px 60px rgba(70, 10, 0, .45), 0 4px 14px rgba(70, 10, 0, .25); }
+  .dark  { right: 214px; top: 132px; transform: rotate(-6deg); }
+  .light { right: 58px;  top: 168px; transform: rotate(4deg); }
+</style>
+<div class="left">
+  <h1>Export ChatGPT<br>to PDF</h1>
+  <ul>
+    <li><span class="tick"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="#e9442d" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>No sign-up</li>
+    <li><span class="tick"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="#e9442d" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>No daily limit</li>
+    <li><span class="tick"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="#e9442d" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>No watermark</li>
+    <li><span class="tick"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="#e9442d" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Contents &amp; page numbers</li>
+  </ul>
+</div>
+<img class="sheet dark" src="list-dark.png" alt="">
+<img class="sheet light" src="list-light.png" alt="">

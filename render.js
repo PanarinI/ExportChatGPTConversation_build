@@ -537,14 +537,6 @@ function buildNewspaperHeader(options) {
     const leftParts = [];
     const rightParts = [];
 
-    if(options.model_name) {
-        const mel = document.querySelector('#page-header .text-lg');
-        if(mel) {
-            const mn = extractModelName(mel);
-            if(mn) leftParts.push(mn);
-        }
-    }
-
     if(options.datetime_format && options.datetime_format !== 'none') {
         const now = new Date();
         rightParts.push(
@@ -608,34 +600,8 @@ function gptpdfNormalizeTurns(root) {
     pairs.forEach(function(pair) {
         const doc = pair.ownerDocument;
         const key = pair.getAttribute('data-turn-key') || '';
-
-        let questions = gptpdfOutermost(pair.querySelectorAll(
-            '[data-chatgpt-search-unit-key$=":user"]'));
-        if(!questions.length) {
-            questions = gptpdfOutermost(pair.querySelectorAll(
-                '[data-user-message-bubble]'));
-        }
-        // Answer units: the unit around each "ChatGPT said:" marker — an
-        // image-only answer carries no unit key, but the marker is there
-        // (measured) — plus keyed units and bare markdown roots as a net.
-        const found = [];
-        pair.querySelectorAll('[data-conversation-role="assistant"]').forEach(
-            function(h) {
-                if(h.parentElement && h.parentElement !== pair) {
-                    found.push(h.parentElement);
-                }
-            });
-        pair.querySelectorAll('[data-chatgpt-search-unit-key$=":assistant"]')
-            .forEach(function(u) { found.push(u); });
-        pair.querySelectorAll('[data-markdown-text-style="assistant-message"]')
-            .forEach(function(md) {
-                found.push(md.closest('[data-chatgpt-search-message-ids]') || md);
-            });
-        const answers = gptpdfOutermost(found).filter(function(a) {
-            return !questions.some(function(q) {
-                return q.contains(a) || a.contains(q);
-            });
-        });
+        const questions = gptpdfPairQuestions(pair);
+        const answers = gptpdfPairAnswers(pair, questions);
 
         const turns = [];
         if(questions.length) {
@@ -664,6 +630,43 @@ function gptpdfNormalizeTurns(root) {
     });
 }
 
+// What a pair holds, read the one way both of its readers need: this
+// translation, and block mode's checkboxes on the live page (blockmode.js). A
+// block the user ticks is then always a piece the export copy knows by the
+// same name — if the two drew the line between question and answer in
+// different places, "only these" and "all but these" would cut the wrong thing.
+// The question: its unit (the bubble with its attachments), or the bare bubble.
+function gptpdfPairQuestions(pair) {
+    const units = gptpdfOutermost(pair.querySelectorAll(
+        '[data-chatgpt-search-unit-key$=":user"]'));
+    return units.length ? units : gptpdfOutermost(pair.querySelectorAll(
+        '[data-user-message-bubble]'));
+}
+
+// The answer: the unit around each "ChatGPT said:" marker — an image-only
+// answer carries no unit key, but the marker is there (measured) — plus keyed
+// units and bare markdown roots as a net.
+function gptpdfPairAnswers(pair, questions) {
+    const found = [];
+    pair.querySelectorAll('[data-conversation-role="assistant"]').forEach(
+        function(h) {
+            if(h.parentElement && h.parentElement !== pair) {
+                found.push(h.parentElement);
+            }
+        });
+    pair.querySelectorAll('[data-chatgpt-search-unit-key$=":assistant"]')
+        .forEach(function(u) { found.push(u); });
+    pair.querySelectorAll('[data-markdown-text-style="assistant-message"]')
+        .forEach(function(md) {
+            found.push(md.closest('[data-chatgpt-search-message-ids]') || md);
+        });
+    return gptpdfOutermost(found).filter(function(a) {
+        return !questions.some(function(q) {
+            return q.contains(a) || a.contains(q);
+        });
+    });
+}
+
 function gptpdfClassicTurn(doc, n, pairKey, msg) {
     const turn = doc.createElement('div');
     turn.setAttribute('data-testid', 'conversation-turn-' + n);
@@ -689,6 +692,19 @@ function gptpdfOutermost(list) {
 // Assigns anchor IDs to each user message element.
 // No page numbers (not available client-side).
 // Removes ChatGPT UI elements that should not appear in the PDF.
+// ChatGPT's date separators — "ср, 9 сент. в 2:57", "Thu, Jan 29 at 4:47 PM" —
+// a line the new page puts into the thread between messages
+// (div[role=separator], CHATGPT-DOM.md §9). Not part of the conversation; the
+// PDF has its own export date. The translation to the classic shape drops the
+// ones in a pair's shell, but in the author's chat it sat inside the question
+// and reached the PDF (04.10). Only separators that carry text: a markdown <hr>
+// is a separator too, by role, and it stays.
+function gptpdfRemoveDateSeparators(root) {
+    root.querySelectorAll('[role="separator"]').forEach(function(el) {
+        if(el.tagName !== 'HR' && el.textContent.trim()) el.remove();
+    });
+}
+
 function cleanupForPdf(clone) {
 
     // ── Метки для разрывов страниц и колонок ──────────────────────────
@@ -717,6 +733,7 @@ function cleanupForPdf(clone) {
     //       This is where "Вы сказали:" / "ChatGPT сказал:" labels live.
     clone.querySelectorAll('.sr-only').forEach(function(el) { el.remove(); });
     clone.classList.remove('chat-gpt-custom');
+    gptpdfRemoveDateSeparators(clone);
 
     // ── 1. KaTeX double formula fix ───────────────────────────────────
     // katex-mathml is a hidden fallback text; katex-html is the visual.
@@ -940,6 +957,30 @@ function extractDalleImages(root) {
     });
 }
 
+// Bookmarks in the PDF viewer's side panel mirror the table of contents
+// (DECISIONS 10-04). Chromium builds them from headings when the PDF is tagged
+// (background.js asks for both). Each question becomes a level-2 heading under
+// the title — its own box, because an outline entry takes the visible text (a
+// short aria-label is ignored) and a zero-height marker is dropped (both
+// measured on our server 04.10). Every heading inside an answer moves two
+// levels down, so it nests under its own question instead of standing beside
+// the questions; its look does not change, only its level for the outline.
+function gptpdfMarkOutline(mainClone) {
+    mainClone.querySelectorAll('[data-message-author-role="user"]').forEach(
+        function(msg) {
+            if(!msg.textContent.trim()) return;
+            msg.setAttribute('role', 'heading');
+            msg.setAttribute('aria-level', '2');
+        });
+    mainClone.querySelectorAll('[data-message-author-role="assistant"]').forEach(
+        function(msg) {
+            msg.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function(h) {
+                h.setAttribute('aria-level',
+                    String(parseInt(h.tagName.slice(1), 10) + 2));
+            });
+        });
+}
+
 function buildTocHtml(options, mainClone) {
     if(!options.toc || options.no_questions) return '';
     if(!mainClone) return '';
@@ -1001,44 +1042,6 @@ function buildDatetimeHtml(options) {
     return '';
 }
 
-function extractModelName(element) {
-    function traverse(node) {
-        let text = '';
-
-        node.childNodes.forEach(child => {
-            let childText = '';
-            if (child.nodeType === Node.TEXT_NODE) {
-                childText = child.textContent.trim();
-            } else if (child.nodeType === Node.ELEMENT_NODE) {
-                childText = traverse(child);
-            }
-
-            if(childText) {
-                if(text) {
-                    text += ' - ';
-                }
-                text += childText;
-            }
-        });
-
-        return text;
-    }
-
-    return traverse(element).trim();
-}
-
-function buildModelNameHtml(options) {
-    if(options.model_name) {
-        const model_el = document.querySelector(
-            '#page-header .text-lg');
-        if(model_el) {
-            return '<div class="gptpdf-model-name">' +
-                extractModelName(model_el) +
-                '</div>';
-        }
-    }
-    return '';
-}
 
 function buildSourceLinkHtml(options) {
     if(options.source_link) {

@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Баннер CWS 1280×800 — доработка нынешнего (04.10.2026)</title>
+<!--
+  Доработка баннера, что стоит в сторе сейчас (html_pdf_converter/banner/
+  banner_large_simplified_1280_800.png = original.png здесь). Слово автора 04.10: «доработать тот, что у
+  нас уже был — не нужно выдумывать». Сам баннер не тронут; поверх него ровно две правки:
+    1) справа от «in one click» — три плашки фич в стиле плашки «Export»: No sign-up · No daily limit ·
+       No watermark (слова «free» нет — канон запрещает);
+    2) подпись внизу листа PDF «Page 1 of 2 · Exported with Export ChatGPT Conversation» — фирменного
+       колонтитула у нас нет, и он спорил бы с «No watermark»; заменена на «1 / 2», как в настоящем PDF 1.1.11.
+  Снимок: headless Chrome --screenshot --window-size=1280,800.
+-->
+<style>
+  html, body { margin: 0; width: 1280px; height: 800px; overflow: hidden; }
+  body { position: relative; background: url(original.png) no-repeat 0 0 / 1280px 800px;
+         font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif; }
+  /* 1. подпись листа PDF: белая заплатка поверх старой строки и номер страницы, как в PDF 1.1.11 */
+  .patch { position: absolute; left: 888px; top: 604px; width: 276px; height: 26px; background: #fff; }
+  .pageno { position: absolute; left: 888px; top: 604px; width: 276px; height: 26px; display: flex;
+            align-items: center; justify-content: center; font-size: 12px; color: #555; letter-spacing: .2px; }
+  /* 2. фичи: белые плашки, как «Export» */
+  .chips { position: absolute; left: 448px; top: 712px; display: flex; gap: 14px; }
+  .chip { display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 20px 0 14px; background: #fff;
+          border-radius: 14px; box-shadow: 0 10px 26px rgba(90, 10, 0, .30), 0 2px 6px rgba(90, 10, 0, .18);
+          font-size: 23px; font-weight: 700; color: #241a33; letter-spacing: -.2px; white-space: nowrap; }
+  .chip svg { width: 24px; height: 24px; flex: 0 0 24px; }
+</style>
+<div class="patch"></div>
+<div class="pageno">1 / 2</div>
+<div class="chips">
+  <div class="chip"><svg viewBox="0 0 24 24"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f26a3d"/><stop offset="1" stop-color="#e23b2a"/></linearGradient></defs><circle cx="12" cy="12" r="11" fill="url(#g)"/><path d="M6.8 12.4l3.4 3.4 7-7.2" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>No sign-up</div>
+  <div class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="url(#g)"/><path d="M6.8 12.4l3.4 3.4 7-7.2" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>No daily limit</div>
+  <div class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="url(#g)"/><path d="M6.8 12.4l3.4 3.4 7-7.2" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>No watermark</div>
+</div>

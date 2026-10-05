@@ -1304,10 +1304,6 @@ const EXPORT_BUTTON_HTML = `
             <div class="gptpdf-section">
               <div class="gptpdf-section-title">Output Format</div>
               <div class="gptpdf-row">
-                <span class="gptpdf-label">Single page</span>
-                <label class="gptpdf-toggle"><input type="checkbox" id="gptpdf-singlepage-toggle"><span class="gptpdf-toggle-track"></span></label>
-              </div>
-              <div class="gptpdf-row">
                 <span class="gptpdf-label">Page size</span>
                 <div style="display:flex;gap:8px;align-items:center;">
                   <div class="gptpdf-segment" id="gptpdf-page-size">
@@ -1341,6 +1337,12 @@ const EXPORT_BUTTON_HTML = `
                 </div>
               </div>
               <div class="gptpdf-row">
+                <span class="gptpdf-label">Question color</span>
+                <input type="hidden" id="gptpdf-q-color-value" value="default">
+                <div id="gptpdf-q-palette" style="display:flex;flex-wrap:wrap;gap:5px;max-width:240px;">
+                </div>
+              </div>
+              <div class="gptpdf-row">
                 <span class="gptpdf-label">Font size</span>
                 <div class="gptpdf-slider-row">
                   <input type="range" class="gptpdf-slider" id="gptpdf-zoom" min="70" max="200" step="5" value="100">
@@ -1370,15 +1372,13 @@ const EXPORT_BUTTON_HTML = `
                   <button class="gptpdf-seg-btn" data-value="after">After each answer</button>
                 </div>
               </div>
-            </div>
-
-            <div class="gptpdf-section">
-              <div class="gptpdf-section-title">Theme</div>
               <div class="gptpdf-row">
-                <span class="gptpdf-label">Style</span>
-                <input type="hidden" id="gptpdf-q-color-value" value="default">
-                <div id="gptpdf-q-palette" style="display:flex;flex-wrap:wrap;gap:5px;max-width:240px;">
-                </div>
+                <span class="gptpdf-label">Page numbers</span>
+                <label class="gptpdf-toggle"><input type="checkbox" id="gptpdf-page-numbers"><span class="gptpdf-toggle-track"></span></label>
+              </div>
+              <div class="gptpdf-row">
+                <span class="gptpdf-label">Single page</span>
+                <label class="gptpdf-toggle"><input type="checkbox" id="gptpdf-singlepage-toggle"><span class="gptpdf-toggle-track"></span></label>
               </div>
             </div>
 
@@ -1393,7 +1393,7 @@ const EXPORT_BUTTON_HTML = `
                 </div>
               </div>
               <div class="gptpdf-row">
-                <span class="gptpdf-label">Creation date</span>
+                <span class="gptpdf-label">Export date</span>
                 <div class="gptpdf-segment" id="gptpdf-datetime">
                   <button class="gptpdf-seg-btn active" data-value="none">None</button>
                   <button class="gptpdf-seg-btn" data-value="date_only">Date</button>
@@ -1409,10 +1409,6 @@ const EXPORT_BUTTON_HTML = `
                 </div>
               </div>
               <div class="gptpdf-row">
-                <span class="gptpdf-label">Include model name</span>
-                <label class="gptpdf-toggle"><input type="checkbox" id="gptpdf-model-name"><span class="gptpdf-toggle-track"></span></label>
-              </div>
-              <div class="gptpdf-row">
                 <span class="gptpdf-label">Source link</span>
                 <label class="gptpdf-toggle"><input type="checkbox" id="gptpdf-source-link"><span class="gptpdf-toggle-track"></span></label>
               </div>
@@ -1424,26 +1420,24 @@ const EXPORT_BUTTON_HTML = `
             <div id="gptpdf-preview-doc" class="preview-light">
               <div class="gptpdf-prev-title"></div>
               <div class="gptpdf-prev-date" style="display:none;height:2px;width:50%;border-radius:2px;margin-bottom:2px;"></div>
-              <!-- model + source link: absolutely positioned top-right corner -->
+              <!-- source link: absolutely positioned top-right corner -->
               <div id="gptpdf-prev-meta" style="position:absolute;top:8px;right:8px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-                <div class="gptpdf-prev-model" style="display:none;height:2px;width:22px;border-radius:1px;"></div>
                 <div class="gptpdf-prev-source" style="display:none;height:2px;width:30px;border-radius:1px;opacity:0.6;"></div>
               </div>
+              <!-- page number: bottom centre, as in the PDF -->
+              <div class="gptpdf-prev-pagenum" style="display:none;position:absolute;bottom:6px;left:50%;transform:translateX(-50%);height:2px;width:8px;border-radius:1px;"></div>
               <div class="gptpdf-prev-toc" style="display:none;flex-direction:column;gap:3px;padding:4px 0 5px;">
                 <div style="display:flex;align-items:center;gap:2px;">
                   <div class="gptpdf-toc-dot" style="width:3px;height:3px;border-radius:50%;background:rgba(74,144,217,0.9);flex-shrink:0;"></div>
                   <div class="gptpdf-toc-line" style="height:2px;width:78%;background:rgba(74,144,217,0.6);border-radius:1px;"></div>
-                  <div class="gptpdf-toc-pg" style="width:4px;height:2px;background:rgba(74,144,217,0.4);border-radius:1px;margin-left:auto;"></div>
                 </div>
                 <div style="display:flex;align-items:center;gap:2px;padding-left:6px;">
                   <div class="gptpdf-toc-dot" style="width:2px;height:2px;border-radius:50%;background:rgba(74,144,217,0.65);flex-shrink:0;"></div>
                   <div class="gptpdf-toc-line" style="height:2px;width:60%;background:rgba(74,144,217,0.42);border-radius:1px;"></div>
-                  <div class="gptpdf-toc-pg" style="width:4px;height:2px;background:rgba(74,144,217,0.3);border-radius:1px;margin-left:auto;"></div>
                 </div>
                 <div style="display:flex;align-items:center;gap:2px;padding-left:6px;">
                   <div class="gptpdf-toc-dot" style="width:2px;height:2px;border-radius:50%;background:rgba(74,144,217,0.65);flex-shrink:0;"></div>
                   <div class="gptpdf-toc-line" style="height:2px;width:50%;background:rgba(74,144,217,0.42);border-radius:1px;"></div>
-                  <div class="gptpdf-toc-pg" style="width:4px;height:2px;background:rgba(74,144,217,0.3);border-radius:1px;margin-left:auto;"></div>
                 </div>
               </div>
               <div style="display:flex;align-items:flex-start;gap:4px;">

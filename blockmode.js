@@ -67,57 +67,140 @@ function restoreSelectedTurns(clone, turnSnapshots, bidsToKeep) {
 // SAME walk serves both sides: the checkboxes drawn on the page and the removal
 // of unchecked blocks from the clone. If the two sides disagreed about what a
 // block is, "everything minus these" would cut the wrong thing.
+// Classic page, a turn per message:
 // • User message  → whole [data-message-author-role="user"] = 1 block
 // • AI message    → each direct child of .markdown (skip hr/script/style)
+// Pair page, a turn per question AND its answer (CHATGPT-DOM.md §9) — the line
+// between the two is drawn by the helpers the PDF translation uses (render.js):
+// • Question      → its unit = 1 block
+// • Answer        → each direct child of every text part, plus the pictures
+//                   outside the text
 function gptpdfFindBlocks(root) {
-    const scope = root || document;
     const result = [];
+    gptpdfFindBlockGroups(root).forEach(function(g) {
+        g.blocks.forEach(function(el) { result.push(el); });
+    });
+    return result;
+}
+
+// The same walk, grouped by the message each block belongs to: a classic turn,
+// or one side of a pair. A message whose every block was unchecked leaves with
+// them (gptpdfApplyBlockExclusions) — on a pair that is one side, so an
+// unchecked question does not take its answer along, and an answer cut down to
+// nothing does not ship as an empty turn.
+function gptpdfFindBlockGroups(root) {
+    const scope = root || document;
+    const groups = [];
     scope.querySelectorAll(
         '[data-testid^="conversation-turn"]'
     ).forEach(function(turn) {
-        const userEl = turn.querySelector(
-            '[data-message-author-role="user"]');
-        if(userEl) {
-            result.push(userEl);
-            return;
-        }
-        // AI turn: drill into .markdown container
-        const markdown = turn.querySelector('.markdown');
-        if(markdown) {
-            Array.from(markdown.children).forEach(function(child) {
-                const tag = child.tagName;
-                if(!tag) return;
-                if(tag === 'HR' || tag === 'SCRIPT' || tag === 'STYLE') return;
-                // Skip our own injected UI elements
-                if(child.classList.contains('gptpdf-img-sel-row')) return;
-                result.push(child);
-            });
-        }
-        // Generated/uploaded images (e.g. DALL-E) often live OUTSIDE .markdown
-        // in their own container — make them selectable blocks too.
-        turn.querySelectorAll('img').forEach(function(img) {
-            const src = img.getAttribute('src') || '';
-            // Recognise a generated/uploaded image 3 ways, so detection is
-            // robust to the src changing. The export converts the live <img>
-            // to a base64 src, so a URL-only check would STOP matching it after
-            // the first export — and the checkbox would vanish (the reported bug).
-            const isGenImg = !!img.closest('[class*="imagegen"]');
-            const isProtectedUrl = src.indexOf('/backend-api/') !== -1 ||
-                                   src.indexOf('oaiusercontent') !== -1 ||
-                                   src.indexOf('images.openai') !== -1;
-            const isBigData = src.startsWith('data:image/') && src.length > 50000;
-            if(!isGenImg && !isProtectedUrl && !isBigData) return;
-            if(markdown && markdown.contains(img)) return;
-            let container = img;
-            while(container.parentElement && container.parentElement !== turn) {
-                container = container.parentElement;
-            }
-            if(container !== turn && container.tagName &&
-               !container.classList.contains('gptpdf-img-sel-row') &&
-               result.indexOf(container) === -1) {
-                result.push(container);
-            }
+        groups.push({ el: turn, blocks: gptpdfTurnBlocks(turn) });
+    });
+    scope.querySelectorAll('div[data-turn-key]').forEach(function(pair) {
+        const questions = gptpdfPairQuestions(pair);
+        questions.forEach(function(q) {
+            groups.push({ el: q, blocks: [q] });
         });
+        gptpdfPairAnswers(pair, questions).forEach(function(unit) {
+            groups.push({ el: unit, blocks: gptpdfAnswerBlocks(unit) });
+        });
+    });
+    return groups;
+}
+
+function gptpdfTurnBlocks(turn) {
+    const result = [];
+    const userEl = turn.querySelector(
+        '[data-message-author-role="user"]');
+    if(userEl) {
+        result.push(userEl);
+        return result;
+    }
+    // AI turn: drill into .markdown container
+    const markdown = turn.querySelector('.markdown');
+    if(markdown) {
+        Array.from(markdown.children).forEach(function(child) {
+            const tag = child.tagName;
+            if(!tag) return;
+            if(tag === 'HR' || tag === 'SCRIPT' || tag === 'STYLE') return;
+            // Skip our own injected UI elements
+            if(child.classList.contains('gptpdf-img-sel-row')) return;
+            result.push(child);
+        });
+    }
+    // Generated/uploaded images (e.g. DALL-E) often live OUTSIDE .markdown
+    // in their own container — make them selectable blocks too.
+    turn.querySelectorAll('img').forEach(function(img) {
+        const src = img.getAttribute('src') || '';
+        // Recognise a generated/uploaded image 3 ways, so detection is
+        // robust to the src changing. The export converts the live <img>
+        // to a base64 src, so a URL-only check would STOP matching it after
+        // the first export — and the checkbox would vanish (the reported bug).
+        const isGenImg = !!img.closest('[class*="imagegen"]');
+        const isProtectedUrl = src.indexOf('/backend-api/') !== -1 ||
+                               src.indexOf('oaiusercontent') !== -1 ||
+                               src.indexOf('images.openai') !== -1;
+        const isBigData = src.startsWith('data:image/') && src.length > 50000;
+        if(!isGenImg && !isProtectedUrl && !isBigData) return;
+        if(markdown && markdown.contains(img)) return;
+        let container = img;
+        while(container.parentElement && container.parentElement !== turn) {
+            container = container.parentElement;
+        }
+        if(container !== turn && container.tagName &&
+           !container.classList.contains('gptpdf-img-sel-row') &&
+           result.indexOf(container) === -1) {
+            result.push(container);
+        }
+    });
+    return result;
+}
+
+// One answer unit of a pair. Text: each direct child of every text part (an
+// answer can come in several parts, each with its own body). Pictures: those
+// outside the text — the pair page's generated images sit in a preview button
+// with a blob: src, and the same three signs as on the classic page cover the
+// rest. A picture's block climbs to the unit, but never so high that it would
+// swallow a text body: a box around both would be a block holding blocks.
+function gptpdfAnswerBlocks(unit) {
+    const result = [];
+    const TEXT = '[data-markdown-text-style="assistant-message"]';
+    // A bare text root with no unit around it is its own unit (render.js).
+    const bodies = (unit.matches(TEXT) ? [unit] : []).concat(
+        Array.from(unit.querySelectorAll(TEXT)));
+    bodies.forEach(function(md) {
+        Array.from(md.children).forEach(function(child) {
+            const tag = child.tagName;
+            if(!tag) return;
+            if(tag === 'HR' || tag === 'SCRIPT' || tag === 'STYLE') return;
+            if(child.classList.contains('gptpdf-img-sel-row')) return;
+            result.push(child);
+        });
+    });
+    const holdsText = function(el) {
+        return bodies.some(function(md) { return el.contains(md); });
+    };
+    unit.querySelectorAll('img').forEach(function(img) {
+        if(img.closest('a')) return;   // citation favicons
+        if(bodies.some(function(md) { return md.contains(img); })) return;
+        const src = img.getAttribute('src') || '';
+        const isContent = !!img.closest('[data-testid^="generated-image"]') ||
+            src.startsWith('blob:') ||
+            src.indexOf('/backend-api/') !== -1 ||
+            src.indexOf('oaiusercontent') !== -1 ||
+            src.indexOf('images.openai') !== -1 ||
+            (src.startsWith('data:image/') && src.length > 50000);
+        if(!isContent) return;
+        let container = img;
+        while(container.parentElement && container.parentElement !== unit &&
+              !holdsText(container.parentElement)) {
+            container = container.parentElement;
+        }
+        if(container.tagName &&
+           !container.classList.contains('gptpdf-img-sel-row') &&
+           result.indexOf(container) === -1) {
+            result.push(container);
+        }
     });
     return result;
 }
@@ -131,9 +214,13 @@ function gptpdfFindBlocks(root) {
 // window and the whole thread is renumbered when older pages load in
 // (CHATGPT-DOM.md §3), so it means different messages at different moments.
 // Our own injected rows are skipped when counting, so inserting one does not
-// renumber the blocks under it.
+// renumber the blocks under it. A block in the text body is counted among the
+// text ("#2"); a picture outside it, among the turn's own children ("#t2") —
+// two different counts, so they must not share one name.
 function gptpdfBlockKey(el) {
     if(!el) return '';
+    const pair = el.closest('div[data-turn-key]');
+    if(pair) return gptpdfPairBlockKey(el, pair);
     const turn = el.closest('[data-testid^="conversation-turn"]');
     let msg = el.closest('[data-message-id]');
     // Image containers sit OUTSIDE the message element (as a child of the
@@ -144,16 +231,42 @@ function gptpdfBlockKey(el) {
                     : (turn ? (turn.getAttribute('data-testid') || '') : '');
     if(msg === el) return base + '#u';        // the user message = one block
     const parent = el.parentElement;
-    if(!parent) return base + '#0';
+    const inText = !!(parent && parent.classList &&
+                      parent.classList.contains('markdown'));
+    return base + (inText ? '#' : '#t') + gptpdfPlaceAmongKids(el);
+}
+
+// Pair page: the pair names itself — data-turn-key is the question's message
+// id and holds across remounts — and so does each part of an answer
+// (data-chatgpt-selection-message-id).
+function gptpdfPairBlockKey(el, pair) {
+    const pairKey = pair.getAttribute('data-turn-key') || '';
+    if(el.matches('[data-chatgpt-search-unit-key$=":user"], ' +
+                  '[data-user-message-bubble]')) {
+        return 'q:' + pairKey;                // the question = one block
+    }
+    const part = el.closest('[data-chatgpt-selection-message-id]');
+    const base = part && pair.contains(part)
+        ? 'msg:' + part.getAttribute('data-chatgpt-selection-message-id')
+        : 'pair:' + pairKey;
+    const parent = el.parentElement;
+    const inText = !!(parent && parent.matches &&
+        parent.matches('[data-markdown-text-style="assistant-message"]'));
+    return base + (inText ? '#' : '#t') + gptpdfPlaceAmongKids(el);
+}
+
+function gptpdfPlaceAmongKids(el) {
+    const parent = el.parentElement;
+    if(!parent) return '0';
     let i = 0;
     const kids = parent.children;
     for(let k = 0; k < kids.length; k++) {
         const ch = kids[k];
         if(ch.classList && ch.classList.contains('gptpdf-img-sel-row')) continue;
-        if(ch === el) return base + '#' + i;
+        if(ch === el) return String(i);
         i++;
     }
-    return base + '#?';
+    return '?';
 }
 
 // ── handover from "Select all" mode to the full export ─────────────────────
@@ -195,26 +308,80 @@ function gptpdfApplyBlockExclusions(clone) {
     // Every key is read BEFORE anything is removed. A block's place inside its
     // message is part of its name, so cutting one out mid-read renames whatever
     // stood after it, and the neighbour that slides into the empty place would
-    // be cut as well. Blocks are counted per turn on the same pass: a turn goes
-    // only if EVERY block in it was unchecked, and a turn that never had a
-    // block (tool/system rows) is left alone.
-    const perTurn = new Map();
+    // be cut as well. Blocks are counted per message on the same pass (a
+    // classic turn, or one side of a pair): a message goes only if EVERY block
+    // in it was unchecked, and one that never had a block (tool/system rows)
+    // is left alone. A pair left with neither side is dropped later by the
+    // translation to the classic shape (gptpdfNormalizeTurns).
     const marked = [];
-    gptpdfFindBlocks(clone).forEach(function(el) {
-        const turn = el.closest('[data-testid^="conversation-turn"]');
-        if(!turn) return;
-        let rec = perTurn.get(turn);
-        if(!rec) { rec = { total: 0, cut: 0 }; perTurn.set(turn, rec); }
-        rec.total++;
-        if(excluded.has(gptpdfBlockKey(el))) {
-            rec.cut++;
-            marked.push(el);
-        }
+    const emptied = [];
+    gptpdfFindBlockGroups(clone).forEach(function(g) {
+        let cut = 0;
+        g.blocks.forEach(function(el) {
+            if(excluded.has(gptpdfBlockKey(el))) {
+                cut++;
+                marked.push(el);
+            }
+        });
+        if(g.blocks.length > 0 && cut === g.blocks.length) emptied.push(g.el);
     });
     marked.forEach(function(el) { el.remove(); });
-    perTurn.forEach(function(rec, turn) {
-        if(rec.total > 0 && rec.cut === rec.total) turn.remove();
+    emptied.forEach(function(el) { el.remove(); });
+}
+
+// Pair page: the selection's copy is rebuilt the way the full export rebuilds
+// its own (restorePairThread, capture.js) — the thread and nothing else, in the
+// conversation order the entry harvest recorded. The copy of the live page is a
+// few mounted turns in virtualizer slots with fixed heights, inside the page's
+// header and composer; none of that may reach the PDF. Which copy of a turn
+// ships follows the classic rule (restoreSelectedTurns): a mounted turn still
+// carrying a kept bid keeps its live clone, whose images are already inline;
+// any other selected turn ships as its snapshot, taken at the click with the
+// bids. Turns nobody picked from stay for the sweep after the translation.
+function restoreSelectedPairs(clone, turnSnapshots, bidsToKeep, order) {
+    const snaps = new Map(turnSnapshots);
+    clone.querySelectorAll('div[data-turn-key]').forEach(function(t) {
+        const k = turnKey(t);
+        if(!snaps.has(k)) return;
+        const liveKeeps = Array.from(t.querySelectorAll('[data-gptpdf-bid]'))
+            .some(function(el) {
+                return bidsToKeep.has(el.getAttribute('data-gptpdf-bid'));
+            });
+        if(liveKeeps) snaps.delete(k);
+        else t.remove();
     });
+    const cache = new Map();
+    snaps.forEach(function(html, k) {
+        cache.set(k, { html: html, hrefs: 0, len: 0 });
+    });
+    cache.gptpdfOrder = order || [];
+    restorePairThread(clone, cache);
+}
+
+// A turn restored from its snapshot carries its pictures as the page served
+// them — blob: links that live only in this tab (the pair page's generated
+// images), or signed links the render server cannot open. The images of turns
+// still mounted were inlined before the copy was taken; these were not. Same
+// second pass as the full export (common.js).
+function gptpdfInlineLateImages(root) {
+    const jobs = [];
+    root.querySelectorAll('img').forEach(function(img) {
+        const src = img.getAttribute('src') || '';
+        if(!src || src.startsWith('data:')) return;
+        if(src.startsWith('blob:')) {
+            jobs.push(gptpdfInlineBlobImage(img));
+            return;
+        }
+        jobs.push(new Promise(function(resolve) {
+            chrome.runtime.sendMessage(
+                { action: 'fetchImageAsBase64', src: src },
+                function(response) {
+                    if(response && response.data) img.setAttribute('src', response.data);
+                    resolve();
+                });
+        }));
+    });
+    return Promise.all(jobs);
 }
 
 function setupBlockMode() {
@@ -230,7 +397,15 @@ function setupBlockMode() {
     let debounceTimer  = null; // lifted here so exitBlockMode can clear it
     const blockMap     = new Map();
     const selectedBids = new Set();
-    const turnSnapshots = new Map(); // data-testid -> message outerHTML; keeps selection alive across unmount
+    const turnSnapshots = new Map(); // turn id -> turn outerHTML; keeps selection alive across unmount
+    // What the manual pick holds, by block KEY: a turn ChatGPT unmounts and
+    // remounts comes back as fresh nodes with new bids, and its boxes used to
+    // come back empty — the pick was still in the snapshot, but the page said
+    // otherwise, and a box that shows empty cannot be unticked. Each key keeps
+    // every bid its block has had while picked, so the remounted block is
+    // ticked again on arrival and unticking it drops them all. On the pair page
+    // only 3–6 turns stay mounted (CHATGPT-DOM.md §9): there it happens at once.
+    const keyBids = new Map();
     // "Select all" is not a bulk tick of the checkboxes — the blocks the user
     // never scrolled to are not in the page at all, so there is nothing to tick.
     // It flips the meaning of the selection: take the whole conversation, and
@@ -243,7 +418,7 @@ function setupBlockMode() {
     // ── helpers ────────────────────────────────────────────────────────────
 
     function updateBar() {
-        const n  = selectedBids.size;
+        const n  = keyBids.size;
         const ex = excludedKeys.size;
         const isRu = (navigator.language || '').toLowerCase().startsWith('ru');
         if(isRu) {
@@ -291,6 +466,7 @@ function setupBlockMode() {
         allMode = !!on;
         excludedKeys.clear();
         selectedBids.clear();
+        keyBids.clear();
         turnSnapshots.clear();
         blockMap.forEach(paintBlock);
         syncAllRow();
@@ -410,12 +586,26 @@ function setupBlockMode() {
                 else        excludedKeys.add(key);
                 syncAllRow();
             } else {
-                if(checked) selectedBids.add(bid);
-                else         selectedBids.delete(bid);
+                if(checked) {
+                    selectedBids.add(bid);
+                    if(!keyBids.has(key)) keyBids.set(key, new Set());
+                    keyBids.get(key).add(bid);
+                } else {
+                    // Every bid this block has had goes with it: the snapshot
+                    // taken below replaces the one that still held the older.
+                    (keyBids.get(key) || new Set()).forEach(function(b) {
+                        selectedBids.delete(b);
+                    });
+                    selectedBids.delete(bid);
+                    keyBids.delete(key);
+                }
                 // Snapshot the whole message NOW (while mounted) so the selection
                 // survives ChatGPT unmounting it on scroll; restored at export time.
+                // A pair is named by its own key, which holds across remounts.
                 const _turn = el.closest('[data-testid^="conversation-turn"]');
+                const _pair = _turn ? null : el.closest('div[data-turn-key]');
                 if(_turn) turnSnapshots.set(_turn.getAttribute('data-testid'), _turn.outerHTML);
+                else if(_pair) turnSnapshots.set(turnKey(_pair), _pair.outerHTML);
             }
             updateBar();
         }
@@ -442,8 +632,15 @@ function setupBlockMode() {
             key: key
         };
         blockMap.set(bid, info);
-        // A block scrolled into view while "all" is on arrives already ticked.
-        if(allMode) paintBlock(info);
+        // A block scrolled into view while "all" is on arrives already ticked;
+        // so does a picked block coming back after ChatGPT unmounted it.
+        if(allMode) {
+            paintBlock(info);
+        } else if(keyBids.has(key)) {
+            selectedBids.add(bid);
+            keyBids.get(key).add(bid);
+            paintBlock(info);
+        }
     }
 
     function detachAll() {
@@ -462,6 +659,7 @@ function setupBlockMode() {
         blockMap.clear();
         turnSnapshots.clear();
         selectedBids.clear();
+        keyBids.clear();
         excludedKeys.clear();
         allMode = false;
         entryTurnCache = null; // handed over already if an export needed it
@@ -497,7 +695,7 @@ function setupBlockMode() {
                 ? 'Export all but ' + ex
                 : 'Export all';
         } else if(inBlockMode) {
-            const n = selectedBids.size;
+            const n = keyBids.size;
             btnLabel.textContent = n ? 'Export (' + n + ')' : 'Export (select blocks)';
         } else {
             btnLabel.textContent = 'Export';
@@ -534,10 +732,11 @@ function setupBlockMode() {
         if(exitSelBtn) exitSelBtn.style.display = 'flex';
         updateMainBtnLabel();
 
-        // 2. Scroll to top
+        // 2. Scroll to top — measured from the top: the pair page's thread
+        // scrolls from the bottom, where scrollTop 0 is the newest message.
         const scroller = findVirtualizedScroller();
         if(scroller) {
-            scroller.scrollTop = 0;
+            gptpdfScrollAxis(scroller).set(0);
             await new Promise(function(r) { setTimeout(r, 450); });
         }
 
@@ -586,13 +785,14 @@ function setupBlockMode() {
                 // builds the table of contents. The holes are cut out of its
                 // clone by gptpdfApplyBlockExclusions().
                 sendGA4Event('export_selected_used',
-                    { mode: 'all', excluded: excludedKeys.size });
+                    { mode: 'all', excluded: excludedKeys.size,
+                      layout: gptpdfLayoutName() });
                 gptpdfPendingExclusions = new Set(excludedKeys);
                 gptpdfPendingTurnCache  = entryTurnCache;
                 exitBlockMode(); // take our checkboxes off the page first
                 return;
             }
-            if(selectedBids.size === 0) {
+            if(keyBids.size === 0) {
                 exitBlockMode();
                 return;
             }
@@ -605,11 +805,15 @@ function setupBlockMode() {
     // ── export ─────────────────────────────────────────────────────────────
 
     exportBtn.addEventListener('click', function() {
-        if(selectedBids.size === 0) return;
-        sendGA4Event('export_selected_used');
+        if(keyBids.size === 0) return;
+        sendGA4Event('export_selected_used', { layout: gptpdfLayoutName() });
 
         // Snapshot which bids to keep BEFORE detaching
         const bidsToKeep = new Set(selectedBids);
+        // Pair page: the copy is laid out in the order the entry harvest
+        // recorded (taken now — leaving block mode drops the harvest).
+        const isPair = gptpdfIsPairLayout();
+        const entryOrder = entryTurnCache && entryTurnCache.gptpdfOrder;
 
         // In-button spinner (unified with the full export — no separate modal)
         startExportSpinner();
@@ -677,7 +881,18 @@ function setupBlockMode() {
             // not just used to fill empty placeholders; otherwise every selection
             // outside the mounted window is silently dropped. Mounted turns that
             // still carry their kept bid keep their live clone (base64 images).
-            restoreSelectedTurns(main_clone, turnSnapshots, bidsToKeep);
+            // The pair page rebuilds its thread instead (restoreSelectedPairs)
+            // and is then translated to the classic shape — everything below
+            // reads one markup. On both pages a turn restored from its snapshot
+            // still links its pictures the way the page served them, so they
+            // take the full export's second pass first.
+            if(isPair) {
+                restoreSelectedPairs(main_clone, turnSnapshots, bidsToKeep, entryOrder);
+            } else {
+                restoreSelectedTurns(main_clone, turnSnapshots, bidsToKeep);
+            }
+            gptpdfInlineLateImages(main_clone).then(function() {
+            if(isPair) gptpdfNormalizeTurns(main_clone);
             // Snapshots are captured with the selection-highlight classes still
             // on the block; strip them so they don't linger on inserted turns
             // (live-clone turns were already cleaned before cloning).
@@ -728,13 +943,19 @@ function setupBlockMode() {
                 }
             );
             turnsWithSelection.forEach(function(turn) {
-                const md = turn.querySelector('.markdown');
-                if(!md) return;
-                Array.from(md.children).forEach(function(child) {
-                    const kept = keptBlocks.some(function(k) {
-                        return k === child || child.contains(k) || k.contains(child);
+                // An answer from the pair page can come in several parts, each
+                // with its own text body; a classic turn has the one.
+                const bodies = turn.hasAttribute('data-gptpdf-pair')
+                    ? Array.from(turn.querySelectorAll('.markdown'))
+                    : [turn.querySelector('.markdown')];
+                bodies.forEach(function(md) {
+                    if(!md) return;
+                    Array.from(md.children).forEach(function(child) {
+                        const kept = keptBlocks.some(function(k) {
+                            return k === child || child.contains(k) || k.contains(child);
+                        });
+                        if(!kept) child.remove();
                     });
-                    if(!kept) child.remove();
                 });
             });
 
@@ -760,6 +981,7 @@ function setupBlockMode() {
 
             // Light cleanup only — avoid aggressive DOM transforms on sparse selection
             main_clone.querySelectorAll('.sr-only').forEach(function(el) { el.remove(); });
+            gptpdfRemoveDateSeparators(main_clone);
             main_clone.classList.remove('chat-gpt-custom');
             main_clone.querySelectorAll('.katex-mathml').forEach(function(el) { el.remove(); });
             main_clone.querySelectorAll('pre button, pre .sticky button').forEach(function(el) { el.remove(); });
@@ -778,6 +1000,18 @@ function setupBlockMode() {
                 }
             });
             main_clone.querySelectorAll('input[type="file"]').forEach(function(el) { el.remove(); });
+            // The pair page's question bubble draws its outline with an inline
+            // <svg> that ChatGPT's stylesheet sizes; without the stylesheet it
+            // falls back to 300×150 and opens a blank box in the PDF. Same rule
+            // as cleanupForPdf step 7.
+            if(isPair) {
+                main_clone.querySelectorAll('[data-testid^="conversation-turn"] svg')
+                    .forEach(function(el) {
+                        if(el.closest('.markdown') || el.closest('pre')) return;
+                        const parent = el.parentElement;
+                        if(parent && parent.tagName !== 'BUTTON') el.remove();
+                    });
+            }
             // Remove ChatGPT disclaimer (short leaf element outside turns)
             main_clone.querySelectorAll('p, div').forEach(function(el) {
                 const t = el.textContent.trim();
@@ -805,8 +1039,15 @@ function setupBlockMode() {
                 custom_css: buildExportCss(theme, isDark)
             };
             applyMarginSettings(data, options);
+            // Paper size, orientation and a single long page apply here as on
+            // the full export. Until 1.1.11 this path sent none of them, and a
+            // Letter or landscape setting came out of "Select to export" as
+            // portrait A4.
+            const singlePagePrint = applyConversionOptions(
+                data, { dataset: {} }, options);
+            data.page_numbers = !!options.page_numbers && !singlePagePrint;
 
-            const classes = buildCssClasses(options, false);
+            const classes = buildCssClasses(options, singlePagePrint);
             if(isDark) data.page_background_color = '212121';
             if(options.zoom) data.scale_factor = options.zoom;
 
@@ -836,6 +1077,7 @@ function setupBlockMode() {
                     stopExportSpinner();
                 }
             );
+            }); // close the late-image pass
             }); // close the image-conversion Promise.all().then
         });
     });
