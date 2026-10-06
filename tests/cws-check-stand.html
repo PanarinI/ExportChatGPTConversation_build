@@ -1,0 +1,97 @@
+<meta charset="utf-8">
+<!-- как в кабинете CWS: Trusted Types — запись в innerHTML бросает исключение (на этом упал первый живой запуск 05.10) -->
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+<title>Стенд скрипта проверки описаний CWS</title>
+<!--
+  Проверяет tools/cws-check-full.js на МАКЕТЕ кабинета CWS: та же разметка, что ищут XPath-селекторы урока
+  3.6 (h3 «Current editing language» → выпадающий список → ul[aria-label=Language] li[data-value] →
+  textarea[maxlength=16000]). Язык переключается с задержкой, как в живом кабинете; ввод в поле пишет в
+  ТЕКУЩИЙ язык — поэтому запись до переключения залила бы текст в соседний язык.
+  Сцены: lv и tr со старым текстом (как во втором письме CWS) · медленное переключение (1,5 с) · язык, который
+  не переключается вовсе · язык, которого нет в кабинете. Живой кабинет макет не заменяет.
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=120000 --dump-dom \
+      "file://$PWD/tests/cws-check-stand.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<div id="cabinet">
+  <div>
+    <div><h3>Current editing language</h3></div>
+    <div><div jsshadow=""><div><div id="dd" role="button">English</div></div></div></div>
+  </div>
+  <textarea maxlength="16000" id="area"></textarea>
+</div>
+<script>
+// ── макет кабинета ──────────────────────────────────────────────────────
+const NAMES = { en: 'English', lv: 'Latvian - latviešu', tr: 'Turkish - Türkçe', ru: 'Russian - русский',
+                de: 'German - Deutsch', fr: 'French - français', iw: 'Hebrew - עברית' };
+const OLD = '🚀 Designed for people… students, developers, researchers, writers…';
+const NEW = c => 'clean text ' + c;
+// что лежит в кабинете: lv и tr — старое, остальное уже чистое
+const cabinet = { en: NEW('en'), lv: OLD + ' lv', tr: OLD + ' tr', ru: NEW('ru'), de: NEW('de'), fr: NEW('fr'), iw: NEW('he') };
+const DELAY = { tr: 1500, fr: 999999 };  // tr — медленно; fr — не переключается вовсе
+let current = 'en';
+const dd = document.getElementById('dd'), area = document.getElementById('area');
+area.value = cabinet.en;
+area.addEventListener('input', () => { cabinet[current] = area.value; });
+dd.addEventListener('click', () => {
+    let ul = document.querySelector('ul[aria-label="Language"]');
+    if (ul) ul.remove();
+    ul = document.createElement('ul');
+    ul.setAttribute('aria-label', 'Language');
+    Object.keys(NAMES).forEach(code => {
+        const li = document.createElement('li');
+        li.setAttribute('data-value', code);
+        li.textContent = NAMES[code];
+        li.addEventListener('click', () => {
+            ul.remove();
+            const d = DELAY[code] || 250;
+            if (d > 100000) return;   // кабинет «завис» на этом языке
+            setTimeout(() => { current = code; dd.textContent = NAMES[code]; area.value = cabinet[code]; }, d);
+        });
+        ul.appendChild(li);
+    });
+    document.body.appendChild(ul);
+});
+</script>
+<script>window.GPTPDF_FIX = true;   // стенд проверяет режим починки; по умолчанию скрипт только читает</script>
+<script src="../tools/cws-check-full.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, cond, detail) {
+    if (!cond) failed++;
+    out.push((cond ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+// что прочёл бы файловый выбор: наши исправленные тексты; es — языка нет в кабинете
+const expected = { en: NEW('en'), lv: NEW('lv'), tr: NEW('tr'), ru: NEW('ru'), fr: NEW('fr'), he: NEW('he'), es: NEW('es') };
+const logged = [];
+const realTable = console.table, realLog = console.log;
+console.table = rows => { logged.push(...rows); };
+(async function () {
+    const before = JSON.stringify(cabinet);
+    await run(expected);
+    console.table = realTable;
+    const row = l => (logged.find(r => r.язык === l) || {}).итог;
+    out.push('— Итоги по языкам —');
+    check('lv: старый текст заменён', cabinet.lv === NEW('lv') && row('lv') === 'исправлено', row('lv'));
+    check('tr: медленный язык дождался и заменён', cabinet.tr === NEW('tr') && row('tr') === 'исправлено', row('tr'));
+    check('ru и en: совпадают, не тронуты', row('ru') === 'совпадает' && row('en') === 'совпадает');
+    check('he → iw: найден и совпадает', row('he') === 'совпадает', row('he'));
+    check('fr не переключился — помечен, поле не тронуто', row('fr') === 'не переключился' && cabinet.fr === NEW('fr'), row('fr'));
+    check('es нет в кабинете — помечен', row('es') === 'нет такого языка в кабинете', row('es'));
+    check('ни один язык не получил чужой текст',
+          Object.keys(cabinet).every(c => cabinet[c].endsWith(' ' + (c === 'iw' ? 'he' : c)) || cabinet[c] === OLD + ' ' + c),
+          JSON.stringify(cabinet));
+    check('de (нет в папке) не тронут', cabinet.de === NEW('de'));
+    const box = document.getElementById('gptpdf-check-panel');
+    check('итог виден на странице, в панели', !!box && /Готово/.test(box.textContent) && /lv — исправлено/.test(box.textContent),
+          box ? box.textContent.slice(0, 120) : 'панели нет');
+    out.push('');
+    out.push(failed ? '✗ ПРОВАЛОВ: ' + failed : '✓ ВСЁ ЗЕЛЁНОЕ');
+    document.getElementById('log').textContent = out.join('\n');
+})();
+</script>

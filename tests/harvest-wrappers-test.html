@@ -1,0 +1,337 @@
+<title>harvestVirtualizedTurns — классическая лента с обёртками (10-2026)</title>
+<!--
+  Проверяет сбор по обёрткам (capture.js, harvestByWrappers) на классической ленте
+  ChatGPT в том виде, в каком она замерена 06.10 на чате автора «мудрец»
+  (CHATGPT-DOM.md §10):
+    • у КАЖДОГО турна диалога с самого начала есть обёртка
+      `[data-turn-id-container][data-is-intersecting]`, содержимое монтируется,
+      только пока обёртка на экране (IntersectionObserver на каждую);
+    • несмонтированная обёртка — пустая коробка с УГАДАННОЙ высотой; турн, который
+      страница не рисует (system, скрытый tool), — пустая коробка нулевой высоты;
+    • последние 5 турнов и некоторые турны в середине смонтированы всегда;
+    • нумерация `conversation-turn-N` с дырами (в «мудреце» №470 нет вовсе);
+    • при смене высот страница держит в кадре первый видимый турн (сдвигает scrollTop).
+
+  Сцены:
+    A — контроль: та же лента БЕЗ признака обёрток → старый путь (подъём + спуск +
+        добор по номерам). Фиксирует, что старый путь платит здесь лишним временем
+        и врёт про пропуск по дыре в нумерации, — то, что лечит сбор по обёрткам.
+    B — длинный чат открыт внизу: всё, что страница рисует, поймано; скрытые
+        посчитаны; порядок точный; пересборка клона end-to-end; время ограничено.
+    C — медленный монтаж (1.2 с на турн): ничего не потеряно.
+    D — турн, который не монтируется никогда: сбор не виснет, отчёт его называет.
+    E — средний чат длиннее двух экранов: сторож времени.
+    F — страница со входом держит чат СТРАНИЦАМИ (код страницы, 06.10): открыты новейшие
+        турны, над ними сторож `conversation-pagination-sentinel`; старое грузится по ВХОДУ
+        сторожа в зону (80 px над верхом). Сбор догружает все страницы, потом идёт по списку.
+    G — первая догрузка падает, у сторожа кнопка «Try again»: сбор жмёт её и идёт дальше.
+    H — сторож не отвечает: сбор не виснет и пишет, что начало чата не загружено.
+
+  Запуск (без установки чего-либо):
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=600000 --dump-dom \
+      "file://$PWD/tests/harvest-wrappers-test.html"
+
+  Границы: лента ЭМУЛИРОВАНА по замеру. Живую страницу проверяет прогон на ссылке
+  шаринга «мудреца» во встроенном браузере (§10) и экспорт автора.
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../helpers.js"></script>
+<script src="../capture.js"></script>
+<script>
+const VIEW_H = 400;
+const ESTIMATE = 300;       // угаданная высота несмонтированного турна
+const out = [];
+let failed = 0;
+function check(name, cond, detail) {
+    if(!cond) failed++;
+    out.push((cond ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+
+// Настоящая высота турна: от строки до нескольких экранов, детерминированно.
+const realH = (i) => 60 + ((i * 7919) % 13) * 110;
+
+// ── сцена: лента, где у каждого турна есть обёртка ──────────────────────
+function mountScene(opts) {
+    const old = document.getElementById('scene');
+    if(old) old.remove();
+    const scroller = document.createElement('div');
+    scroller.id = 'scene';
+    scroller.style.cssText = 'height:' + VIEW_H + 'px;overflow-y:auto';
+    const list = document.createElement('div');
+    scroller.appendChild(list);
+    document.body.appendChild(scroller);
+
+    const total = opts.total;
+    const isHidden = (i) => opts.hiddenEvery && i % opts.hiddenEvery === 0;
+    const always = new Set(opts.always || []);
+    for(let i = Math.max(0, total - 5); i < total; i++) always.add(i);
+    const never = new Set(opts.never || []);
+    // Номер в data-testid: только у рисуемых турнов, и с дырой после gapAfter.
+    const num = {};
+    let n = 1;
+    for(let i = 0; i < total; i++) {
+        if(isHidden(i)) continue;
+        num[i] = n++;
+        if(i === opts.gapAfter) n++;
+    }
+    // Страница со входом держит длинный чат СТРАНИЦАМИ (opts.pages): при
+    // открытии в ленте только новейшие atOpen турнов, над ними — сторож.
+    const P = opts.pages;
+    let oldest = P ? total - P.atOpen : 0;
+    const wrappers = [];
+    for(let i = 0; i < total; i++) {
+        const w = document.createElement('div');
+        w.setAttribute('data-turn-id-container', 't' + i);
+        w.setAttribute('data-is-intersecting', 'false');
+        if(!isHidden(i)) {
+            w.className = 'ph';
+            w.style.height = ESTIMATE + 'px';
+            w.style.minHeight = '56px';
+        }
+        if(i >= oldest) list.appendChild(w);
+        wrappers.push(w);
+    }
+    if(opts.noWrappers) {
+        // Контроль A: та же лента, но без признака обёрток — старый путь.
+        wrappers.forEach(w => w.removeAttribute('data-is-intersecting'));
+    }
+    // Сторож как в коде страницы: data-testid, h-10; спиннер, пока грузится;
+    // кнопка «Try again» после сбоя; нет его — старых страниц не осталось.
+    // Загрузка — по ВХОДУ в зону наблюдателя (80 px над верхом), как у
+    // IntersectionObserver: стоять в зоне бесполезно.
+    let sentinel = null, loading = false, fetches = 0, failedOnce = false, wasIn = false;
+    if(P && oldest > 0) {
+        sentinel = document.createElement('div');
+        sentinel.setAttribute('data-testid', 'conversation-pagination-sentinel');
+        sentinel.style.height = '40px';
+        list.insertBefore(sentinel, list.firstChild);
+    }
+    function fetchOlder() {
+        loading = true; fetches++;
+        sentinel.innerHTML = '<svg class="spinner" width="20" height="20"></svg>';
+        setTimeout(function() {
+            if(P.failFirst && !failedOnce) {
+                failedOnce = true; loading = false;
+                sentinel.innerHTML = '<button type="button">Try again</button>';
+                sentinel.querySelector('button').onclick = fetchOlder;
+                return;
+            }
+            const from = Math.max(0, oldest - P.size);
+            const before = scroller.scrollHeight;
+            const first = wrappers[oldest];
+            for(let i = from; i < oldest; i++) list.insertBefore(wrappers[i], first);
+            oldest = from;
+            scroller.scrollTop += scroller.scrollHeight - before;   // вид на месте
+            loading = false;
+            if(oldest === 0) { sentinel.remove(); sentinel = null; }
+            else sentinel.innerHTML = '';
+        }, P.delay || 300);
+    }
+    const mounted = new Set();
+    const pending = new Map();      // i → время, когда «React» дорисует
+    let mounts = 0;
+    function body(i) {
+        return '<article data-testid="conversation-turn-' + num[i] + '">' +
+               '<div data-message-id="m' + i + '" style="height:' + realH(i) + 'px">' +
+               '<p>msg ' + i + '</p><p data-turn-id-container="t' + i + '">inner</p>' +
+               '</div></article>';
+    }
+    // Как ChatGPT: держать в кадре первый видимый турн, когда высоты меняются.
+    function anchored(change) {
+        const top = scroller.getBoundingClientRect().top;
+        let anchor = null, off = 0;
+        for(const w of wrappers) {
+            if(!w.isConnected) continue;
+            const r = w.getBoundingClientRect();
+            if(r.bottom > top && r.height > 0) { anchor = w; off = r.top - top; break; }
+        }
+        change();
+        if(anchor) {
+            const d = anchor.getBoundingClientRect().top - top - off;
+            if(Math.abs(d) > 1) scroller.scrollTop += d;
+        }
+    }
+    function mount(i) {
+        const w = wrappers[i];
+        w.style.height = '';
+        w.innerHTML = body(i);
+        if(!opts.noWrappers) w.setAttribute('data-is-intersecting', 'true');
+        mounted.add(i);
+        mounts++;
+    }
+    function unmount(i) {
+        const w = wrappers[i];
+        const h = w.getBoundingClientRect().height;
+        w.innerHTML = '';
+        w.style.height = h + 'px';
+        if(!opts.noWrappers) w.setAttribute('data-is-intersecting', 'false');
+        mounted.delete(i);
+    }
+    // «IntersectionObserver»: опрос таймером — в headless события прокрутки
+    // почти не доезжают (CHATGPT-DOM.md §8), а таймеры идут исправно.
+    const tick = setInterval(function() {
+        if(!scroller.isConnected) { clearInterval(tick); return; }
+        const r0 = scroller.getBoundingClientRect();
+        const now = Date.now();
+        if(sentinel && !P.deaf) {
+            const r = sentinel.getBoundingClientRect();
+            const isIn = r.bottom > r0.top - 80 && r.top < r0.bottom;
+            if(isIn && !wasIn && !loading && !sentinel.querySelector('button')) fetchOlder();
+            wasIn = isIn;
+        }
+        const toMount = [], toUnmount = [];
+        for(let i = oldest; i < total; i++) {
+            if(isHidden(i) || never.has(i)) continue;
+            const r = wrappers[i].getBoundingClientRect();
+            const inView = r.bottom > r0.top && r.top < r0.bottom;
+            if(inView && !mounted.has(i)) {
+                if(!pending.has(i)) pending.set(i, now + (opts.mountDelay || 120));
+                else if(pending.get(i) <= now) { toMount.push(i); pending.delete(i); }
+            } else if(!inView) {
+                pending.delete(i);
+                if(mounted.has(i) && !always.has(i)) toUnmount.push(i);
+            }
+        }
+        if(toMount.length || toUnmount.length) {
+            anchored(function() { toMount.forEach(mount); toUnmount.forEach(unmount); });
+        }
+    }, 50);
+    always.forEach(i => { if(!isHidden(i) && !never.has(i)) mount(i); });
+    scroller.scrollTop = scroller.scrollHeight;     // чат открывается внизу
+    const expected = [];
+    for(let i = 0; i < total; i++) {
+        if(!isHidden(i) && !never.has(i)) expected.push('msg:m' + i);
+    }
+    const hiddenCount = Array.from({ length: total }, (_, i) => i).filter(isHidden).length;
+    const expectedFrom = (from) => expected.filter(k => +k.slice(5) >= from);
+    return { scroller, list, expected, expectedFrom, hiddenCount,
+             stats: () => ({ mounts, fetches, failedOnce, oldest, sentinel: !!sentinel }) };
+}
+
+(async function run() {
+    // ── A. Контроль: без признака обёрток идёт старый путь ───────────────
+    let scene = mountScene({ total: 80, hiddenEvery: 9, gapAfter: 30, always: [20, 47], noWrappers: true });
+    const a = await harvestVirtualizedTurns();
+    const ai = a.gptpdfHarvest || {};
+    out.push('— A. Контроль: та же лента без признака обёрток → старый путь —');
+    out.push('  поймано ' + a.size + ' из ' + scene.expected.length + ', ушло секунд: ' +
+             ai.seconds + ', «пропущено» по нумерации: ' + ai.missing);
+    check('старый путь врёт про пропуск по дыре в нумерации (то, что лечим)',
+          ai.mode === undefined && ai.missing > 0, 'missing=' + ai.missing);
+
+    // ── B. Длинный чат, открыт внизу ────────────────────────────────────
+    scene = mountScene({ total: 80, hiddenEvery: 9, gapAfter: 30, always: [20, 47] });
+    const b = await harvestVirtualizedTurns();
+    const bi = b.gptpdfHarvest || {};
+    out.push('');
+    out.push('— B. 80 турнов (каждый 9-й скрыт), высоты угаданы неверно, открыт внизу —');
+    out.push('  поймано ' + b.size + ' из ' + scene.expected.length + ', скрытых ' + bi.hidden +
+             ', шагов ' + bi.steps + ', ушло секунд: ' + bi.seconds);
+    check('шёл сбор по обёрткам', bi.mode === 'wrappers', 'mode=' + bi.mode);
+    check('пойман весь диалог', b.size === scene.expected.length, 'поймано ' + b.size);
+    check('скрытые турны посчитаны, а не ждались', bi.hidden === scene.hiddenCount,
+          'hidden=' + bi.hidden + ' из ' + scene.hiddenCount);
+    check('дыра в нумерации не считается пропуском', bi.missing === 0 && bi.failed === 0,
+          'missing=' + bi.missing + ', failed=' + bi.failed);
+    check('порядок совпал с диалогом',
+          JSON.stringify(b.gptpdfOrder) === JSON.stringify(scene.expected),
+          'первые: ' + (b.gptpdfOrder || []).slice(0, 3).join(','));
+    const clone = scene.list.cloneNode(true);
+    restoreVirtualizedTurns(clone, b);
+    const built = [...clone.querySelectorAll('[data-message-id]')]
+        .map(x => 'msg:' + x.getAttribute('data-message-id'));
+    check('пересобранный клон идёт от первого турна до последнего',
+          JSON.stringify(built) === JSON.stringify(scene.expected),
+          built.length + ' турнов, начало: ' + built.slice(0, 3).join(','));
+    check('быстрее старого пути на той же ленте', bi.seconds < ai.seconds,
+          bi.seconds + ' с против ' + ai.seconds + ' с');
+    check('вернул ленту туда, где её оставил человек',
+          Math.abs(scene.scroller.scrollTop -
+                   (scene.scroller.scrollHeight - scene.scroller.clientHeight)) < 60,
+          'scrollTop=' + scene.scroller.scrollTop);
+
+    // ── C. Медленный монтаж ─────────────────────────────────────────────
+    scene = mountScene({ total: 30, hiddenEvery: 7, mountDelay: 1200 });
+    const c = await harvestVirtualizedTurns();
+    const ci = c.gptpdfHarvest || {};
+    out.push('');
+    out.push('— C. Турн монтируется 1.2 с —');
+    out.push('  поймано ' + c.size + ' из ' + scene.expected.length + ', ушло секунд: ' + ci.seconds);
+    check('медленная страница ничего не теряет', c.size === scene.expected.length && ci.failed === 0,
+          'поймано ' + c.size + ', failed=' + ci.failed);
+    check('порядок целый', JSON.stringify(c.gptpdfOrder) === JSON.stringify(scene.expected));
+
+    // ── D. Турн, который не монтируется никогда ─────────────────────────
+    scene = mountScene({ total: 30, hiddenEvery: 7, never: [12] });
+    const d = await harvestVirtualizedTurns();
+    const di = d.gptpdfHarvest || {};
+    out.push('');
+    out.push('— D. Турн №12 не монтируется никогда —');
+    out.push('  поймано ' + d.size + ', failed ' + di.failed + ', ушло секунд: ' + di.seconds);
+    check('сбор не виснет и называет потерю', di.failed === 1 && di.missing === 1,
+          'failed=' + di.failed + ', missing=' + di.missing);
+    check('остальные пойманы и стоят по порядку',
+          JSON.stringify(d.gptpdfOrder) === JSON.stringify(scene.expected),
+          d.size + ' турнов');
+    check('на сломанном турне — не дольше двух ожиданий', di.seconds <= 12,
+          'ушло ' + di.seconds + ' с');
+
+    // ── E. Средний чат: сторож времени ──────────────────────────────────
+    scene = mountScene({ total: 12 });
+    const e = await harvestVirtualizedTurns();
+    const ei = e.gptpdfHarvest || {};
+    out.push('');
+    out.push('— E. 12 турнов, лента длиннее двух экранов —');
+    out.push('  поймано ' + e.size + ' из 12, шагов ' + ei.steps + ', ушло секунд: ' + ei.seconds);
+    check('пойман весь чат', e.size === 12 && JSON.stringify(e.gptpdfOrder) === JSON.stringify(scene.expected));
+    check('не ждёт у верха и не ходит по чату дважды', ei.seconds <= 4, 'ушло ' + ei.seconds + ' с');
+
+    // ── F. Страница со входом: чат приходит страницами ──────────────────
+    scene = mountScene({ total: 80, hiddenEvery: 9, pages: { atOpen: 25, size: 20, delay: 400 } });
+    const f = await harvestVirtualizedTurns();
+    const fi = f.gptpdfHarvest || {};
+    const fs = scene.stats();
+    out.push('');
+    out.push('— F. Открыты последние 25 из 80, старое — страницами по 20 через сторожа —');
+    out.push('  поймано ' + f.size + ' из ' + scene.expected.length + ', страниц догружено ' + fi.pages +
+             ' (запросов ' + fs.fetches + '), ушло секунд: ' + fi.seconds);
+    check('догружены все старые страницы, сторожа больше нет', fi.pages === 3 && !fi.pagesStalled && !fs.sentinel,
+          'pages=' + fi.pages + ', stalled=' + fi.pagesStalled + ', сторож ' + (fs.sentinel ? 'есть' : 'снят'));
+    check('пойман весь диалог с первого турна', f.size === scene.expected.length && fi.missing === 0,
+          'поймано ' + f.size + ', missing=' + fi.missing);
+    check('порядок совпал с диалогом',
+          JSON.stringify(f.gptpdfOrder) === JSON.stringify(scene.expected),
+          'первые: ' + (f.gptpdfOrder || []).slice(0, 3).join(','));
+
+    // ── G. Первая догрузка падает: кнопка «Try again» ─────────────────────
+    scene = mountScene({ total: 60, hiddenEvery: 9, pages: { atOpen: 20, size: 20, delay: 300, failFirst: true } });
+    const g = await harvestVirtualizedTurns();
+    const gi = g.gptpdfHarvest || {};
+    out.push('');
+    out.push('— G. Первая догрузка падает, сторож показывает «Try again» —');
+    out.push('  поймано ' + g.size + ' из ' + scene.expected.length + ', страниц ' + gi.pages + ', ушло секунд: ' + gi.seconds);
+    check('кнопка нажата, догрузка пошла дальше, диалог целиком',
+          g.size === scene.expected.length && !gi.pagesStalled && scene.stats().failedOnce,
+          'поймано ' + g.size + ', stalled=' + gi.pagesStalled);
+    check('порядок целый', JSON.stringify(g.gptpdfOrder) === JSON.stringify(scene.expected));
+
+    // ── H. Сторож не отвечает никогда ────────────────────────────────────
+    scene = mountScene({ total: 60, hiddenEvery: 9, pages: { atOpen: 20, size: 20, deaf: true } });
+    const h = await harvestVirtualizedTurns();
+    const hi = h.gptpdfHarvest || {};
+    out.push('');
+    out.push('— H. Сторож есть, но старое не грузится —');
+    out.push('  поймано ' + h.size + ', pagesStalled=' + hi.pagesStalled + ', ушло секунд: ' + hi.seconds);
+    check('сбор не виснет и честно говорит, что начало не загружено', hi.pagesStalled === true && hi.seconds <= 20,
+          'stalled=' + hi.pagesStalled + ', ' + hi.seconds + ' с');
+    check('то, что есть, поймано и по порядку',
+          JSON.stringify(h.gptpdfOrder) === JSON.stringify(scene.expectedFrom(40)),
+          h.size + ' турнов');
+
+    out.push('');
+    out.push(failed === 0 ? '✅ все проверки пройдены' : '❌ провалено проверок: ' + failed);
+    document.getElementById('log').textContent = out.join('\n');
+})();
+</script>

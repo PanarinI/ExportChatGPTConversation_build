@@ -344,27 +344,34 @@ function orderFromPositions(cache) {
     return order;
 }
 
+// One mounted turn into the cache. Returns its key, or null for an empty node.
+// ChatGPT fills citation hrefs asynchronously: an early snapshot can have
+// hrefless (blue, non-clickable) links. Track resolved-link counts so we keep
+// the richest snapshot and know which turns still need their links.
+function captureTurn(cache, t) {
+    const html = t.innerHTML;
+    if(html.length === 0) {
+        return null;
+    }
+    const id = turnKey(t);
+    const hrefs = t.querySelectorAll('a[href]').length;
+    const unresolved = t.querySelectorAll('a.decorated-link:not([href])').length;
+    const prev = cache.get(id);
+    if(!prev || hrefs > prev.hrefs ||
+       (hrefs === prev.hrefs && html.length > prev.len)) {
+        cache.set(id, { html: t.outerHTML, hrefs: hrefs,
+                        len: html.length, unresolved: unresolved });
+    }
+    return id;
+}
+
 function captureRenderedTurns(cache) {
     const turns = document.querySelectorAll(GPTPDF_TURN);
     const present = [];
     for(let i = 0; i < turns.length; i++) {
-        const t = turns[i];
-        const html = t.innerHTML;
-        if(html.length === 0) {
-            continue;
-        }
-        const id = turnKey(t);
-        present.push({ key: id, n: turnNumber(t, i) });
-        // ChatGPT fills citation hrefs asynchronously: an early snapshot can have
-        // hrefless (blue, non-clickable) links. Track resolved-link counts so we
-        // keep the richest snapshot and know which turns still need their links.
-        const hrefs = t.querySelectorAll('a[href]').length;
-        const unresolved = t.querySelectorAll('a.decorated-link:not([href])').length;
-        const prev = cache.get(id);
-        if(!prev || hrefs > prev.hrefs ||
-           (hrefs === prev.hrefs && html.length > prev.len)) {
-            cache.set(id, { html: t.outerHTML, hrefs: hrefs,
-                            len: html.length, unresolved: unresolved });
+        const id = captureTurn(cache, turns[i]);
+        if(id !== null) {
+            present.push({ key: id, n: turnNumber(turns[i], i) });
         }
     }
     if(!recordTurnPositions(cache, present)) {
@@ -561,6 +568,339 @@ async function climbToConversationStart(scroller, ax, cache, budget) {
              maxArrivalGap: maxArrivalGap };
 }
 
+// ── Classic thread since 10-2026: the page lists every turn up front ─────
+//
+// Measured 06.10 on the author's chat of 516 turns (CHATGPT-DOM.md §10). The
+// classic thread renders one wrapper per turn of the WHOLE conversation,
+// `[data-turn-id-container="<turn id>"][data-is-intersecting]`, and only the
+// content inside mounts, while the wrapper crosses the viewport (ChatGPT
+// watches each one with an IntersectionObserver). Unmounted, a wrapper is an
+// empty box with an estimated height; a turn the page never draws (system
+// message, hidden tool call) is an empty box of zero height.
+//
+// So the page states its own table of contents — how many turns, which ones,
+// in what order — and the harvest stops being a search. Once the older pages
+// are in (loadOlderPages below: a signed-in tab holds only the newest page of
+// a long chat), the first wrapper IS the first turn: no climb, no waiting at
+// the top on a guess, no completeness guessed from turn numbers (they skip:
+// №470 of that chat does not exist, and the gap sweep below would walk the
+// whole chat twice looking for it). The walk: take the first turn not yet
+// held, bring it to the top of the view, wait for IT to mount, take
+// everything mounted, repeat. Order is the wrappers' DOM order.
+// On the shared copy of that chat 1.1.11 needed ~11 minutes; this, 80–150 s
+// for all 515 turns, in a hidden pane that draws 4× slower than a front tab.
+//
+// The descendants of a mounted turn carry `data-turn-id-container` too; the
+// `data-is-intersecting` half of the selector is what keeps to the wrappers.
+const GPTPDF_TURN_WRAPPER = '[data-turn-id-container][data-is-intersecting]';
+// How long one turn may take to mount, and then to resolve its citation
+// links (the old completeness pass gave links 1.5 s).
+const WRAPPER_MOUNT_MS = 3000;
+const WRAPPER_LINKS_MS = 1500;
+
+function turnWrappers(root) {
+    return Array.from(root.querySelectorAll(GPTPDF_TURN_WRAPPER));
+}
+
+function wrapperId(w) {
+    return w.getAttribute('data-turn-id-container');
+}
+
+// The wrapper's turn, if it is mounted with content.
+function wrapperTurn(w) {
+    const t = w && w.querySelector(GPTPDF_TURN);
+    return t && t.innerHTML.length > 0 ? t : null;
+}
+
+// A turn waiting to mount keeps an estimated height (min 56 px); a box with
+// no content and no height is one the page will never draw.
+function isHiddenWrapper(w) {
+    return w.childElementCount === 0 && w.getBoundingClientRect().height === 0;
+}
+
+// The view is handed back by the turn the person was looking at, not by
+// pixels: on the way every estimated height becomes a real one, and the old
+// scrollTop lands somewhere else in the chat. At the bottom — back to it.
+function viewAnchor(scroller) {
+    if(scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight - 4) {
+        return { bottom: true };
+    }
+    const top = scroller.getBoundingClientRect().top;
+    const ws = turnWrappers(scroller);
+    for(let i = 0; i < ws.length; i++) {
+        const r = ws[i].getBoundingClientRect();
+        if(r.bottom > top && r.height > 0) {
+            return { id: wrapperId(ws[i]), off: r.top - top };
+        }
+    }
+    return null;
+}
+
+async function restoreViewAnchor(scroller, anchor, origScroll) {
+    if(!anchor) {
+        await restoreScroll(scroller, origScroll);
+        return;
+    }
+    for(let i = 0; i < 6; i++) {
+        let d;
+        if(anchor.bottom) {
+            d = scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop;
+        } else {
+            const w = scroller.querySelector('[data-turn-id-container="' +
+                CSS.escape(anchor.id) + '"][data-is-intersecting]');
+            if(!w) {
+                return;
+            }
+            d = w.getBoundingClientRect().top -
+                scroller.getBoundingClientRect().top - anchor.off;
+        }
+        if(Math.abs(d) <= 4) {
+            return;
+        }
+        scroller.scrollTop += d;
+        await new Promise(r => setTimeout(r, 80));
+    }
+}
+
+// A tab in the background draws nothing, so nothing mounts there. Waiting it
+// out is not a failure of the turn — and must not run the idle budget down.
+async function waitForegroundTab(budget) {
+    if(document.hidden) {
+        setHarvestProgress('Paused: switch back to this tab to continue');
+    }
+    while(document.hidden && !harvestCancelled) {
+        budget.progress();
+        await new Promise(r => setTimeout(r, 250));
+    }
+}
+
+// ── A signed-in tab holds a long chat in pages ───────────────────────────
+//
+// Found 06.10 in the page's own code (conversation-small-*.js), after the
+// author's export on 1.1.12-dev began at question 202 of 257: the shared
+// copy carries the whole chat, a signed-in tab only the NEWEST page of it.
+// Above the first loaded turn sits a sentinel,
+// `[data-testid="conversation-pagination-sentinel"]`, watched by an
+// IntersectionObserver (root: the thread scroller, rootMargin 80px on top).
+// When it ENTERS that zone, the page fetches the next older page from the
+// server and prepends it, keeping the view in place. The sentinel exists
+// exactly while older pages remain (the page's cursor is not null); while
+// fetching it holds a spinner, after a failed fetch a "Try again" button.
+//
+// Two things follow. "Is there more above?" has an exact answer — the
+// sentinel is there or not. And the fetch fires on ENTRY only: standing at the
+// top does nothing, and the old climb's 60px nudge never left the 80px zone —
+// how it stalled at 202 turns in August with "0 network requests" (§2). So the
+// sentinel is taken well out of the zone and brought back, page after page,
+// until it is gone; only then does the walk start, over a list that no longer
+// grows under it.
+const GPTPDF_PAGE_SENTINEL = '[data-testid="conversation-pagination-sentinel"]';
+const PAGE_TRIGGER_MS = 2000;   // the fetch did not start: move out and in again
+const PAGE_FETCH_MS = 30000;    // a slow server, one page
+
+async function loadOlderPages(scroller, ax, budget) {
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    // Wrappers only: mounted turns come and go with every scroll.
+    const size = () => scroller.querySelectorAll(GPTPDF_TURN_WRAPPER).length;
+    let pages = 0;
+    let retries = 0;
+    let deaf = 0;
+    for(;;) {
+        if(harvestCancelled || budget.expired()) {
+            break;
+        }
+        if(document.hidden) {
+            await waitForegroundTab(budget);
+            continue;
+        }
+        const s = scroller.querySelector(GPTPDF_PAGE_SENTINEL);
+        if(!s) {
+            break;              // nothing older left: the start is loaded
+        }
+        const retry = s.querySelector('button');
+        if(retry) {
+            if(retries >= 3) {
+                break;          // the server keeps failing: export what we have
+            }
+            retries++;
+            retry.click();
+            await wait(400);    // let the button give way to the spinner
+        } else if(s.childElementCount === 0) {
+            // Idle: out of the observer's zone (80px over the top), then in.
+            const n = Math.max(scroller.clientHeight, 600);
+            ax.set(n + 160);
+            await wait(160);
+            ax.set(0);
+        }
+        setHarvestProgress('Loading older messages... ' +
+            (pages ? pages + (pages > 1 ? ' pages' : ' page') : ''));
+        // A page counts as loaded by the page's own signs, never by the height
+        // of the list: heights change all the time while estimated boxes get
+        // real ones, and reading that as "a page came" loops forever on a
+        // sentinel that never answers. The signs: more turn wrappers, or the
+        // sentinel's spinner came and went, or the sentinel is gone.
+        const n0 = size();
+        const t0 = Date.now();
+        let grew = false;
+        let fetching = false;
+        while(!harvestCancelled) {
+            await wait(100);
+            if(size() > n0) {
+                grew = true;
+                break;
+            }
+            const now = scroller.querySelector(GPTPDF_PAGE_SENTINEL);
+            if(!now) {
+                grew = fetching;
+                break;
+            }
+            if(now.querySelector('button')) {
+                break;
+            }
+            if(now.childElementCount > 0) {
+                fetching = true;
+            } else if(fetching) {
+                grew = true;
+                break;
+            }
+            if(Date.now() - t0 > (fetching ? PAGE_FETCH_MS : PAGE_TRIGGER_MS)) {
+                break;
+            }
+        }
+        if(grew) {
+            pages++;
+            deaf = 0;
+            budget.progress();
+            // Let the prepended turns get their boxes before the next round.
+            await wait(150);
+        } else if(!fetching && ++deaf >= 3) {
+            break;              // the sentinel does not answer: report it
+        }
+    }
+    return { pages: pages, retries: retries,
+             stalled: !!scroller.querySelector(GPTPDF_PAGE_SENTINEL) };
+}
+
+async function harvestByWrappers(scroller, cache, budget) {
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const keyOf = new Map();    // wrapper id → turn key, once held
+    const seenKey = new Map();  // wrapper id → turn key, whenever captured
+    const hidden = new Set();
+    const tries = new Map();    // wrapper id → visits that saw nothing mount
+    const find = (id) => scroller.querySelector(
+        '[data-turn-id-container="' + CSS.escape(id) + '"][data-is-intersecting]');
+    // Take every mounted turn not yet held. One with unresolved citation
+    // links is taken but stays pending: its own visit waits for the links.
+    const sweep = function() {
+        turnWrappers(scroller).forEach(function(w) {
+            const id = wrapperId(w);
+            if(keyOf.has(id)) {
+                return;
+            }
+            const t = wrapperTurn(w);
+            const key = t && captureTurn(cache, t);
+            if(key) {
+                seenKey.set(id, key);
+            }
+            if(key && !cache.get(key).unresolved) {
+                keyOf.set(id, key);
+            }
+        });
+    };
+    let steps = 0;
+    let renderable = 0;
+    sweep();
+    for(;;) {
+        if(harvestCancelled || budget.expired()) {
+            break;
+        }
+        let target = null;
+        renderable = 0;
+        turnWrappers(scroller).forEach(function(w) {
+            const id = wrapperId(w);
+            if(hidden.has(id)) {
+                return;
+            }
+            if(!keyOf.has(id) && isHiddenWrapper(w)) {
+                hidden.add(id);
+                return;
+            }
+            renderable++;
+            if(!target && !keyOf.has(id) && (tries.get(id) || 0) < 2) {
+                target = w;
+            }
+        });
+        setHarvestProgress('Reading ' + keyOf.size + ' of ' + renderable +
+            ' messages...');
+        if(!target) {
+            break;
+        }
+        const id = wrapperId(target);
+        const delta = target.getBoundingClientRect().top -
+            scroller.getBoundingClientRect().top - 4;
+        if(Math.abs(delta) > 2) {
+            scroller.scrollTop += delta;
+        }
+        steps++;
+        // Wait for the turn itself, not for a timer: first its content, then
+        // its links. React may replace the wrapper node, so look it up anew.
+        let mounted = false;
+        let since = Date.now();
+        while(!harvestCancelled) {
+            if(document.hidden) {
+                await waitForegroundTab(budget);
+                since = Date.now();
+                continue;
+            }
+            await wait(40);
+            const t = wrapperTurn(find(id));
+            if(t && !mounted) {
+                mounted = true;
+                since = Date.now();
+            }
+            if(t && !t.querySelector('a.decorated-link:not([href])')) {
+                break;
+            }
+            if(Date.now() - since > (mounted ? WRAPPER_LINKS_MS : WRAPPER_MOUNT_MS)) {
+                break;
+            }
+        }
+        const held = keyOf.size;
+        sweep();
+        if(!keyOf.has(id)) {
+            const t = mounted && wrapperTurn(find(id));
+            const key = t && captureTurn(cache, t);
+            if(key) {
+                keyOf.set(id, key);     // links never resolved: keep the best we saw
+                seenKey.set(id, key);
+            } else {
+                tries.set(id, (tries.get(id) || 0) + 1);
+            }
+        }
+        if(keyOf.size > held) {
+            budget.progress();
+        }
+    }
+    // Every turn in the cache gets its wrapper's place, held or not: a turn
+    // left out of the order is shipped at the very end by the rebuild, out of
+    // place (the PDF of 06.10 had questions 204–206 after 256).
+    const order = [];
+    turnWrappers(scroller).forEach(function(w) {
+        const key = keyOf.get(wrapperId(w)) || seenKey.get(wrapperId(w));
+        if(key) {
+            order.push(key);
+        }
+    });
+    let failed = 0;
+    tries.forEach(function(n, id) {
+        if(!keyOf.has(id)) {
+            failed++;
+        }
+    });
+    return { order: order, renderable: renderable, held: keyOf.size,
+             hidden: hidden.size, failed: failed, steps: steps };
+}
+
 async function harvestVirtualizedTurns() {
     const cache = new Map();
     const scroller = findVirtualizedScroller();
@@ -575,6 +915,39 @@ async function harvestVirtualizedTurns() {
     const budget = makeHarvestBudget();
     let climb = { quietAtTop: false, topLoads: 0, maxArrivalGap: 0 };
     try {
+        // The view to hand back is taken before anything moves; a wrapper
+        // keeps its id through the pages prepended above it.
+        const anchor = turnWrappers(scroller).length ? viewAnchor(scroller) : null;
+        // Older pages first, so the walk goes over a list that no longer
+        // grows: the start of the chat is loaded or we know it is not.
+        const paged = await loadOlderPages(scroller, ax, budget);
+        const pagesNote = (paged.pages ? ', ' + paged.pages + ' older pages loaded' : '') +
+            (paged.stalled ? ', OLDER PAGES DID NOT LOAD (' + paged.retries + ' retries)' : '');
+        if(harvestCancelled) {
+            await restoreViewAnchor(scroller, anchor, origScroll);
+            return cache;
+        }
+        if(turnWrappers(scroller).length) {
+            const w = await harvestByWrappers(scroller, cache, budget);
+            cache.gptpdfOrder = w.order;
+            cache.gptpdfHarvest = {
+                mode: 'wrappers',
+                turns: cache.size, loaded: w.renderable,
+                missing: Math.max(0, w.renderable - w.held),
+                hidden: w.hidden, failed: w.failed, steps: w.steps,
+                ordered: w.order.length,
+                pages: paged.pages, pagesStalled: paged.stalled,
+                cancelled: harvestCancelled,
+                seconds: Math.round(budget.elapsed() / 1000)
+            };
+            console.log('[gptpdf] harvest: ' + w.held + ' of ' + w.renderable +
+                ' turns by wrappers (hidden ' + w.hidden + ', failed ' +
+                w.failed + ')' + pagesNote + ', ' + w.steps + ' steps' +
+                (harvestCancelled ? ', cancelled' : '') + ', ' +
+                Math.round(budget.elapsed() / 1000) + 's');
+            await restoreViewAnchor(scroller, anchor, origScroll);
+            return cache;
+        }
         captureRenderedTurns(cache);
         // Up first, then down. Until 2026-08 the harvest only went down from
         // `scrollTop = 0`, which is the top of the loaded window, not the top
@@ -736,6 +1109,7 @@ async function harvestVirtualizedTurns() {
             maxArrivalGap: climb.maxArrivalGap,
             ordered: cache.gptpdfOrder.length,
             orderJumps: cache.gptpdfOrderJumps || 0,
+            pages: paged.pages, pagesStalled: paged.stalled,
             cancelled: harvestCancelled,
             seconds: Math.round(budget.elapsed() / 1000),
             // Где время: подъём · спуск · доводка с добором. Без разбивки
@@ -754,6 +1128,7 @@ async function harvestVirtualizedTurns() {
             ', ordered: ' + cache.gptpdfOrder.length +
             ', top loaded: ' + climb.topLoads + 'x' +
             (climb.quietAtTop ? ' (top went quiet)' : ' (stopped early)') +
+            pagesNote +
             ', ' + Math.round(budget.elapsed() / 1000) + 's' +
             ' (climb ' + Math.round(_tClimb / 100) / 10 +
             ' + down ' + Math.round((_tDown - _tClimb) / 100) / 10 +

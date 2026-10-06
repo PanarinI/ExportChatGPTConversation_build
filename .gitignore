@@ -19,10 +19,12 @@ html_pdf_converter/
 # слит сюда 08-10 — один дом для всех версий). Артефакты, не исходники.
 dist/
 
-# living-context DNA — приватный рабочий контекст, не для публичного код-репо (бэкап отдельно)
+# living-context DNA — приватный рабочий контекст, не для публичного код-репо
+# (копия — в закрытом garden-meta/private-backup/, её освежает gitall.sh на каждом «git»)
 CLAUDE.md
 STATE.md
 DECISIONS.md
 PRIVACY.md
 ГОЛОСА.md
 schemas/
+STATE-archive.md

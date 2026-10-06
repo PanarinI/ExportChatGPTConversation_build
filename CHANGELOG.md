@@ -5,6 +5,17 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [Unreleased]
+### Fixed
+- **Long chats are read in one pass.** On ChatGPT's classic page the
+  extension now follows the page's own list of messages from the first to the
+  last. Before, it crawled up to the start of the chat and back down again —
+  about 11 minutes on a 500-message chat — and could then walk the whole chat
+  twice more, looking for a message that did not exist. Now it takes a couple
+  of minutes at most, every message is accounted for, and they come out in the
+  order of the chat. If you switch to another tab, collecting pauses and goes
+  on when you come back, instead of losing messages.
+
 ## [1.1.11] — 2026-10-04
 ### Added
 - **Page numbers** at the bottom of every page ("3 / 12"), on by default and
