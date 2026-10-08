@@ -1,0 +1,114 @@
+<meta charset="utf-8">
+<title>Стенд карточки экспорта</title>
+<!--
+  Визуальный стенд карточки, которая идёт с клика до файла (1.2.0, слово автора
+  07.10): рисует её из НАСТОЯЩИХ templates.js (UI_CSS + EXPORT_BUTTON_HTML) и
+  функций capture.js, без установки расширения.
+
+  Шаги (?step=…):
+    stay    — 12 с: «Loading older messages… 3 parts» + «не уходите с вкладки»
+    pages   — 41 с: «Loading older messages… 23 parts» + факт A и то же «не уходите»
+    request — 58 с: «Loading older messages… 31 parts» + факт A2 (факты догрузки сменяются каждые 20 с)
+    reading — проход по сообщениям: «Reading 214 of 513 messages…» + факт B и «не уходите»
+    paused  — вкладка скрыта: «Paused: …»
+    back    — человек вернулся: чтение идёт, внизу — почему ждали
+    images  — «Adding images… 12 of 48»
+    shrink  — «Compressing images… 5 of 30» — страница снова доступна, карточка в углу
+    server  — «Creating the PDF from 513 messages…» + «You can keep using ChatGPT…»
+    long    — то же после 20 с: под строкой «Long chats take longer.»
+  Число одно — счётчик в кнопке (здесь нарисован, как его рисует startExportSpinner).
+  ?theme=dark — тёмная тема.
+
+  Кадры (headless, по одному на шаг и тему):
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
+      --disable-gpu --allow-file-access-from-files --window-size=560,460 \
+      --virtual-time-budget=30000 --screenshot=card.png \
+      "file://$PWD/tests/progress-card-stand.html?step=long&theme=dark"
+-->
+<script src="../shared.js"></script>
+<script src="../templates.js"></script>
+<script src="../helpers.js"></script>
+<script src="../capture.js"></script>
+<div id="gptpdf-host" class="gptpdf-block gptpdf-text-right"></div>
+<script>
+const params = new URLSearchParams(location.search);
+const dark = params.get('theme') === 'dark';
+if(dark) {
+    document.documentElement.classList.add('dark');
+    document.body.style.background = '#212121';
+} else {
+    document.body.style.background = '#fff';
+}
+document.body.style.margin = '0';
+document.head.insertAdjacentHTML('beforeend', '<style>' + UI_CSS + '</style>');
+// Tailwind preflight stand-in — see settings-modal-stand.html.
+document.head.insertAdjacentHTML('beforeend',
+    '<style>*,::before,::after{box-sizing:border-box}button{color:inherit;font:inherit;margin:0}' +
+    // ChatGPT's own .btn makes the Export button a row; without it the counter
+    // falls under the button and the frame lies about where the number is.
+    '.btn{display:inline-flex;align-items:center;cursor:pointer}' +
+    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}</style>');
+document.getElementById('gptpdf-host').innerHTML = EXPORT_BUTTON_HTML;
+// The one number of an export: the button's counter, as startExportSpinner
+// (common.js) draws it — dots for the first 8 s, then seconds since the click.
+(function() {
+    const secs = { stay: 12, pages: 41, request: 58, reading: 96, paused: 103, back: 118, images: 131,
+                   shrink: 136, server: 141, long: 163 }[params.get('step') || 'pages'];
+    const spinner = document.getElementById('gptpdf-spinner');
+    if(!spinner) return;
+    spinner.classList.remove('gptpdf-hidden');
+    document.querySelectorAll('.gptpdf-btn-content').forEach(e => e.classList.add('gptpdf-invisible'));
+    const dots = spinner.querySelector('.gptpdf-dots-loader');
+    if(dots) dots.style.display = 'none';
+    const c = document.createElement('div');
+    c.className = 'gptpdf-export-counter';
+    c.style.cssText = 'color:#EA4C3A;font-weight:600;font-size:14px;text-align:center';
+    c.textContent = secs + 's';
+    (dots ? dots.parentNode : spinner).appendChild(c);
+})();
+// A stand-in chat behind the card: from "Compressing images" on the page is
+// usable again, and the frame should show the card not covering it.
+const fake = document.createElement('div');
+fake.style.cssText = 'max-width:420px;margin:70px auto 0;font-size:14px;line-height:1.55;color:' +
+    (dark ? '#d8d8d8' : '#333');
+fake.innerHTML = Array.from({ length: 6 }, (_, i) =>
+    '<p style="margin:0 0 12px">' + (i % 2 ? '<b>You:</b> ' : '<b>ChatGPT:</b> ') +
+    'The scale of the solar system is hard to picture: if the Moon were a single pixel, ' +
+    'the distance to Mars would take minutes of scrolling.</p>').join('');
+document.body.appendChild(fake);
+
+const step = params.get('step') || 'pages';
+if(step === 'stay' || step === 'pages' || step === 'request' || step === 'reading' || step === 'paused' || step === 'back') {
+    showLoadingOverlay();
+    if(step === 'stay') {
+        setHarvestProgress('Loading older messages… 3 parts');
+        gptpdfSetHint(GPTPDF_HINT_STAY);
+    } else if(step === 'request') {
+        setHarvestProgress('Loading older messages… 31 parts');
+        gptpdfSetFact(GPTPDF_FACT_REQUEST);
+        gptpdfSetHint(GPTPDF_HINT_STAY);
+    } else if(step === 'pages') {
+        setHarvestProgress('Loading older messages… 23 parts');
+        gptpdfSetFact(GPTPDF_FACT_PARTS);
+        gptpdfSetHint(GPTPDF_HINT_STAY);
+    } else if(step === 'reading') {
+        setHarvestProgress('Reading 214 of 513 messages…');
+        gptpdfSetFact(GPTPDF_FACT_SCREEN);
+        gptpdfSetHint(GPTPDF_HINT_STAY);
+    } else if(step === 'paused') {
+        setHarvestProgress('Paused: switch back to this tab to continue');
+    } else {
+        setHarvestProgress('Reading 240 of 513 messages…');
+        gptpdfSetHint(GPTPDF_HINT_WAS_HIDDEN);
+    }
+} else {
+    showLoadingOverlay();               // the scrolling left the card up
+    if(step === 'images') {
+        gptpdfExportImages('Adding images', 12, 48);
+    } else if(step === 'shrink') {
+        gptpdfExportImages('Compressing images', 5, 30, true);
+    } else {
+        gptpdfExportServer(513);   // 'long': the frame is taken after 20 s
+    }
+}
+</script>

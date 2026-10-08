@@ -1,0 +1,56 @@
+<meta charset="utf-8">
+<title>Тест кнопок в тексте ответа</title>
+<!--
+  Кнопки внутри текста ответа и пустые строки над вопросом не печатаются
+  коробками (gptpdfCleanTextButtons, render.js, шаг 12). Разметка настоящая —
+  tests/fixtures/inline-buttons-2026-10.html («Художник_базовый», 08.10:
+  «🖼здесь» в рамке, пустой светлый квадрат, тёмный кружок у «удали солнце»).
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=3000 --dump-dom "file://$PWD/tests/text-buttons-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../shared.js"></script>
+<script src="../helpers.js"></script>
+<script src="../theme.js"></script>
+<script src="../templates.js"></script>
+<script src="../render.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, ok, detail) {
+    if(!ok) failed++;
+    out.push((ok ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+const x = new XMLHttpRequest();
+x.open('GET', 'fixtures/inline-buttons-2026-10.html', false);
+x.send();
+const holder = document.createElement('div');
+holder.innerHTML = x.responseText;
+const root = holder.querySelector('main');
+document.body.appendChild(holder);
+const answer = () => root.querySelector('[data-message-id="0a4fb58a-5168-4bd0-bc5c-767f43584064"]');
+const question = () => root.querySelector('[data-message-author-role="user"]');
+
+out.push('— как было —');
+out.push('  кнопок в тексте ответа: ' + answer().querySelectorAll('.markdown button').length +
+         ', строк вопроса: ' + question().children.length);
+
+cleanupForPdf(root);
+
+out.push('\n— после чистки —');
+const md = answer().querySelector('.markdown');
+check('кнопок в тексте ответа нет', md.querySelectorAll('button').length === 0,
+      md.querySelectorAll('button').length + '');
+check('«здесь» осталось словом в предложении',
+      /скачать его здесь\. Дайте знать/.test(md.textContent.replace(/\s+/g, ' ')),
+      md.textContent.replace(/\s+/g, ' ').slice(30, 110));
+check('значков в тексте ответа нет', md.querySelectorAll('svg, img').length === 0);
+check('вопрос: остался один пузырь с текстом', question().children.length === 1 &&
+      /удали солнце/.test(question().textContent), question().children.length + ' строк');
+
+out.push('\n' + (failed ? '❌ провалено проверок: ' + failed : '✅ все проверки пройдены'));
+document.getElementById('log').textContent = out.join('\n');
+</script>

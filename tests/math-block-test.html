@@ -1,0 +1,100 @@
+<meta charset="utf-8">
+<title>Тест графика ChatGPT</title>
+<!--
+  Живой график ChatGPT (`[data-testid="math-block-layout"]`, 10-2026) в PDF:
+  кнопки виджета и панель функций уходят, сам график (SVG) остаётся, слои-холсты
+  лежат поверх графика, а не под ним пустой полустраницей (gptpdfCleanMathBlocks,
+  render.js). Разметка — настоящая: tests/fixtures/math-block-2026-10.html
+  (тестовый чат автора, 08.10: «уродливо несколько кнопок»).
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=3000 --dump-dom "file://$PWD/tests/math-block-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../shared.js"></script>
+<script src="../helpers.js"></script>
+<script src="../theme.js"></script>
+<script src="../templates.js"></script>
+<script src="../render.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, ok, detail) {
+    if(!ok) failed++;
+    out.push((ok ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+const xhr = new XMLHttpRequest();
+xhr.open('GET', 'fixtures/math-block-2026-10.html', false);
+xhr.send();
+// Как в копии для PDF: стилей ChatGPT нет, только наше правило для data:-картинок.
+document.head.insertAdjacentHTML('beforeend',
+    '<style>img[src^="data:"]{display:block !important;max-width:100% !important;' +
+    'height:auto !important}</style>');
+const BLANK = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAnEAAAHfCAYAAAA' +
+    'r7jfFAAAACXBIWXMAAAsTAAALEwEAmpwYAAAADUlEQVR42u3BMQEAAADCoPdPbQ8HFAAA' +
+    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB4GwkyAAE=';
+function scene() {
+    const root = document.createElement('div');
+    root.className = 'markdown';
+    root.style.width = '640px';
+    root.innerHTML = xhr.responseText;
+    document.body.appendChild(root);
+    // persistCanvases: холст в копии — <img> с его снимком
+    root.querySelectorAll('canvas').forEach(function(c) {
+        const img = document.createElement('img');
+        img.className = 'gptpdf-canvas-img';
+        img.src = BLANK;
+        c.replaceWith(img);
+    });
+    return root;
+}
+const h = (el) => Math.round(el.getBoundingClientRect().height);
+
+out.push('— как было: всё, что виджет рисует вокруг графика —');
+const before = scene();
+const svgB = before.querySelector('[class*="jsxgraph"] svg');
+const boxB = svgB.closest('[class*="aspect-"]');
+out.push('  кнопок ' + before.querySelectorAll('button').length + ', панель функций ' +
+         before.querySelectorAll('.control-panel').length + ', блок графика ' + h(boxB) +
+         ' px при графике ' + h(svgB) + ' px');
+before.remove();
+
+out.push('\n— после чистки —');
+const root = scene();
+gptpdfCleanMathBlocks(root);
+const svg = root.querySelector('[class*="jsxgraph"] svg');
+const box = svg && svg.closest('[class*="aspect-"]');
+check('кнопок нет', root.querySelectorAll('button').length === 0,
+      root.querySelectorAll('button').length + ' кнопок');
+check('панели функций нет', root.querySelectorAll('.control-panel').length === 0);
+check('«Добавить ещё» и «Оставить отзыв» не в тексте',
+      !/Добавить ещё|Оставить отзыв/.test(root.textContent));
+check('сам график на месте', !!svg && h(svg) > 100, svg ? h(svg) + ' px' : 'нет svg');
+const layers = [...root.querySelectorAll('img.gptpdf-canvas-img')];
+check('слои-холсты остались и лежат поверх графика', layers.length === 2 &&
+      layers.every(l => getComputedStyle(l).position === 'absolute' &&
+                        Math.abs(l.getBoundingClientRect().top - svg.getBoundingClientRect().top) < 2),
+      layers.map(l => getComputedStyle(l).position).join(', '));
+check('под графиком нет пустой полустраницы', box && h(box) <= h(svg) + 4,
+      'блок ' + (box ? h(box) : '?') + ' px, график ' + (svg ? h(svg) : '?') + ' px');
+check('подписи осей — в графике', /12345/.test(svg ? svg.textContent : ''));
+root.remove();
+
+out.push('\n— график не успел загрузиться —');
+(function() {
+    // Настоящая разметка состояния загрузки (тестовый чат автора, 08.10).
+    const r = document.createElement('div');
+    r.className = 'markdown';
+    r.innerHTML = '<div class="flow-root h-max touch:contents" data-testid="math-block-layout">' +
+        '<div aria-atomic="true" aria-live="polite" role="status" style="min-height: 232px;">' +
+        '<svg viewBox="0 0 24 24"><path d="M12 2v4"/></svg><span>Загрузка</span></div></div>';
+    document.body.appendChild(r);
+    gptpdfCleanMathBlocks(r);
+    check('крутилки и «Загрузка» в PDF нет', !r.querySelector('svg') && !/Загрузка/.test(r.textContent));
+    r.remove();
+})();
+out.push('\n' + (failed ? '❌ провалено проверок: ' + failed : '✅ все проверки пройдены'));
+document.getElementById('log').textContent = out.join('\n');
+</script>

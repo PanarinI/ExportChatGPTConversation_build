@@ -40,6 +40,7 @@ gptpdfChatGPT.sendChunkedData = function(
                         ((Date.now() - gptpdfChatGPT._sendStart) / 1000)
                             .toFixed(1) + 's');
                 }
+                gptpdfChatGPT.logPhases(Date.now());
                 if (response.status != 200) {
                     gptpdfChatGPT.showError(
                         response.status,
@@ -173,8 +174,13 @@ gptpdfChatGPT.shrinkHtmlImages = function(htmlContent) {
     // Sequential on purpose: one decoded image + one canvas in memory at a
     // time — the whole point is surviving image-heavy giants.
     let chain = Promise.resolve();
-    candidates.forEach(function(img) {
-        chain = chain.then(function() { return shrinkOne(img); });
+    gptpdfExportImages('Compressing images', 0, candidates.length, true);
+    candidates.forEach(function(img, i) {
+        chain = chain.then(function() { return shrinkOne(img); })
+            .then(function() {
+                gptpdfExportImages('Compressing images', i + 1,
+                    candidates.length, true);
+            });
     });
     return chain.then(function() {
         const doctype = htmlContent.match(/^\s*<!doctype[^>]*>/i);
@@ -182,6 +188,30 @@ gptpdfChatGPT.shrinkHtmlImages = function(htmlContent) {
     }).catch(function() {
         return htmlContent;
     });
+};
+
+// One line with where the time of an export went, phase by phase. The
+// server phase is sending, rendering and the PDF coming back — the part the
+// person waits on after the scrolling stops.
+gptpdfChatGPT.logPhases = function(done) {
+    const t = gptpdfChatGPT._t;
+    if(!t || !t.start || !t.shrunk) {
+        return;
+    }
+    const s = (a, b) => (a && b) ? ((b - a) / 1000).toFixed(1) + 's' : '?';
+    const from = t.harvested || t.start;
+    const q = gptpdfImageQueue;
+    const p = t.pictures || { embedded: 0, left: {} };
+    const left = Object.keys(p.left).map(k => p.left[k] + ' ' + k).join(', ');
+    console.log('[gptpdf] pictures: ' + p.embedded + ' embedded' +
+        (left ? ', NOT EMBEDDED (empty frames): ' + left : ', none lost') +
+        ' | fetched ' + q.ok + ' (lost ' + q.failed + '), blob ' + q.blobOk +
+        ' (lost ' + q.blobLost + ') | pictures out of ChatGPT\'s frame ' +
+        q.unframed);
+    console.log('[gptpdf][measure] after scrolling: page with images ' +
+        s(from, t.assembled) + ' + shrink ' + s(t.assembled, t.shrunk) +
+        ' + server ' + s(t.shrunk, done) + ' (' + t.mb + ' MB) = ' +
+        s(from, done) + '; whole export ' + s(t.start, done));
 };
 
 gptpdfChatGPT.doRequest = function(
@@ -195,11 +225,16 @@ gptpdfChatGPT.doRequest = function(
     // in capture.js it is what makes a user's "not works" report actionable.
     // Сколько занимает ВСЁ после харвеста: картинки в base64, сборка HTML,
     // отправка, рендер на Gotenberg, ответ. Без этой отметки «долго» — догадка.
-    gptpdfChatGPT._sendStart = Date.now();
+    const t = gptpdfChatGPT._t || (gptpdfChatGPT._t = {});
+    t.assembled = Date.now();
+    t.pictures = gptpdfCountPictures(htmlContent);
     const gptpdfBeforeMB = (htmlContent.length / 1048576).toFixed(1);
     gptpdfChatGPT.shrinkHtmlImages(htmlContent).then(function(shrunk) {
         const gptpdfAfterMB = (shrunk.length / 1048576).toFixed(1);
+        t.shrunk = gptpdfChatGPT._sendStart = Date.now();
+        t.mb = +gptpdfAfterMB;
         console.log('[gptpdf][measure] payload', gptpdfBeforeMB, 'MB →', gptpdfAfterMB, 'MB');
+        gptpdfExportServer(t.messages);
         gptpdfChatGPT.sendChunkedData(
             shrunk,
             params,

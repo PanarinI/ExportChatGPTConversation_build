@@ -372,13 +372,9 @@ function gptpdfInlineLateImages(root) {
             jobs.push(gptpdfInlineBlobImage(img));
             return;
         }
-        jobs.push(new Promise(function(resolve) {
-            chrome.runtime.sendMessage(
-                { action: 'fetchImageAsBase64', src: src },
-                function(response) {
-                    if(response && response.data) img.setAttribute('src', response.data);
-                    resolve();
-                });
+        gptpdfMarkPicture(img, src);
+        jobs.push(gptpdfFetchImageData(src).then(function(data) {
+            if(data) img.setAttribute('src', data);
         }));
     });
     return Promise.all(jobs);
@@ -775,6 +771,11 @@ function setupBlockMode() {
     if(mainBtn) {
         mainBtn.addEventListener('click', function(e) {
             if(!inBlockMode) return; // normal convert handled elsewhere
+            // An export is running (the one this mode started, or a full one
+            // started before the mode was opened): neither a second block
+            // export nor the "Select all" handover below may start. The click
+            // goes on to convert(), which refuses it on the same flag.
+            if(gptpdfExportInProgress) return;
             if(allMode) {
                 // Rate Us has the button for the moment; let it have the click
                 // and keep the selection for the one after.
@@ -805,7 +806,11 @@ function setupBlockMode() {
     // ── export ─────────────────────────────────────────────────────────────
 
     exportBtn.addEventListener('click', function() {
-        if(keyBids.size === 0) return;
+        // One export at a time (gptpdfExportInProgress, common.js): the page
+        // turns the Export button back on every second, so a second click
+        // arrives here while this export is still in its image pass.
+        if(gptpdfExportInProgress || keyBids.size === 0) return;
+        gptpdfExportInProgress = true;
         sendGA4Event('export_selected_used', { layout: gptpdfLayoutName() });
 
         // Snapshot which bids to keep BEFORE detaching
@@ -817,6 +822,10 @@ function setupBlockMode() {
 
         // In-button spinner (unified with the full export — no separate modal)
         startExportSpinner();
+        const citeWait = gptpdfCitationSourcesStart(4000);
+        // Timing and the card's "Creating the PDF… 0:23" start afresh: a
+        // selection has no message count worth naming.
+        gptpdfChatGPT._t = { start: Date.now() };
 
         // Hide UI but keep data-gptpdf-bid attrs alive for the clone step
         bar.classList.remove('gptpdf-active');
@@ -826,6 +835,22 @@ function setupBlockMode() {
             el.classList.remove('gptpdf-block-sel', 'gptpdf-block-checked');
         });
 
+        // The export is over: request.js calls this before the file is saved
+        // and before an error is shown.
+        function done() {
+            gptpdfExportInProgress = false;
+            stopExportSpinner();
+        }
+        // Something below threw. Until the guard above, the next click simply
+        // started over; now it would be refused for good in this tab, with the
+        // spinner turning — so the failure ends the export and says so.
+        function fail(err) {
+            done();
+            exitBlockMode();
+            gptpdfChatGPT.showError(null,
+                'Failed to prepare the PDF:<br><small>' + err + '</small>');
+        }
+
         gptpdfShared.getOptions(function(options) {
             let main = document.getElementsByTagName('main');
             main = main.length ? main[0] : document.querySelector('div.grow');
@@ -834,7 +859,10 @@ function setupBlockMode() {
             // CORS-tainted / auth-protected images like DALL-E) so Gotenberg renders them
             // — same as the full export path; otherwise they show only their alt text.
             const imgPromises = [];
+            const liveImgs = [];
             main.querySelectorAll('img').forEach(function(img) {
+                gptpdfLiveImagesSave(img, liveImgs);
+                gptpdfMarkPicture(img, img.getAttribute('src'));
                 if(!img.closest('.no-scrollbar')) {
                     const rect = img.getBoundingClientRect();
                     if(rect.width > 0 && rect.height > 0) {
@@ -858,13 +886,8 @@ function setupBlockMode() {
                     if(needsBg) {
                         const cap = img;
                         const srcToFetch = cap.getAttribute('src') || cap.src;
-                        imgPromises.push(new Promise(function(resolve) {
-                            chrome.runtime.sendMessage(
-                                { action: 'fetchImageAsBase64', src: srcToFetch },
-                                function(response) {
-                                    if(response && response.data) cap.setAttribute('src', response.data);
-                                    resolve();
-                                });
+                        imgPromises.push(gptpdfFetchImageData(srcToFetch).then(function(data) {
+                            if(data) cap.setAttribute('src', data);
                         }));
                     }
                 }
@@ -872,7 +895,12 @@ function setupBlockMode() {
 
             Promise.all(imgPromises).then(function() {
 
-            const main_clone = prepareContent(main);
+            let main_clone;
+            try {
+                main_clone = prepareContent(main);
+            } finally {
+                gptpdfLiveImagesRestore(liveImgs);
+            }
             // Rebuild the selected turns from their snapshots. Harvest already
             // ran on block-mode entry, but its cache is discarded — the snapshots
             // (taken at click time, WITH the bids) are block-mode's source of
@@ -891,8 +919,9 @@ function setupBlockMode() {
             } else {
                 restoreSelectedTurns(main_clone, turnSnapshots, bidsToKeep);
             }
-            gptpdfInlineLateImages(main_clone).then(function() {
+            return Promise.all([gptpdfInlineLateImages(main_clone), citeWait(main_clone)]).then(function(ready) {
             if(isPair) gptpdfNormalizeTurns(main_clone);
+            gptpdfApplyCitationSources(main_clone, ready[1]);
             // Snapshots are captured with the selection-highlight classes still
             // on the block; strip them so they don't linger on inserted turns
             // (live-clone turns were already cleaned before cloning).
@@ -983,6 +1012,7 @@ function setupBlockMode() {
             main_clone.querySelectorAll('.sr-only').forEach(function(el) { el.remove(); });
             gptpdfRemoveDateSeparators(main_clone);
             main_clone.classList.remove('chat-gpt-custom');
+            gptpdfMathToMathML(main_clone);
             main_clone.querySelectorAll('.katex-mathml').forEach(function(el) { el.remove(); });
             main_clone.querySelectorAll('pre button, pre .sticky button').forEach(function(el) { el.remove(); });
             main_clone.querySelectorAll('button').forEach(function(el) {
@@ -1059,6 +1089,8 @@ function setupBlockMode() {
             // Extract DALL-E images (same step as the full-export cleanup) so the
             // absolute image box becomes a clean, visible <img> block in the PDF.
             extractDalleImages(main_clone);
+            gptpdfCleanMathBlocks(main_clone);
+            gptpdfCleanTextButtons(main_clone);
 
             const body =
                 metaRow +
@@ -1073,12 +1105,10 @@ function setupBlockMode() {
                 `${body}</body>`;
 
             gptpdfChatGPT.doRequest(
-                htmlContent, data, addPdfExtension(title), function() {
-                    stopExportSpinner();
-                }
+                htmlContent, data, addPdfExtension(title), done
             );
             }); // close the late-image pass
-            }); // close the image-conversion Promise.all().then
+            }).catch(fail); // close the image-conversion Promise.all().then
         });
     });
 }

@@ -735,6 +735,9 @@ function cleanupForPdf(clone) {
     clone.classList.remove('chat-gpt-custom');
     gptpdfRemoveDateSeparators(clone);
 
+    // ── 0. Formulas: MathML from their TeX source ──────────────────────
+    gptpdfMathToMathML(clone);
+
     // ── 1. KaTeX double formula fix ───────────────────────────────────
     // katex-mathml is a hidden fallback text; katex-html is the visual.
     // Without KaTeX CSS, both render → duplicate. Remove the text one.
@@ -913,6 +916,95 @@ function cleanupForPdf(clone) {
 
     // ── 10. Extract DALL-E images from complex ChatGPT containers ────
     extractDalleImages(clone);
+
+    // ── 11. ChatGPT's interactive graphs ──────────────────────────────
+    gptpdfCleanMathBlocks(clone);
+
+    // ── 12. Buttons inside the answer text, empty rows over a question ─
+    gptpdfCleanTextButtons(clone);
+}
+
+// Step 3 leaves every button inside the answer text alone — a picture's own
+// button or a name the page made clickable lives there. Two kinds printed as
+// boxes (author's «Художник_базовый», 08.10, «а это что?»): a file link from
+// a code run, `<button>` "здесь" with a file icon (the file is long gone, the
+// icon printed broken), and an icon-only chip "code citation" — an empty box.
+// A button with text becomes its text; one with neither text nor picture
+// goes. Over a question, a service row with only an icon and an empty slot
+// (an image edit's reference) took the question's colour as a small empty
+// bubble — rows of a question with no text and no picture go too.
+function gptpdfCleanTextButtons(root) {
+    root.querySelectorAll('.markdown button').forEach(function(btn) {
+        if(btn.closest('pre, [data-testid="math-block-layout"]') ||
+           btn.querySelector('img, video, canvas')) {
+            return;
+        }
+        const text = btn.textContent.replace(/\s+/g, ' ').trim();
+        if(!text) {
+            btn.remove();
+            return;
+        }
+        const span = btn.ownerDocument.createElement('span');
+        span.textContent = text;
+        btn.replaceWith(span);
+    });
+    root.querySelectorAll('[data-message-author-role="user"] > div').forEach(function(row) {
+        if(!row.textContent.trim() && !row.querySelector('img, video, canvas')) {
+            row.remove();
+        }
+    });
+}
+
+// ChatGPT draws a function as a live graph widget inside the answer text
+// (`[data-testid="math-block-layout"]`, 10-2026): the graph itself is an SVG,
+// around it the widget's controls — copy, expand, axis zoom, window, reset
+// view, "Add more", the function list with its input boxes (hide, delete),
+// "Leave feedback". Step 3 keeps every button inside the answer text, so all of
+// them printed (author's test chat, 08.10: «уродливо несколько кнопок»). Two
+// canvas layers lie over the SVG (an inequality's fill, a fallback drawing);
+// ChatGPT's stylesheet, which puts them on top, does not reach the PDF, so their
+// copies stood under the graph as half a page of nothing. Kept, they go back on
+// top of it: a fill is part of the picture.
+function gptpdfCleanMathBlocks(root) {
+    root.querySelectorAll('[data-testid="math-block-layout"]').forEach(function(block) {
+        // Still loading when copied (the harvest waits up to 4 s for it): its
+        // spinner, without ChatGPT's CSS, filled a page. Not printed.
+        block.querySelectorAll('[role="status"]').forEach(function(card) {
+            card.remove();
+        });
+        block.querySelectorAll('button, .control-panel').forEach(function(el) {
+            el.remove();
+        });
+        // The widget's own <style> stretches the graph to 100% of a box whose
+        // height comes from a Tailwind class (aspect-[4/3]) the PDF does not
+        // get: the box swelled to twice the graph. The box takes the size the
+        // graph was drawn at, and the layers below cover exactly the graph.
+        block.querySelectorAll('[class*="jsxgraph"] > svg[width][height]').forEach(function(svg) {
+            const graph = svg.parentElement;
+            const box = graph.parentElement;
+            [graph, box].forEach(function(el) {
+                if(!el || !block.contains(el)) {
+                    return;
+                }
+                el.style.setProperty('width', svg.getAttribute('width') + 'px', 'important');
+                el.style.setProperty('height', svg.getAttribute('height') + 'px', 'important');
+                el.style.setProperty('max-width', '100%', 'important');
+            });
+        });
+        block.querySelectorAll('canvas, img.gptpdf-canvas-img').forEach(function(layer) {
+            const box = layer.parentElement;
+            if(!box || !box.querySelector('svg')) {
+                return;
+            }
+            box.style.setProperty('position', 'relative', 'important');
+            // !important: the export CSS gives every data: picture a place in
+            // the flow (display:block, height:auto !important).
+            [['position', 'absolute'], ['left', '0'], ['top', '0'], ['width', '100%'],
+             ['height', '100%'], ['margin', '0']].forEach(function(p) {
+                layer.style.setProperty(p[0], p[1], 'important');
+            });
+        });
+    });
 }
 
 // Replace each complex ChatGPT DALL-E image wrapper (an absolutely-positioned
@@ -922,8 +1014,15 @@ function cleanupForPdf(clone) {
 function extractDalleImages(root) {
     root.querySelectorAll('img').forEach(function(img) {
         const src = img.getAttribute('src') || '';
-        if (!src.startsWith('data:image/png') || src.length < 500000) return;
+        // A marked picture (gptpdfMarkPicture, helpers.js) by what it is; any
+        // other by the old weight rule — a big PNG is a picture, not an icon.
+        const marked = img.hasAttribute('data-gptpdf-pic') &&
+            src.startsWith('data:image/');
+        if (!marked && (!src.startsWith('data:image/png') || src.length < 500000)) return;
         if (img.closest('.no-scrollbar')) return;
+        if (marked && typeof gptpdfImageQueue !== 'undefined') {
+            gptpdfImageQueue.unframed++;
+        }
 
         // Build a clean standalone image block
         const figure = img.ownerDocument.createElement('div');
@@ -943,16 +1042,33 @@ function extractDalleImages(root) {
                 return n.nodeType === 3 && n.textContent.trim().length > 0;
             });
             if (hasText) break;
+            // ...also when the text sits deeper, in a sibling. A question with an
+            // uploaded picture keeps the picture and the text bubble side by side
+            // in one block, five levels above the <img>; the walk used to reach
+            // that block and hide it — the picture came back as the clean copy,
+            // the question text vanished from the PDF while the TOC still listed
+            // it (16 of 257 questions in the author's «мудрец», 06.10).
+            const hasSibling = Array.from(p.children).some(function(ch) {
+                return ch !== container && (ch.textContent.trim().length > 0 ||
+                    !!ch.querySelector('img, video, canvas'));
+            });
+            if (hasSibling) break;
             if (p.classList.contains('markdown')) break;
             if (p.hasAttribute('data-message-author-role')) break;
             if (p.matches('main, article')) break;
             container = p;
         }
 
-        // Hide the original broken container, insert clean image before it
+        // Hide the original broken container, insert clean image before it.
+        // The original <img> goes: hidden, it still carried the whole data:
+        // picture, so every picture taken out rode in the HTML twice — twice
+        // the payload, twice the work in "Compressing images", twice in the
+        // "embedded" count (78 for the 40 pictures of «Художник_базовый»,
+        // 07.10). Nothing after this step reads it.
         if (container.parentElement) {
             container.parentElement.insertBefore(figure, container);
             container.style.setProperty('display', 'none', 'important');
+            img.remove();
         }
     });
 }
@@ -965,13 +1081,15 @@ function extractDalleImages(root) {
 // measured on our server 04.10). Every heading inside an answer moves two
 // levels down, so it nests under its own question instead of standing beside
 // the questions; its look does not change, only its level for the outline.
-function gptpdfMarkOutline(mainClone) {
-    mainClone.querySelectorAll('[data-message-author-role="user"]').forEach(
-        function(msg) {
-            if(!msg.textContent.trim()) return;
-            msg.setAttribute('role', 'heading');
-            msg.setAttribute('aria-level', '2');
-        });
+function gptpdfMarkOutline(mainClone, noQuestions) {
+    if(!noQuestions) {
+        mainClone.querySelectorAll('[data-message-author-role="user"]').forEach(
+            function(msg) {
+                if(!msg.textContent.trim()) return;
+                msg.setAttribute('role', 'heading');
+                msg.setAttribute('aria-level', '2');
+            });
+    }
     mainClone.querySelectorAll('[data-message-author-role="assistant"]').forEach(
         function(msg) {
             msg.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function(h) {
@@ -979,23 +1097,73 @@ function gptpdfMarkOutline(mainClone) {
                     String(parseInt(h.tagName.slice(1), 10) + 2));
             });
         });
+    // Answers only: the questions are hidden, so each answer's own entry
+    // (its first heading or paragraph) is the level-2 bookmark.
+    if(noQuestions) {
+        gptpdfAnswerEntries(mainClone).forEach(function(e) {
+            e.el.setAttribute('role', 'heading');
+            e.el.setAttribute('aria-level', '2');
+        });
+    }
+}
+
+// "AI answers only" prints no questions, and the contents were built of
+// them — so that mode had none, nor bookmarks: hundreds of pages without a way
+// around (author's word 08.10: an entry per answer). One entry per question,
+// for the answer that follows it: how the answer begins — its first block,
+// a heading if it opens with one, else its first sentence. Not the first
+// heading anywhere: an answer that opens "Да. Вот тест…" and has a heading
+// further down was listed by that heading (author: «почему в оглавление ушёл
+// заголовок, а не первые слова ответа?»). The question itself is shown
+// nowhere — that is what the mode is chosen for.
+function gptpdfAnswerEntries(mainClone) {
+    const entries = [];
+    let want = false;
+    mainClone.querySelectorAll('[data-message-author-role]').forEach(function(msg) {
+        const role = msg.getAttribute('data-message-author-role');
+        if(role === 'user') {
+            if(msg.textContent.trim()) want = true;
+            return;
+        }
+        if(role !== 'assistant' || !want) {
+            return;
+        }
+        const md = msg.querySelector('.markdown') || msg;
+        // A selector list matches in document order: the answer's first block.
+        const el = md.querySelector('h1, h2, h3, h4, h5, h6, p, li') || md;
+        let text = el.textContent.replace(/\s+/g, ' ').trim();
+        if(!/^H\d$/.test(el.tagName)) {
+            const first = /^(.{12,}?[.!?…])(\s|$)/.exec(text);
+            if(first) text = first[1];
+        }
+        if(!text) {
+            return;
+        }
+        want = false;
+        entries.push({ msg: msg, el: el, text: text });
+    });
+    return entries;
 }
 
 function buildTocHtml(options, mainClone) {
-    if(!options.toc || options.no_questions) return '';
+    if(!options.toc) return '';
     if(!mainClone) return '';
 
     const isRu = (navigator.language || '').toLowerCase().startsWith('ru');
-    const userMsgs = mainClone.querySelectorAll(
-        '[data-message-author-role="user"]');
+    const items = options.no_questions ?
+        gptpdfAnswerEntries(mainClone).map(e => ({ msg: e.msg, text: e.text })) :
+        Array.from(mainClone.querySelectorAll('[data-message-author-role="user"]'))
+            .map(m => ({ msg: m, text: m.textContent.trim().replace(/\s+/g, ' ') }));
+    const prefix = options.no_questions ? 'toc-a-' : 'toc-q-';
     const entries = [];
     let counter = 0;
 
-    userMsgs.forEach(function(msg) {
-        const text = msg.textContent.trim().replace(/\s+/g, ' ');
+    items.forEach(function(item) {
+        const msg = item.msg;
+        const text = item.text;
         if(!text) return;
 
-        const id = 'toc-q-' + (++counter);
+        const id = prefix + (++counter);
         msg.setAttribute('id', id);
 
         // Truncate long prompts
@@ -1052,3 +1220,126 @@ function buildSourceLinkHtml(options) {
 }
 
 // ── Virtualized-scroll harvest (ports original PDFCrowd approach) ────────
+
+// A grouped citation in the PDF: every source, each its own link, instead of
+// the first one and a "+1" (data: gptpdfCitationIndex, helpers.js). A pill is
+// matched to its data by the place it cites in the message text — the page
+// marks it (data-content-reference-start = the ref's start_idx) — its link
+// checking the match; without the mark, by order. By order alone, a pill cut
+// from the copy ("Select all" with a paragraph unchecked) handed its sources
+// to a later pill with the same first link (review 08.10). A pill that does
+// not match is left as it was. Text only: a favicon would be a blank block.
+function gptpdfRewriteCitationPills(root, index) {
+    let rewritten = 0;
+    if(!index || !index.size) {
+        return rewritten;
+    }
+    const norm = (u) => (u || '').replace(/([?&])utm_source=chatgpt\.com(&|$)/, '$1').replace(/[?&]$/, '');
+    const label = function(s) {
+        if(s.attribution) {
+            return s.attribution;
+        }
+        try {
+            return new URL(s.url).hostname.replace(/^www\./, '');
+        } catch(e) {
+            return s.url;
+        }
+    };
+    const byMessage = new Map();
+    root.querySelectorAll('[data-testid="webpage-citation-pill"]').forEach(function(pill) {
+        const host = pill.closest('[data-chatgpt-selection-message-id], [data-message-id]');
+        const id = host && (host.getAttribute('data-chatgpt-selection-message-id') ||
+                            host.getAttribute('data-message-id'));
+        if(id) {
+            if(!byMessage.has(id)) byMessage.set(id, []);
+            byMessage.get(id).push(pill);
+        }
+    });
+    byMessage.forEach(function(pills, id) {
+        const data = index.get(id);
+        if(!data) {
+            return;
+        }
+        let j = 0;
+        const used = new Set();
+        pills.forEach(function(pill) {
+            const a = pill.querySelector('a[href]');
+            const href = norm(a && a.getAttribute('href'));
+            const mark = pill.closest('[data-content-reference-start]');
+            let k = -1;
+            if(mark) {
+                const start = +mark.getAttribute('data-content-reference-start');
+                k = data.findIndex((d, i) => !used.has(i) && d.start === start && norm(d.url) === href);
+            } else {
+                // Next data pill with this link: a pill the copy lacks is skipped.
+                for(k = j; k < data.length && norm(data[k].url) !== href; k++);
+                if(k === data.length) k = -1;
+            }
+            if(k < 0) {
+                return;
+            }
+            used.add(k);
+            j = k + 1;
+            const sources = data[k].sources;
+            if(sources.length < 2) {
+                return;
+            }
+            const doc = pill.ownerDocument;
+            const span = doc.createElement('span');
+            span.className = 'gptpdf-sources';
+            sources.forEach(function(s, i) {
+                if(i) span.appendChild(doc.createTextNode(' · '));
+                const link = doc.createElement('a');
+                link.setAttribute('href', s.url);
+                link.textContent = label(s);
+                span.appendChild(link);
+            });
+            pill.replaceWith(span);
+            rewritten++;
+        });
+    });
+    return rewritten;
+}
+
+// ChatGPT draws a formula with KaTeX: positioned spans that need KaTeX's
+// stylesheet and fonts. Neither reaches the PDF, so x² printed as "x2",
+// fractions and sums fell apart into a line (author's test chat, 08.10). Its
+// stylesheet added on the print server did not help — the fonts do not load
+// there and signs vanished. What does print right is MathML, which Chromium
+// draws itself (measured on our server 08.10: powers, fractions, roots, sums,
+// integrals, matrices). The page no longer keeps a MathML copy, but each
+// formula keeps its TeX source (data-math-source): the bundled KaTeX
+// (lib/katex.min.js, MIT) turns it into MathML. A formula it cannot read
+// stays as it was.
+function gptpdfMathToMathML(root) {
+    if(typeof katex === 'undefined') {
+        return 0;
+    }
+    let n = 0;
+    root.querySelectorAll('[data-math-source]').forEach(function(el) {
+        const src = el.getAttribute('data-math-source');
+        if(!src || el.querySelector('math')) {
+            return;
+        }
+        const display = !!el.querySelector('.katex-display') || !!el.closest('.katex-display');
+        let html;
+        try {
+            html = katex.renderToString(src, { output: 'mathml', displayMode: display,
+                                               throwOnError: true, strict: 'ignore' });
+        } catch(e) {
+            return;
+        }
+        el.innerHTML = html;
+        // Should a KaTeX version wrap it in .katex-mathml, the export CSS would
+        // hide it (that class was the hidden copy). The TeX annotation is not
+        // drawn, but would double the formula in the contents' text.
+        el.querySelectorAll('.katex-mathml').forEach(function(w) {
+            w.classList.remove('katex-mathml');
+            w.classList.add('gptpdf-mathml');
+        });
+        el.querySelectorAll('annotation').forEach(function(a) { a.remove(); });
+        n++;
+    });
+    return n;
+}
+

@@ -26,6 +26,13 @@
         сторожа в зону (80 px над верхом). Сбор догружает все страницы, потом идёт по списку.
     G — первая догрузка падает, у сторожа кнопка «Try again»: сбор жмёт её и идёт дальше.
     H — сторож не отвечает: сбор не виснет и пишет, что начало чата не загружено.
+    I — догрузка зависла (спиннер навсегда): загруженное снято целиком, зависание названо.
+    J — сбои догрузки то тут, то там, повтор каждый раз проходит: догрузка не обрывается.
+    K — карточка молчит первые 10 с; через 10 с — «не уходите с вкладки»; факты догрузки с 30-й секунды, по очереди
+        каждые 20 с; факт чтения — с 10-й секунды чтения (слово автора 07.10).
+    M — график-вывод кода дорисовывается через 1 с после текста ответа: сбор ждёт его (замер 07.10, «мудрец»).
+    N — живой график ChatGPT рисуется через 1,5 с после текста: сбор ждёт SVG, не «Загрузка» (08.10).
+    L — ушёл с вкладки до 10-й секунды и вернулся: «экспорт ждал» не затирается предупреждением.
 
   Запуск (без установки чего-либо):
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
@@ -37,6 +44,11 @@
   шаринга «мудреца» во встроенном браузере (§10) и экспорт автора.
 -->
 <div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<!-- the card's lines, as in templates.js: the fact timing is checked in scene J -->
+<div id="gptpdf-loading-overlay" style="display:none"></div>
+<div id="gptpdf-progress" class="gptpdf-loading-card" style="display:none">
+  <div class="gptpdf-loading-text"></div><div class="gptpdf-loading-fact"></div>
+  <div class="gptpdf-loading-hint"></div></div>
 <script src="../helpers.js"></script>
 <script src="../capture.js"></script>
 <script>
@@ -108,16 +120,24 @@ function mountScene(opts) {
         sentinel.style.height = '40px';
         list.insertBefore(sentinel, list.firstChild);
     }
+    // Номер страницы, которую грузим: сбои по номерам (P.failOn) — первая
+    // попытка этой страницы падает, повтор проходит. P.hang — спиннер навсегда.
+    const failedPages = new Set();
+    let pageNo = 0;
     function fetchOlder() {
         loading = true; fetches++;
         sentinel.innerHTML = '<svg class="spinner" width="20" height="20"></svg>';
+        if(P.hang) return;
         setTimeout(function() {
-            if(P.failFirst && !failedOnce) {
-                failedOnce = true; loading = false;
+            const failNow = (P.failFirst && !failedOnce) ||
+                ((P.failOn || []).includes(pageNo + 1) && !failedPages.has(pageNo + 1));
+            if(failNow) {
+                failedOnce = true; failedPages.add(pageNo + 1); loading = false;
                 sentinel.innerHTML = '<button type="button">Try again</button>';
                 sentinel.querySelector('button').onclick = fetchOlder;
                 return;
             }
+            pageNo++;
             const from = Math.max(0, oldest - P.size);
             const before = scroller.scrollHeight;
             const first = wrappers[oldest];
@@ -136,6 +156,8 @@ function mountScene(opts) {
         return '<article data-testid="conversation-turn-' + num[i] + '">' +
                '<div data-message-id="m' + i + '" style="height:' + realH(i) + 'px">' +
                '<p>msg ' + i + '</p><p data-turn-id-container="t' + i + '">inner</p>' +
+               (opts.deadLinkEvery && i % opts.deadLinkEvery === 1 ?
+                   '<a class="decorated-link">source</a>' : '') +
                '</div></article>';
     }
     // Как ChatGPT: держать в кадре первый видимый турн, когда высоты меняются.
@@ -157,6 +179,27 @@ function mountScene(opts) {
         const w = wrappers[i];
         w.style.height = '';
         w.innerHTML = body(i);
+        // Живой график ChatGPT: сперва «Загрузка» (role=status), SVG — позже.
+        if(opts.graphEvery && i % opts.graphEvery === 0) {
+            const turn = w.firstElementChild || w;
+            turn.insertAdjacentHTML('beforeend', '<div data-testid="math-block-layout">' +
+                '<div role="status"><svg></svg><span>Загрузка</span></div></div>');
+            const block = turn.lastElementChild;
+            setTimeout(function() {
+                if(block.isConnected) block.innerHTML = '<div class="graphable-function-v2-jsxgraph">' +
+                    '<svg width="313" height="239"></svg></div>';
+            }, opts.graphDelay || 1500);
+        }
+        // Картинка-вывод кода (график): место пустое с текстом, <img> — позже.
+        if(opts.chartEvery && i % opts.chartEvery === 0) {
+            const turn = w.firstElementChild || w;
+            turn.insertAdjacentHTML('beforeend',
+                '<div class="flex flex-wrap gap-2"><div class="max-h-64"></div></div>');
+            const slot = turn.lastElementChild.firstElementChild;
+            setTimeout(function() {
+                if(slot.isConnected) slot.innerHTML = '<img alt="chart" src="data:image/png;base64,iVBORw0KGgo=">';
+            }, opts.chartDelay || 1000);
+        }
         if(!opts.noWrappers) w.setAttribute('data-is-intersecting', 'true');
         mounted.add(i);
         mounts++;
@@ -329,6 +372,133 @@ function mountScene(opts) {
     check('то, что есть, поймано и по порядку',
           JSON.stringify(h.gptpdfOrder) === JSON.stringify(scene.expectedFrom(40)),
           h.size + ' турнов');
+
+    // ── I. Догрузка зависла: спиннер навсегда ───────────────────────────
+    // Ревью 06.10: зависшая догрузка тратила общий бюджет простоя, и проход по
+    // уже загруженному останавливался до первого шага — в PDF шли только
+    // турны на экране, а отчёт писал «ничего не пропущено».
+    scene = mountScene({ total: 60, hiddenEvery: 9, pages: { atOpen: 30, size: 20, hang: true } });
+    const ii = await harvestVirtualizedTurns();
+    const iii = ii.gptpdfHarvest || {};
+    out.push('');
+    out.push('— I. Старая страница грузится вечно (спиннер не уходит) —');
+    out.push('  поймано ' + ii.size + ', pagesStalled=' + iii.pagesStalled + ', ушло секунд: ' + iii.seconds);
+    check('загруженная часть снята целиком, несмотря на зависшую догрузку',
+          JSON.stringify(ii.gptpdfOrder) === JSON.stringify(scene.expectedFrom(30)) && iii.missing === 0,
+          ii.size + ' турнов, missing=' + iii.missing);
+    check('зависание названо, и сбор не висит дольше своего срока', iii.pagesStalled === true && iii.seconds <= 70,
+          'stalled=' + iii.pagesStalled + ', ' + iii.seconds + ' с');
+
+    // ── J. Сбои то тут, то там: каждый повтор проходит ───────────────────
+    // Ревью 06.10: счётчик повторов был общим на весь чат — четвёртый сбой
+    // где угодно обрывал догрузку, даже когда все повторы удавались.
+    scene = mountScene({ total: 200, hiddenEvery: 9, pages: { atOpen: 20, size: 20, delay: 120, failOn: [1, 3, 5, 7, 9] } });
+    const j = await harvestVirtualizedTurns();
+    const ji = j.gptpdfHarvest || {};
+    out.push('');
+    out.push('— J. 200 турнов, сбои на 1-й, 3-й, 5-й, 7-й и 9-й догрузке, повтор каждый раз проходит —');
+    out.push('  поймано ' + j.size + ' из ' + scene.expected.length + ', страниц ' + ji.pages + ', ушло секунд: ' + ji.seconds);
+    check('пять разрозненных сбоев не обрывают догрузку', !ji.pagesStalled && j.size === scene.expected.length,
+          'stalled=' + ji.pagesStalled + ', поймано ' + j.size);
+    check('порядок целый', JSON.stringify(j.gptpdfOrder) === JSON.stringify(scene.expected));
+
+    // ── M. График дорисовывается через секунду после текста ───────────────
+    // Замер 07.10 на «мудреце»: текст ответа — 0,4 с, место под график пустое,
+    // сам <img> — ещё через секунду. Снимок без ожидания терял оба графика.
+    // Плюс мёртвые ссылки (так на «мудреце»): с третьей такой сбор ждёт турн
+    // лишь 400 мс — график не должен попасть под это сокращение.
+    scene = mountScene({ total: 60, hiddenEvery: 9, chartEvery: 5, chartDelay: 1000, deadLinkEvery: 4 });
+    const m = await harvestVirtualizedTurns();
+    const charts = [...m.values()].filter(c => c.html && c.html.includes('max-h-64'));
+    const withImg = charts.filter(c => /<img[^>]*alt="chart"/.test(c.html));
+    out.push('');
+    out.push('— M. 60 турнов, в каждом пятом график приходит через 1 с после текста, мёртвые ссылки в каждом четвёртом —');
+    out.push('  турнов с местом под график: ' + charts.length + ', из них с самим графиком: ' + withImg.length +
+             ' · ушло секунд: ' + (m.gptpdfHarvest || {}).seconds);
+    check('каждый график попал в снимок', charts.length > 0 && withImg.length === charts.length,
+          withImg.length + ' из ' + charts.length);
+    check('лента снята целиком', m.size === scene.expected.length, 'поймано ' + m.size);
+
+    // ── N. Живой график грузится полторы секунды после текста ────────────
+    // Тестовый чат автора 08.10: выгрузка до конца загрузки дала в PDF
+    // крутилку на всю страницу. Сбор ждёт SVG, как ждёт картинку.
+    scene = mountScene({ total: 40, hiddenEvery: 9, graphEvery: 6, graphDelay: 1500, deadLinkEvery: 4 });
+    const gn = await harvestVirtualizedTurns();
+    const graphs = [...gn.values()].filter(c => c.html && c.html.includes('math-block-layout'));
+    const drawn = graphs.filter(c => c.html.includes('jsxgraph') && !c.html.includes('role="status"'));
+    out.push('');
+    out.push('— N. 40 турнов, в каждом шестом живой график рисуется через 1,5 с —');
+    out.push('  графиков: ' + graphs.length + ', снято нарисованными: ' + drawn.length);
+    check('каждый график снят нарисованным, не «Загрузка»', graphs.length > 0 && drawn.length === graphs.length,
+          drawn.length + ' из ' + graphs.length);
+
+    // ── K. Что и когда говорит карточка ──────────────────────────────────
+    // Слово автора 07.10: первым, через 10 с, — что делать (не уходить с
+    // вкладки); факты догрузки — с 30-й секунды и сменяют друг друга каждые
+    // 20 с; факт чтения — с 10-й секунды чтения.
+    scene = mountScene({ total: 540, hiddenEvery: 9, mountDelay: 400,
+                         pages: { atOpen: 20, size: 20, delay: 3000 } });
+    const factEl = document.querySelector('.gptpdf-loading-fact');
+    const hintEl = document.querySelector('.gptpdf-loading-hint');
+    const textEl = document.querySelector('.gptpdf-loading-text');
+    const t0 = Date.now();
+    const sec = () => (Date.now() - t0) / 1000;
+    const facts = [];           // каждая смена факта: [секунда, текст]
+    let readFrom = null;        // секунда, когда пошло «Reading …»
+    const mo = new MutationObserver(() => {
+        if(readFrom === null && /^Reading/.test(textEl.textContent)) readFrom = sec();
+        const last = facts.length ? facts[facts.length - 1][1] : '';
+        if(factEl.textContent !== last) facts.push([sec(), factEl.textContent]);
+    });
+    mo.observe(document.getElementById('gptpdf-progress'),
+               { subtree: true, childList: true, characterData: true });
+    const at = {};
+    [5, 12].forEach(s => setTimeout(() => {
+        at[s] = { fact: factEl.textContent, hint: hintEl.textContent };
+    }, s * 1000));
+    const k = await harvestVirtualizedTurns();
+    mo.disconnect();
+    const short = (t) => t ? t.slice(0, 28) + '…' : '—';
+    out.push('');
+    out.push('— K. Догрузка 26 частей по 3 с, потом чтение: подсказка и факты —');
+    out.push('  5 с: «' + (at[5] || {}).hint + '» · 12 с: «' + short((at[12] || {}).hint) + '»');
+    out.push('  смены факта: ' + facts.map(f => Math.round(f[0]) + ' с ' + short(f[1])).join(' → '));
+    out.push('  чтение с ' + Math.round(readFrom) + ' с · догрузка ' +
+             Math.round(((k.gptpdfHarvest || {}).ms || {}).pages / 1000) + ' с');
+    const loading = facts.filter(f => f[0] < readFrom);
+    const reading = facts.filter(f => f[0] >= readFrom);
+    const near = (f, s, text) => f && Math.abs(f[0] - s) <= 1.5 && f[1].startsWith(text);
+    check('первые 10 с карточка молчит', at[5] && at[5].hint === '' && at[5].fact === '');
+    check('через 10 с — не уходить с вкладки, факта ещё нет',
+          at[12] && /Don't switch tabs/.test(at[12].hint) && at[12].fact === '');
+    check('догрузка: о частях на 30-й, о запросах на 50-й, снова о частях на 70-й',
+          near(loading[0], 30, 'ChatGPT sends') && near(loading[1], 50, 'Each part') &&
+          near(loading[2], 70, 'ChatGPT sends'),
+          loading.map(f => Math.round(f[0])).join(', '));
+    check('чтение: факт догрузки снят, факт чтения — на 10-й секунде чтения',
+          reading.length >= 2 && reading[0][1] === '' && reading[0][0] - readFrom < 1.5 &&
+          near(reading[1], readFrom + 10, 'ChatGPT draws'),
+          reading.map(f => Math.round(f[0] - readFrom) + ' с').join(', '));
+    check('и вся лента при этом снята', k.size === scene.expected.length, 'поймано ' + k.size);
+
+    // ── L. Ушёл с вкладки до 10 с и вернулся ────────────────────────────
+    // Вернувшемуся нужно объяснение, что было, а не запоздалое
+    // предупреждение: «не уходите» не затирает «экспорт ждал».
+    scene = mountScene({ total: 160, hiddenEvery: 9, pages: { atOpen: 20, size: 20, delay: 3000 } });
+    let tabHidden = false;
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => tabHidden });
+    setTimeout(() => { tabHidden = true; }, 3000);
+    setTimeout(() => { tabHidden = false; }, 6000);
+    const atL = {};
+    [8, 14].forEach(s => setTimeout(() => { atL[s] = hintEl.textContent; }, s * 1000));
+    const l = await harvestVirtualizedTurns();
+    delete document.hidden;
+    out.push('');
+    out.push('— L. Вкладка скрыта с 3-й по 6-ю секунду —');
+    out.push('  8 с: «' + (atL[8] || '') + '» · 14 с: «' + (atL[14] || '') + '»');
+    check('после возвращения — почему ждали', /waited while this tab was hidden/.test(atL[8] || ''));
+    check('и на 10-й секунде это не затёрто', /waited while this tab was hidden/.test(atL[14] || ''));
+    check('лента снята целиком', l.size === scene.expected.length, 'поймано ' + l.size);
 
     out.push('');
     out.push(failed === 0 ? '✅ все проверки пройдены' : '❌ провалено проверок: ' + failed);

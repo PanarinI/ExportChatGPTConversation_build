@@ -1,0 +1,119 @@
+<meta charset="utf-8">
+<title>Тест источников цитат</title>
+<!--
+  Плашка цитаты ChatGPT «matplotlib.org +1» несёт в странице только первый
+  источник; остальные — в данных разговора. В PDF должны быть все, каждый своей
+  ссылкой (слово автора 08.10: «там слито 2 ссылки — нужно достать все»).
+  Данные и разметка — настоящие, тестовый чат автора (шаринг 6ac75a91…):
+    tests/fixtures/share-data-2026-10.html — данные страницы шаринга (как в ней лежат);
+    tests/fixtures/cite-turn-2026-10.html  — ответ с пятью плашками, одна «+1».
+  Проверяет: адрес → вид страницы; разбор данных; сопоставление и замену; что
+  без данных и при несовпадении копия не меняется и ничего не падает.
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=3000 --dump-dom "file://$PWD/tests/cite-pill-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../shared.js"></script>
+<script src="../helpers.js"></script>
+<script src="../theme.js"></script>
+<script src="../templates.js"></script>
+<script src="../render.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, ok, detail) {
+    if(!ok) failed++;
+    out.push((ok ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+function load(path) {
+    const x = new XMLHttpRequest();
+    x.open('GET', path, false);
+    x.send();
+    return x.responseText;
+}
+function turn() {
+    const root = document.createElement('main');
+    root.innerHTML = load('fixtures/cite-turn-2026-10.html');
+    document.body.appendChild(root);
+    return root;
+}
+
+out.push('— адрес страницы —');
+const u = '6ac75a91-2b28-83eb-a1c9-89db62d9700c';
+check('/share/<id> — шаринг', JSON.stringify(gptpdfConversationRef('/share/' + u)) ===
+      JSON.stringify({ kind: 'share', id: u }));
+check('/c/<id> — чат', (gptpdfConversationRef('/c/' + u) || {}).kind === 'chat');
+check('/g/g-p-…/c/<id> — чат проекта', (gptpdfConversationRef('/g/g-p-abc/c/' + u) || {}).id === u);
+check('главная — ничего', gptpdfConversationRef('/') === null);
+
+out.push('\n— данные страницы шаринга —');
+const doc = new DOMParser().parseFromString(load('fixtures/share-data-2026-10.html'), 'text/html');
+const mapping = gptpdfShareMapping(doc);
+check('разговор найден', !!mapping, mapping ? Object.keys(mapping).length + ' узлов' : 'нет');
+const index = mapping ? gptpdfCitationIndex(mapping) : new Map();
+const pills = index.get('7455d517-9b62-411f-a925-304df0d3dcfd') || [];
+check('в ответе 5 плашек, как на странице', pills.length === 5, pills.length + '');
+const grouped = pills.filter(p => p.sources.length > 1);
+check('одна с двумя источниками: matplotlib + NumPy', grouped.length === 1 &&
+      /matplotlib/.test(grouped[0].sources[0].url) && /numpy-ref/.test(grouped[0].sources[1].url),
+      grouped.map(p => p.sources.map(s => s.attribution).join(' + ')).join('; '));
+
+out.push('\n— замена в копии —');
+const root = turn();
+const before = root.querySelectorAll('[data-testid="webpage-citation-pill"]').length;
+const n = gptpdfRewriteCitationPills(root, index);
+const span = root.querySelector('.gptpdf-sources');
+const links = span ? [...span.querySelectorAll('a')] : [];
+check('заменена одна плашка (с «+1»)', n === 1, n + '');
+check('в ней две ссылки, каждая на свой источник', links.length === 2 &&
+      /pyplot\.plot/.test(links[0].href) && /numpy-ref\.pdf/.test(links[1].href),
+      links.map(a => a.textContent + ' → ' + a.getAttribute('href').slice(0, 40)).join(' · '));
+check('«+1» больше нет', !/\+1/.test(span ? span.textContent : '+1'), span ? span.textContent : '');
+check('остальные 4 плашки как были', root.querySelectorAll('[data-testid="webpage-citation-pill"]').length ===
+      before - 1, (before - 1) + ' ждали');
+check('без значков (в PDF был бы пустой квадрат)', span && !span.querySelector('img'));
+root.remove();
+
+out.push('\n— плашку с «+1» сняли («Выбрать всё», абзац без галочки) —');
+(function() {
+    const r = turn();
+    const grouped = r.querySelector('[data-content-reference-start="919"]');
+    grouped.closest('p, li').remove();                       // её абзац вырезан из копии
+    const n = gptpdfRewriteCitationPills(r, index);
+    check('её источники не достались другой плашке с той же ссылкой', n === 0 &&
+          !r.querySelector('.gptpdf-sources'), n + ' заменено');
+    r.remove();
+})();
+
+out.push('\n— ждать ли данные —');
+(function() {
+    const wait = gptpdfCitationSourcesStart(4000);           // на file:// разговора нет
+    const empty = document.createElement('div');
+    const t0 = Date.now();
+    wait(empty).then(function(v) {
+        check('в копии нет плашки с «+N» — не ждём', v === null && Date.now() - t0 < 50, (Date.now() - t0) + ' мс');
+        finish();
+    });
+})();
+
+out.push('\n— когда данных нет или они не те —');
+const r2 = turn();
+const html2 = r2.innerHTML;
+check('без данных — ничего не меняется', gptpdfRewriteCitationPills(r2, null) === 0 && r2.innerHTML === html2);
+const other = new Map([['7455d517-9b62-411f-a925-304df0d3dcfd',
+    [{ url: 'https://example.com/a', sources: [{ url: 'https://example.com/a' }, { url: 'https://example.com/b' }] }]]]);
+check('ссылки не совпали — ничего не меняется', gptpdfRewriteCitationPills(r2, other) === 0 && r2.innerHTML === html2);
+let threw = false;
+try { gptpdfApplyCitationSources(r2, new Map([['7455d517-9b62-411f-a925-304df0d3dcfd', [null]]])); } catch(e) { threw = true; }
+check('кривые данные — не падает', !threw);
+r2.remove();
+check('пустая страница без данных — разговора нет', gptpdfShareMapping(document) === null);
+
+function finish() {
+    out.push('\n' + (failed ? '❌ провалено проверок: ' + failed : '✅ все проверки пройдены'));
+    document.getElementById('log').textContent = out.join('\n');
+}
+</script>

@@ -124,8 +124,7 @@ const CLIMB_MIN_PATIENCE_MS = 6000;
 const CLIMB_MAX_PATIENCE_MS = 25000;
 
 function setHarvestProgress(text) {
-    const t = document.querySelector(
-        '#gptpdf-loading-overlay .gptpdf-loading-text');
+    const t = document.querySelector('#gptpdf-progress .gptpdf-loading-text');
     if(t) {
         t.textContent = text;
     }
@@ -141,13 +140,19 @@ const HARVEST_CAP_MS = 15 * 60 * 1000;
 function makeHarvestBudget() {
     const started = Date.now();
     let last = started;
+    // The cap is charged only for work: a tab in the background and the
+    // paging that comes before the walk do not eat the walk's 15 minutes
+    // (review 06.10: a long paging or a long pause left the walk 0 steps).
+    let capFrom = started;
     return {
         progress: function() { last = Date.now(); },
         elapsed: function() { return Date.now() - started; },
+        restart: function() { last = capFrom = Date.now(); },
+        pause: function(ms) { capFrom += ms; last = Date.now(); },
         expired: function() {
             const now = Date.now();
             return now - last > HARVEST_IDLE_MS ||
-                   now - started > HARVEST_CAP_MS;
+                   now - capFrom > HARVEST_CAP_MS;
         }
     };
 }
@@ -344,10 +349,28 @@ function orderFromPositions(cache) {
     return order;
 }
 
+// A picture a turn will show but has not got yet: the slot of a code run's
+// output picture (a matplotlib chart) is drawn empty with the text, and its
+// <img> comes about a second later, once ChatGPT has fetched the file
+// (measured 07.10 on «мудрец»: text at 0.4 s, picture at 1.4 s). A snapshot
+// taken in between has no picture — two charts were lost from every export.
+// ChatGPT's live graph is the same kind of late: its block shows a spinner
+// and "Loading" (role=status) for seconds before the SVG — exported then, the
+// PDF got a page-wide spinner (author's test chat, 08.10; ~9 s to draw).
+const GPTPDF_PENDING_PICTURE = '.flex-wrap > [class*="max-h-64"]:not(:has(img)), ' +
+    '[data-testid="math-block-layout"] [role="status"]';
+
+// What a mounted turn still waits for: hrefless citation links, pictures.
+function turnPending(t) {
+    return t.querySelectorAll('a.decorated-link:not([href])').length +
+        t.querySelectorAll(GPTPDF_PENDING_PICTURE).length;
+}
+
 // One mounted turn into the cache. Returns its key, or null for an empty node.
-// ChatGPT fills citation hrefs asynchronously: an early snapshot can have
-// hrefless (blue, non-clickable) links. Track resolved-link counts so we keep
-// the richest snapshot and know which turns still need their links.
+// ChatGPT fills citation hrefs and output pictures asynchronously: an early
+// snapshot can have hrefless (blue, non-clickable) links or an empty picture
+// slot. Track what is still pending so we keep the richest snapshot and know
+// which turns still need waiting for.
 function captureTurn(cache, t) {
     const html = t.innerHTML;
     if(html.length === 0) {
@@ -355,7 +378,7 @@ function captureTurn(cache, t) {
     }
     const id = turnKey(t);
     const hrefs = t.querySelectorAll('a[href]').length;
-    const unresolved = t.querySelectorAll('a.decorated-link:not([href])').length;
+    const unresolved = turnPending(t);
     const prev = cache.get(id);
     if(!prev || hrefs > prev.hrefs ||
        (hrefs === prev.hrefs && html.length > prev.len)) {
@@ -385,35 +408,196 @@ function requestHarvestCancel() {
     harvestCancelled = true;
 }
 
-function showLoadingOverlay() {
-    harvestCancelled = false;
-    const ov = document.getElementById('gptpdf-loading-overlay');
-    if(!ov) {
-        return;
-    }
-    ov.classList.toggle('gptpdf-dark', !isLight(document.body));
-    ov.style.display = 'flex';
-    // Cancel belongs to the harvest phase; ensure visible (generation hides it).
-    const _cancel = document.getElementById('gptpdf-cancel-loading');
-    if(_cancel) _cancel.style.display = '';
-    // Chrome throttles background tabs, which can break the harvest —
-    // ask the user to keep the tab in front (STATE: DALL-E/tab-switch bug).
-    const _card = ov.querySelector('.gptpdf-loading-card');
-    if(_card && !_card.querySelector('.gptpdf-loading-hint')) {
-        const hint = document.createElement('div');
-        hint.className = 'gptpdf-loading-hint';
-        hint.textContent = 'Please keep this tab open and in the foreground';
-        hint.style.cssText =
-            'font-size:12px;opacity:.75;margin-top:8px;text-align:center;max-width:250px;';
-        _card.appendChild(hint);
+// ── The progress card ─────────────────────────────────────────────────────
+//
+// One card from the click to the file (author's word 07.10: a person left
+// without words for 20 seconds starts to doubt the file will ever come).
+// Three lines: what is happening now, a fact about how ChatGPT works while the
+// wait is long, and what the person may do meanwhile. Every claim is measured
+// (CHATGPT-DOM.md §10, 07.10): in a hidden tab ChatGPT stops putting messages
+// on the page, so the scrolling waits; after the scrolling the export finishes
+// in a hidden tab too, a third slower.
+const GPTPDF_FACT_PARTS =
+    'ChatGPT sends long chats in parts of about 10 messages.';
+const GPTPDF_FACT_REQUEST = 'Each part is a separate request to ChatGPT\'s ' +
+    'server and takes a few seconds.';
+// The first thing said, at 10 s of scrolling, is what the person must do —
+// not how ChatGPT works (author's word 07.10: «оно через 10 секунд после
+// начала несло бы пользу»). Loading's facts come once it has taken 30 s: one
+// thing at a time, when the wait has become a long one. Reading starts with
+// that hint already up, so its fact comes at its 10th second — on a chat of a
+// hundred messages the reading is over before 30 s.
+const GPTPDF_HINT_STAY = 'Don\'t switch tabs or minimize the window yet: ' +
+    'the export pauses while this tab is hidden.';
+const GPTPDF_HINT_AFTER_MS = 10000;
+const GPTPDF_FACT_AFTER_MS = 30000;
+const GPTPDF_FACT_READING_AFTER_MS = 10000;
+const GPTPDF_FACT_SCREEN = 'ChatGPT draws only the messages on screen, ' +
+    'so each one is scrolled into view to be copied.';
+// A step's facts take turns every 20 s, round and round (author's word 07.10:
+// one text that never changes for a minute reads as a frozen card).
+const GPTPDF_FACTS_LOADING = [GPTPDF_FACT_PARTS, GPTPDF_FACT_REQUEST];
+const GPTPDF_FACTS_READING = [GPTPDF_FACT_SCREEN];
+const GPTPDF_FACT_EVERY_MS = 20000;
+// Not said in advance (author's word 07.10: small print from the very start
+// is one more thing to read). Said once it explains something that happened:
+// the tab was hidden, the reading stopped, the person is back. It takes the
+// place of GPTPDF_HINT_STAY, and STAY never replaces it.
+const GPTPDF_HINT_WAS_HIDDEN = 'The export waited while this tab was hidden: ' +
+    'ChatGPT loads messages only in a visible tab.';
+const GPTPDF_HINT_LEAVE = 'You can keep using ChatGPT or switch tabs — the ' +
+    'file will download by itself. Don\'t close or reload this tab.';
+const GPTPDF_FACT_LONG = 'Long chats take longer.';
+
+function gptpdfCardLine(cls, text) {
+    const el = document.querySelector('#gptpdf-progress .' + cls);
+    if(el && el.textContent !== (text || '')) {
+        el.textContent = text || '';
     }
 }
 
+function gptpdfSetFact(text) {
+    gptpdfCardLine('gptpdf-loading-fact', text);
+}
+
+// The fact a step shows `ms` into it: none before `after`, then in turns.
+function gptpdfFactAt(facts, ms, after) {
+    if(ms < after || !facts.length) {
+        return '';
+    }
+    return facts[Math.floor((ms - after) / GPTPDF_FACT_EVERY_MS) % facts.length];
+}
+
+function gptpdfSetHint(text) {
+    gptpdfCardLine('gptpdf-loading-hint', text);
+}
+
+// The panel under the Export button, and the dimming of the page under it.
+// While the chat is being read the page must stay still, so it is dimmed and
+// does not take clicks. From "Compressing images" on the export works on its own
+// copy and the page is the person's again (author's word 07.10): no dimming,
+// the panel stays where it was — one place for the whole export.
+function gptpdfShowCard(withCancel, passive) {
+    const card = document.getElementById('gptpdf-progress');
+    const ov = document.getElementById('gptpdf-loading-overlay');
+    if(!card) {
+        return;
+    }
+    const dark = !isLight(document.body);
+    card.classList.toggle('gptpdf-dark', dark);
+    card.style.display = 'flex';
+    const block = card.closest('.gptpdf-block');
+    if(block) {
+        block.classList.add('gptpdf-exporting');
+    }
+    if(ov) {
+        ov.classList.toggle('gptpdf-dark', dark);
+        ov.style.display = passive ? 'none' : 'block';
+    }
+    // Cancel stops the scrolling only; after it there is nothing to stop.
+    const cancel = document.getElementById('gptpdf-cancel-loading');
+    if(cancel) {
+        cancel.style.display = withCancel ? '' : 'none';
+    }
+}
+
+function gptpdfCardVisible() {
+    const card = document.getElementById('gptpdf-progress');
+    return !!card && card.style.display === 'flex';
+}
+
+function showLoadingOverlay() {
+    harvestCancelled = false;
+    gptpdfExportCard.shown = true;
+    gptpdfShowCard(true, false);
+    gptpdfSetFact('');
+    gptpdfSetHint('');
+}
+
 function hideLoadingOverlay() {
+    const card = document.getElementById('gptpdf-progress');
     const ov = document.getElementById('gptpdf-loading-overlay');
     if(ov) {
         ov.style.display = 'none';
     }
+    if(card) {
+        card.style.display = 'none';
+        const block = card.closest('.gptpdf-block');
+        if(block) {
+            block.classList.remove('gptpdf-exporting');
+        }
+    }
+}
+
+// ── After the scrolling: the same card goes on to the file ────────────────
+// A short export (a chat that fits the screen, a few seconds in all) shows the
+// card only if it is still running after GPTPDF_CARD_DELAY_MS — a card that
+// flashes for half a second says nothing. Once the scrolling has shown it, it
+// stays: the gap between the scrolling and the next step read as "it stopped".
+const GPTPDF_CARD_DELAY_MS = 3000;
+const GPTPDF_LONG_AFTER_MS = 20000;
+const gptpdfExportCard = { tick: null, delay: null, shown: false };
+
+function gptpdfExportStep(text, hint, passive) {
+    setHarvestProgress(text);
+    gptpdfSetFact('');
+    gptpdfSetHint(hint || '');
+    gptpdfExportCard.passive = !!passive;
+    if(gptpdfCardVisible() || gptpdfExportCard.shown) {
+        clearTimeout(gptpdfExportCard.delay);
+        gptpdfExportCard.delay = null;
+        gptpdfShowCard(false, passive);
+    } else if(!gptpdfExportCard.delay) {
+        gptpdfExportCard.delay = setTimeout(function() {
+            gptpdfExportCard.delay = null;
+            gptpdfShowCard(false, gptpdfExportCard.passive);
+        }, GPTPDF_CARD_DELAY_MS);
+    }
+}
+
+// "Adding images… 12 of 48" reads the live page (keep it still);
+// "Compressing images… 5 of 30" works on the export's own copy (page free).
+function gptpdfExportImages(verb, done, total, passive) {
+    if(total > 0) {
+        gptpdfExportStep(verb + '… ' + done + ' of ' + total, '', passive);
+    }
+}
+
+// "Creating the PDF from 513 messages…" — the server's part. No clock of
+// its own: the one number is the Export button's (author's word 07.10: two
+// counters in two places with two values look disorganised). After 20 s a
+// plain "long chats take longer" under it.
+function gptpdfExportServer(messages) {
+    clearTimeout(gptpdfExportCard.tick);
+    const what = messages ? ' from ' + messages +
+        (messages === 1 ? ' message' : ' messages') : '';
+    gptpdfExportStep('Creating the PDF' + what + '…', GPTPDF_HINT_LEAVE, true);
+    gptpdfExportCard.tick = setTimeout(function() {
+        gptpdfSetFact(GPTPDF_FACT_LONG);
+    }, GPTPDF_LONG_AFTER_MS);
+}
+
+// The title dialog asks in the middle of an export: the card steps aside.
+function gptpdfExportPause() {
+    clearTimeout(gptpdfExportCard.delay);
+    gptpdfExportCard.delay = null;
+    hideLoadingOverlay();
+}
+
+// A new export starts with no card owed: block mode's entry scrolling, long
+// before its export, does not count.
+function gptpdfExportBegin() {
+    gptpdfExportEnd();
+}
+
+function gptpdfExportEnd() {
+    clearTimeout(gptpdfExportCard.tick);
+    clearTimeout(gptpdfExportCard.delay);
+    gptpdfExportCard.tick = gptpdfExportCard.delay = null;
+    gptpdfExportCard.shown = false;
+    hideLoadingOverlay();
+    gptpdfSetFact('');
+    gptpdfSetHint('');
 }
 
 // Scrolls the chat top→bottom, caching each turn's HTML as it renders.
@@ -597,6 +781,11 @@ const GPTPDF_TURN_WRAPPER = '[data-turn-id-container][data-is-intersecting]';
 // links (the old completeness pass gave links 1.5 s).
 const WRAPPER_MOUNT_MS = 3000;
 const WRAPPER_LINKS_MS = 1500;
+// An output picture has its own wait, and the dead-links shortcut (400 ms once
+// three turns sat with links that never resolve) does not cut it: the picture
+// comes about a second after the text, and on a chat with dead links the
+// shortcut is on from the start (07.10, «мудрец»: both charts still lost).
+const WRAPPER_PICTURE_MS = 4000;
 
 function turnWrappers(root) {
     return Array.from(root.querySelectorAll(GPTPDF_TURN_WRAPPER));
@@ -664,7 +853,9 @@ async function restoreViewAnchor(scroller, anchor, origScroll) {
 
 // A tab in the background draws nothing, so nothing mounts there. Waiting it
 // out is not a failure of the turn — and must not run the idle budget down.
+// Returns how long it waited, so callers can keep that time off their clocks.
 async function waitForegroundTab(budget) {
+    const t0 = Date.now();
     if(document.hidden) {
         setHarvestProgress('Paused: switch back to this tab to continue');
     }
@@ -672,6 +863,16 @@ async function waitForegroundTab(budget) {
         budget.progress();
         await new Promise(r => setTimeout(r, 250));
     }
+    const paused = Date.now() - t0;
+    if(paused > 0) {
+        budget.pause(paused);
+    }
+    // A blink of "hidden" (a window coming to front) explains nothing; an
+    // absence does — said on return, under the line that goes on again.
+    if(paused >= 1000 && !harvestCancelled) {
+        gptpdfSetHint(GPTPDF_HINT_WAS_HIDDEN);
+    }
+    return paused;
 }
 
 // ── A signed-in tab holds a long chat in pages ───────────────────────────
@@ -697,29 +898,51 @@ async function waitForegroundTab(budget) {
 const GPTPDF_PAGE_SENTINEL = '[data-testid="conversation-pagination-sentinel"]';
 const PAGE_TRIGGER_MS = 2000;   // the fetch did not start: move out and in again
 const PAGE_FETCH_MS = 30000;    // a slow server, one page
+// Paging has a clock of its own. It used to spend the harvest's shared idle
+// budget: one hung fetch (a spinner that never clears) or a few slow "Try
+// again" rounds ran it out, and the walk that followed stopped before its
+// first step — the PDF held only the turns on screen and the report said
+// nothing was missing (review 06.10, reproduced on scratch stands).
+const PAGES_IDLE_MS = 45000;    // no answer for this long: the rest is not coming
+const PAGES_MAX_FAILS = 3;      // failed rounds in a row, not in total
+const PAGES_MAX_EMPTY = 4;      // answers that added nothing, in a row
+const PAGES_CAP_MS = 10 * 60 * 1000;   // a page that keeps answering forever
 
 async function loadOlderPages(scroller, ax, budget) {
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
     // Wrappers only: mounted turns come and go with every scroll.
     const size = () => scroller.querySelectorAll(GPTPDF_TURN_WRAPPER).length;
+    const started = Date.now();
+    let capFrom = started;
+    let lastPage = started;
     let pages = 0;
     let retries = 0;
+    let fails = 0;      // in a row: a long chat may hit several transient ones
     let deaf = 0;
+    let empty = 0;      // the spinner came and went and nothing was added
+    let factTimer = null;
     for(;;) {
-        if(harvestCancelled || budget.expired()) {
+        if(harvestCancelled || Date.now() - lastPage > PAGES_IDLE_MS ||
+           Date.now() - capFrom > PAGES_CAP_MS) {
             break;
         }
         if(document.hidden) {
-            await waitForegroundTab(budget);
+            const paused = await waitForegroundTab(budget);
+            lastPage += paused;             // a hidden tab is not a silent server
+            capFrom += paused;
             continue;
         }
         const s = scroller.querySelector(GPTPDF_PAGE_SENTINEL);
         if(!s) {
             break;              // nothing older left: the start is loaded
         }
+        // Counted before anything is touched: a retry or a fetch that lands
+        // within the first wait would otherwise go unseen.
+        const n0 = size();
+        const h0 = scroller.scrollHeight;
         const retry = s.querySelector('button');
         if(retry) {
-            if(retries >= 3) {
+            if(fails >= PAGES_MAX_FAILS) {
                 break;          // the server keeps failing: export what we have
             }
             retries++;
@@ -732,52 +955,86 @@ async function loadOlderPages(scroller, ax, budget) {
             await wait(160);
             ax.set(0);
         }
-        setHarvestProgress('Loading older messages... ' +
-            (pages ? pages + (pages > 1 ? ' pages' : ' page') : ''));
+        setHarvestProgress('Loading older messages…' + (pages ? ' ' + pages +
+            (pages > 1 ? ' parts' : ' part') : ''));
+        // Its own clock: a round can sit for the server up to PAGE_FETCH_MS,
+        // and the facts take turns meanwhile.
+        if(!factTimer) {
+            factTimer = setInterval(function() {
+                gptpdfSetFact(gptpdfFactAt(GPTPDF_FACTS_LOADING,
+                    Date.now() - started, GPTPDF_FACT_AFTER_MS));
+            }, 500);
+        }
         // A page counts as loaded by the page's own signs, never by the height
         // of the list: heights change all the time while estimated boxes get
         // real ones, and reading that as "a page came" loops forever on a
         // sentinel that never answers. The signs: more turn wrappers, or the
         // sentinel's spinner came and went, or the sentinel is gone.
-        const n0 = size();
         const t0 = Date.now();
-        let grew = false;
         let fetching = false;
+        let answered = false;   // the spinner came and went
+        let failedNow = false;  // the round ended on "Try again"
         while(!harvestCancelled) {
             await wait(100);
             if(size() > n0) {
-                grew = true;
                 break;
             }
             const now = scroller.querySelector(GPTPDF_PAGE_SENTINEL);
             if(!now) {
-                grew = fetching;
+                answered = fetching;
                 break;
             }
             if(now.querySelector('button')) {
+                failedNow = true;
                 break;
             }
             if(now.childElementCount > 0) {
                 fetching = true;
             } else if(fetching) {
-                grew = true;
+                answered = true;
                 break;
             }
             if(Date.now() - t0 > (fetching ? PAGE_FETCH_MS : PAGE_TRIGGER_MS)) {
                 break;
             }
         }
-        if(grew) {
+        // A page is real only when something was added: more wrappers, or —
+        // on a page without wrappers — a list taller by more than half a
+        // screen after the spinner. "The spinner came and went" alone also
+        // happens when nothing moves (an empty page, a cursor that does not
+        // advance), and counting that as a page looped forever (review 06.10).
+        const added = size() > n0 || (answered && !size() &&
+            scroller.scrollHeight > h0 + scroller.clientHeight / 2);
+        if(added) {
             pages++;
             deaf = 0;
+            fails = 0;
+            empty = 0;
+            lastPage = Date.now();
             budget.progress();
             // Let the prepended turns get their boxes before the next round.
             await wait(150);
-        } else if(!fetching && ++deaf >= 3) {
+        } else if(failedNow) {
+            // An answer, even a failing one, is not silence: a fetch that
+            // failed after 50 s still gets its "Try again".
+            fails++;
+            lastPage = Date.now();
+        } else if(answered) {
+            lastPage = Date.now();
+            if(++empty >= PAGES_MAX_EMPTY) {
+                break;
+            }
+        } else if(fetching || retry) {
+            fails++;            // a spinner that outlived its wait, or a retry that did not take
+            if(fails >= PAGES_MAX_FAILS) {
+                break;
+            }
+        } else if(++deaf >= 3) {
             break;              // the sentinel does not answer: report it
         }
     }
-    return { pages: pages, retries: retries,
+    clearInterval(factTimer);
+    return { pages: pages, retries: retries, ms: Date.now() - started,
              stalled: !!scroller.querySelector(GPTPDF_PAGE_SENTINEL) };
 }
 
@@ -795,6 +1052,14 @@ async function harvestByWrappers(scroller, cache, budget) {
         turnWrappers(scroller).forEach(function(w) {
             const id = wrapperId(w);
             if(keyOf.has(id)) {
+                // Held with links still hrefless: while it stays mounted, keep
+                // taking the richer snapshot — no waiting, and a link that
+                // resolves after its step still reaches the PDF.
+                const held = cache.get(keyOf.get(id));
+                const t = held && held.unresolved && wrapperTurn(w);
+                if(t) {
+                    captureTurn(cache, t);
+                }
                 return;
             }
             const t = wrapperTurn(w);
@@ -809,11 +1074,15 @@ async function harvestByWrappers(scroller, cache, budget) {
     };
     let steps = 0;
     let renderable = 0;
+    // Где уходит время шага: ожидание монтажа и ожидание ссылок-цитат.
+    let mountMs = 0;
+    let linkMs = 0;
+    const walkFrom = Date.now();
+    let deadLinks = 0;  // turns that sat the full link wait with nothing resolving
     sweep();
     for(;;) {
-        if(harvestCancelled || budget.expired()) {
-            break;
-        }
+        // The list is read before any exit, so a walk cut short still
+        // reports how much it left behind instead of "0 of 0, none missing".
         let target = null;
         renderable = 0;
         turnWrappers(scroller).forEach(function(w) {
@@ -831,8 +1100,10 @@ async function harvestByWrappers(scroller, cache, budget) {
             }
         });
         setHarvestProgress('Reading ' + keyOf.size + ' of ' + renderable +
-            ' messages...');
-        if(!target) {
+            ' messages…');
+        gptpdfSetFact(gptpdfFactAt(GPTPDF_FACTS_READING,
+            Date.now() - walkFrom, GPTPDF_FACT_READING_AFTER_MS));
+        if(!target || harvestCancelled || budget.expired()) {
             break;
         }
         const id = wrapperId(target);
@@ -844,26 +1115,62 @@ async function harvestByWrappers(scroller, cache, budget) {
         steps++;
         // Wait for the turn itself, not for a timer: first its content, then
         // its links. React may replace the wrapper node, so look it up anew.
+        // Citation links. The full wait (1.5 s) stays the rule until this
+        // chat shows that its hrefless links do not resolve: after three turns
+        // that sat the full wait with nothing resolving, a turn is let go once
+        // its links stop moving for 400 ms. Progress is links GAINING an href
+        // (pills may still be appearing, so a falling hrefless count can lie).
+        // A full 1.5 s on every turn with dead links is minutes on a long chat;
+        // cutting every turn at 400 ms dropped links that start late (review).
         let mounted = false;
         let since = Date.now();
+        let stepStart = since;
+        let resolved = -1;
+        let moved = false;
+        let lastResolve = since;
         while(!harvestCancelled) {
             if(document.hidden) {
-                await waitForegroundTab(budget);
-                since = Date.now();
+                const paused = await waitForegroundTab(budget);
+                stepStart += paused;
+                since += paused;
+                lastResolve += paused;
                 continue;
             }
             await wait(40);
             const t = wrapperTurn(find(id));
             if(t && !mounted) {
                 mounted = true;
+                mountMs += Date.now() - stepStart;
                 since = Date.now();
+                lastResolve = since;
             }
-            if(t && !t.querySelector('a.decorated-link:not([href])')) {
+            let pictures = 0;
+            if(t) {
+                if(!turnPending(t)) {
+                    break;
+                }
+                pictures = t.querySelectorAll(GPTPDF_PENDING_PICTURE).length;
+                const now = t.querySelectorAll('a.decorated-link[href], img').length;
+                if(resolved >= 0 && now > resolved) {
+                    moved = true;
+                    lastResolve = Date.now();
+                }
+                resolved = Math.max(resolved, now);
+                if(!pictures && (moved || deadLinks >= 3) &&
+                   Date.now() - lastResolve > 400) {
+                    break;
+                }
+            }
+            if(Date.now() - since > (!mounted ? WRAPPER_MOUNT_MS :
+                    pictures ? WRAPPER_PICTURE_MS : WRAPPER_LINKS_MS)) {
+                if(mounted && !moved && !pictures) {
+                    deadLinks++;
+                }
                 break;
             }
-            if(Date.now() - since > (mounted ? WRAPPER_LINKS_MS : WRAPPER_MOUNT_MS)) {
-                break;
-            }
+        }
+        if(mounted) {
+            linkMs += Date.now() - since;
         }
         const held = keyOf.size;
         sweep();
@@ -898,7 +1205,8 @@ async function harvestByWrappers(scroller, cache, budget) {
         }
     });
     return { order: order, renderable: renderable, held: keyOf.size,
-             hidden: hidden.size, failed: failed, steps: steps };
+             hidden: hidden.size, failed: failed, steps: steps,
+             mountMs: mountMs, linkMs: linkMs };
 }
 
 async function harvestVirtualizedTurns() {
@@ -912,6 +1220,14 @@ async function harvestVirtualizedTurns() {
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
     showLoadingOverlay();
     setHarvestProgress('Loading conversation...');
+    // Only into an empty line: a person who already left and came back
+    // has the explanation of what happened, not a warning.
+    const stayTimer = setTimeout(function() {
+        const hint = document.querySelector('#gptpdf-progress .gptpdf-loading-hint');
+        if(hint && !hint.textContent) {
+            gptpdfSetHint(GPTPDF_HINT_STAY);
+        }
+    }, GPTPDF_HINT_AFTER_MS);
     const budget = makeHarvestBudget();
     let climb = { quietAtTop: false, topLoads: 0, maxArrivalGap: 0 };
     try {
@@ -921,8 +1237,17 @@ async function harvestVirtualizedTurns() {
         // Older pages first, so the walk goes over a list that no longer
         // grows: the start of the chat is loaded or we know it is not.
         const paged = await loadOlderPages(scroller, ax, budget);
-        const pagesNote = (paged.pages ? ', ' + paged.pages + ' older pages loaded' : '') +
+        // Paging kept its own clock; the walk starts with a full one.
+        budget.restart();
+        const sec = (ms) => Math.round(ms / 100) / 10;
+        const pagesNote = (paged.pages ? ', ' + paged.pages + ' older pages loaded in ' +
+                sec(paged.ms) + 's' : '') +
             (paged.stalled ? ', OLDER PAGES DID NOT LOAD (' + paged.retries + ' retries)' : '');
+        // The build in the harvest line itself: with two copies of the
+        // extension in one browser, only this line tells which one exported
+        // (06.10: the dev build announced itself, the store copy did the work).
+        const build = ' [' + (typeof gptpdfShared !== 'undefined' &&
+            gptpdfShared.build || '?') + ']';
         if(harvestCancelled) {
             await restoreViewAnchor(scroller, anchor, origScroll);
             return cache;
@@ -938,13 +1263,15 @@ async function harvestVirtualizedTurns() {
                 ordered: w.order.length,
                 pages: paged.pages, pagesStalled: paged.stalled,
                 cancelled: harvestCancelled,
-                seconds: Math.round(budget.elapsed() / 1000)
+                seconds: Math.round(budget.elapsed() / 1000),
+                ms: { pages: paged.ms, mount: w.mountMs, links: w.linkMs }
             };
-            console.log('[gptpdf] harvest: ' + w.held + ' of ' + w.renderable +
-                ' turns by wrappers (hidden ' + w.hidden + ', failed ' +
-                w.failed + ')' + pagesNote + ', ' + w.steps + ' steps' +
-                (harvestCancelled ? ', cancelled' : '') + ', ' +
-                Math.round(budget.elapsed() / 1000) + 's');
+            console.log('[gptpdf] harvest' + build + ': ' + w.held + ' of ' +
+                w.renderable + ' turns by wrappers (hidden ' + w.hidden +
+                ', failed ' + w.failed + ')' + pagesNote + ', ' + w.steps +
+                ' steps (waiting: mount ' + sec(w.mountMs) + 's, links ' +
+                sec(w.linkMs) + 's)' + (harvestCancelled ? ', cancelled' : '') +
+                ', ' + Math.round(budget.elapsed() / 1000) + 's');
             await restoreViewAnchor(scroller, anchor, origScroll);
             return cache;
         }
@@ -1008,7 +1335,9 @@ async function harvestVirtualizedTurns() {
                 budget.progress();
             }
             if(i % 8 === 0) {
-                setHarvestProgress('Reading ' + cache.size + ' messages...');
+                setHarvestProgress('Reading ' + cache.size + ' messages…');
+                gptpdfSetFact(gptpdfFactAt(GPTPDF_FACTS_READING,
+                    budget.elapsed(), GPTPDF_FACT_READING_AFTER_MS));
             }
             // Position refusing to advance means the real bottom, even while
             // scrollHeight keeps shifting under us.
@@ -1121,7 +1450,7 @@ async function harvestVirtualizedTurns() {
         // the conversation the page ended up holding; `top loaded: 0x` on a long
         // chat means standing at the top never made ChatGPT fetch an older
         // stretch — that is the thing to chase, and it is not about time.
-        console.log('[gptpdf] harvest: ' + cache.size + ' of ' +
+        console.log('[gptpdf] harvest' + build + ': ' + cache.size + ' of ' +
             (_loaded === null ? '?' : _loaded) +
             ' loaded turns, missing: ' + (_missing === null ? '?' : _missing) +
             (ax.reversed() ? ', bottom-origin thread' : '') +
@@ -1135,6 +1464,7 @@ async function harvestVirtualizedTurns() {
             ' + tail ' + Math.round((budget.elapsed() - _tDown) / 100) / 10 + ')');
         await restoreScroll(scroller, origScroll);
     } finally {
+        clearTimeout(stayTimer);
         hideLoadingOverlay();
     }
     return cache;

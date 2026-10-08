@@ -607,27 +607,44 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,2
      position: fixed;
      inset: 0;
      background: rgba(0, 0, 0, 0.45);
-     justify-content: center;
-     align-items: center;
  }
  .gptpdf-loading-overlay.gptpdf-dark { background: rgba(0, 0, 0, 0.62); }
+ /* The progress panel sits under the Export button — one place for every step
+    of an export, where the button's own menu opens. The one number (time since
+    the click) is the button's counter; the panel has words only (07.10). While
+    the chat is being read the page is dimmed and the button and panel stay above
+    the dimming; after that there is no dimming and the panel stays put. */
+ .gptpdf-block.gptpdf-exporting #gptpdf-convert-main { position: relative; z-index: 10002; }
  .gptpdf-loading-card {
-     display: flex;
+     display: none;
+     position: absolute;
+     top: calc(100% + 10px);
+     right: 0;
+     z-index: 10002;
      flex-direction: column;
-     align-items: center;
-     gap: 14px;
-     min-width: 220px;
-     padding: 28px 34px;
+     align-items: flex-start;
+     gap: 6px;
+     width: 300px;
+     padding: 14px 16px;
      background: #fff;
      color: #222;
-     border-radius: 14px;
-     box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22);
-     font-size: 15px;
+     border-radius: 12px;
+     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+     font-size: 14px;
+     text-align: left;
  }
- .gptpdf-loading-overlay.gptpdf-dark .gptpdf-loading-card { background: #2a2a2a; color: #ededed; }
- .gptpdf-loading-text { font-weight: 500; width: 250px; min-height: 2.5em; display: flex; align-items: center; justify-content: center; text-align: center; }
- .gptpdf-loading-card .gptpdf-dots-loader span { width: 10px; height: 10px; }
+ .gptpdf-loading-card.gptpdf-dark {
+     background: #2a2a2a;
+     color: #ededed;
+     border: 1px solid rgba(255, 255, 255, 0.08);
+     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+ }
+ .gptpdf-loading-text { font-weight: 600; line-height: 1.35; }
+ .gptpdf-loading-fact { font-size: 13px; line-height: 1.4; opacity: .85; }
+ .gptpdf-loading-hint { font-size: 12px; line-height: 1.4; opacity: .65; }
+ .gptpdf-loading-fact:empty, .gptpdf-loading-hint:empty { display: none; }
  .gptpdf-loading-cancel {
+     align-self: flex-end;
      margin-top: 4px;
      padding: 6px 18px;
      border: 1px solid rgba(0, 0, 0, 0.15);
@@ -638,8 +655,8 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,2
      cursor: pointer;
  }
  .gptpdf-loading-cancel:hover { background: rgba(0, 0, 0, 0.06); }
- .gptpdf-loading-overlay.gptpdf-dark .gptpdf-loading-cancel { border-color: rgba(255, 255, 255, 0.2); }
- .gptpdf-loading-overlay.gptpdf-dark .gptpdf-loading-cancel:hover { background: rgba(255, 255, 255, 0.1); }
+ .gptpdf-loading-card.gptpdf-dark .gptpdf-loading-cancel { border-color: rgba(255, 255, 255, 0.2); }
+ .gptpdf-loading-card.gptpdf-dark .gptpdf-loading-cancel:hover { background: rgba(255, 255, 255, 0.1); }
  .gptpdf-loading-overlay .gptpdf-spinner { width: 2.4rem; height: 2.4rem; border-width: 4px; }
 
  .gptpdf-overlay {
@@ -1268,12 +1285,12 @@ const EXPORT_BUTTON_HTML = `
         <button id="gptpdf-blocks-cancel">Cancel</button>
     </div>
 
-    <div class="gptpdf-loading-overlay" id="gptpdf-loading-overlay">
-        <div class="gptpdf-loading-card">
-            <div class="gptpdf-dots-loader"><span></span><span></span><span></span></div>
-            <div class="gptpdf-loading-text">Loading conversation...</div>
-            <button id="gptpdf-cancel-loading" class="gptpdf-loading-cancel">Cancel</button>
-        </div>
+    <div class="gptpdf-loading-overlay" id="gptpdf-loading-overlay"></div>
+    <div class="gptpdf-loading-card" id="gptpdf-progress">
+        <div class="gptpdf-loading-text">Loading conversation…</div>
+        <div class="gptpdf-loading-fact"></div>
+        <div class="gptpdf-loading-hint"></div>
+        <button id="gptpdf-cancel-loading" class="gptpdf-loading-cancel">Cancel</button>
     </div>
 
     <div class="gptpdf-overlay" id="gptpdf-title-overlay">

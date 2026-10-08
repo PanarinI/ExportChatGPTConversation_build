@@ -78,6 +78,164 @@ function gptpdfInlineBlobImage(img, liveImg) {
     return gptpdfBlobToDataUrl(src, liveImg || img).then(function(dataUrl) {
         if(dataUrl) {
             img.setAttribute('src', dataUrl);
+            gptpdfImageQueue.blobOk++;
+        } else {
+            gptpdfImageQueue.blobLost++;
+        }
+    });
+}
+
+// Pictures behind ChatGPT's login (files.oaiusercontent.com …) reach the PDF
+// only as data: URLs, fetched by the background page with the person's
+// cookies. Until 1.2.0 every picture of a chat was asked for at once, each
+// with 5 s and no second try: on a chat with 61 pictures some always ran out
+// of time, and the PDF kept their empty frames — 35, 36, 40 or 38 pictures in
+// four exports of the same chat (author's «Художник_базовый», 07.10; the
+// cause was written down on 08-22 and left open). Now: at most four at a time,
+// 20 s each (background.js), one more try, and a count of what got lost.
+const GPTPDF_IMAGE_PARALLEL = 4;
+const gptpdfImageQueue = { active: 0, waiting: [], ok: 0, failed: 0,
+                           blobOk: 0, blobLost: 0, unframed: 0, left: '' };
+
+function gptpdfImageStatsReset() {
+    const q = gptpdfImageQueue;
+    q.ok = q.failed = q.blobOk = q.blobLost = q.unframed = 0;
+    q.left = '';
+}
+
+// What reached the PDF as a picture and what did not: every <img> of the
+// export page that is still a link (not data:) will be an empty frame in the
+// PDF — the server cannot open ChatGPT's links. Counted by kind of link, so a
+// loss names its path (07.10: the first count showed the queue was not even
+// on the path of that chat's pictures).
+function gptpdfCountPictures(html) {
+    const kinds = {};
+    let embedded = 0;
+    const re = /<img\b[^>]*?\ssrc="([^"]*)"/gi;
+    let m;
+    while((m = re.exec(html))) {
+        const src = m[1];
+        if(src.startsWith('data:')) {
+            if(src.length > 2000) embedded++;   // not a favicon blank
+            continue;
+        }
+        const kind = src.startsWith('blob:') ? 'blob' :
+            /oaiusercontent\.com|images\.openai\.com/.test(src) ? 'files' :
+            /^https?:\/\/(chatgpt\.com|chat\.openai\.com)\//.test(src) ? 'chatgpt' :
+            (src ? 'other' : 'empty');
+        kinds[kind] = (kinds[kind] || 0) + 1;
+    }
+    return { embedded: embedded, left: kinds };
+}
+
+function gptpdfFetchImageOnce(src) {
+    return new Promise(function(resolve) {
+        try {
+            chrome.runtime.sendMessage({ action: 'fetchImageAsBase64', src: src },
+                function(response) {
+                    resolve(response && response.data ? response.data : null);
+                });
+        } catch(e) {
+            resolve(null);
+        }
+    });
+}
+
+// A picture served from ChatGPT's own file storage keeps that
+// fact as a mark once it is data:, and extractDalleImages takes every marked
+// picture out of ChatGPT's frame — whatever its type and weight. Until 1.2.0
+// the frame was opened only for a PNG of 500 000+ characters, which is what the
+// canvas makes of a picture that has loaded on the page. A picture not loaded
+// yet came through the background in the server's own type (webp), stayed in
+// its frame and did not print at all, not even as an empty box (07.10, the
+// author's «Художник_базовый»: 7 of 40 lost — exactly the 7 fetched; the
+// 08-22 open tail of CHATGPT-DOM §7: decide by what it is, not by weight).
+// What in the frame hides it is not measured; the page's own "not loaded
+// yet" look of that frame is the likely part. Questions too (08.10): an
+// uploaded photo that had not loaded came the same way and vanished from the
+// author's «Pineapple Express» on the first export after opening the chat,
+// while a loaded one was taken out by the weight rule all along — so leaving
+// questions out kept no "thumbnail size as before", only the loss.
+const GPTPDF_PICTURE_HOST =
+    /^https:\/\/(chatgpt\.com\/backend-api\/|[a-z0-9.-]*\.oaiusercontent\.com\/)/;
+
+// An icon or a variant's thumbnail (the strip of a generated picture's
+// versions, 56 px) is not a picture to take out: it would print full width.
+const GPTPDF_PICTURE_MIN_PX = 96;
+
+function gptpdfMarkPicture(img, src) {
+    if(!GPTPDF_PICTURE_HOST.test(src || '')) {
+        return;
+    }
+    const attrW = parseInt(img.getAttribute('width') || '0', 10);
+    // The second pass works on the detached copy, which has no layout: there
+    // the size the first pass stamped on the live <img> stands in (review
+    // 07.10: a 56 px variant whose first fetches failed came out full width).
+    const shownW = img.isConnected ? img.getBoundingClientRect().width :
+        parseInt(img.getAttribute('data-gptpdf-w') || '0', 10);
+    if((attrW > 0 && attrW < GPTPDF_PICTURE_MIN_PX) ||
+       (shownW > 0 && shownW < GPTPDF_PICTURE_MIN_PX)) {
+        return;
+    }
+    img.setAttribute('data-gptpdf-pic', '');
+}
+
+// The first pass works on the LIVE page: the canvas needs the loaded <img>,
+// the size stamps need its layout. Until 1.2.0 it also left the page so —
+// pictures written in as data:, which every later export of the same page
+// load then skipped, keeping whatever the first one got (07.10: the same 7
+// pictures lost in two exports in a row, all back after a reload). Once the
+// copy is taken, the page gets its own pictures back.
+function gptpdfLiveImagesSave(img, saved) {
+    if(!img.hasAttribute('data-gptpdf-live')) {
+        img.setAttribute('data-gptpdf-live', '');
+        saved.push({ img: img, src: img.getAttribute('src') });
+    }
+}
+
+// Only what the export wrote is put back: a data: copy over the page's own
+// link. A src the page itself changed meanwhile is the page's.
+function gptpdfLiveImagesRestore(saved) {
+    saved.forEach(function(s) {
+        const now = s.img.getAttribute('src') || '';
+        if(s.src && !s.src.startsWith('data:') && now !== s.src &&
+           now.startsWith('data:')) {
+            s.img.setAttribute('src', s.src);
+        }
+        ['data-gptpdf-live', 'data-gptpdf-w', 'data-gptpdf-h', 'data-gptpdf-pic']
+            .forEach(function(a) { s.img.removeAttribute(a); });
+    });
+    saved.length = 0;
+}
+
+// Citation favicons are blanked in the PDF anyway (render.js, step 2b), and
+// their server does not answer the background: each export counted dozens of
+// them as lost pictures (08.10: «lost 38» on a chat with two pictures).
+const GPTPDF_FAVICON = /google\.com\/s2\/favicons|gstatic\.com\/faviconV2/;
+
+// Resolves to a data: URL, or null when both tries failed.
+function gptpdfFetchImageData(src) {
+    if(GPTPDF_FAVICON.test(src || '')) {
+        return Promise.resolve(null);
+    }
+    const q = gptpdfImageQueue;
+    return new Promise(function(resolve) {
+        const run = function() {
+            q.active++;
+            gptpdfFetchImageOnce(src).then(function(data) {
+                return data || gptpdfFetchImageOnce(src);
+            }).then(function(data) {
+                if(data) { q.ok++; } else { q.failed++; }
+                q.active--;
+                const next = q.waiting.shift();
+                if(next) next();
+                resolve(data);
+            });
+        };
+        if(q.active < GPTPDF_IMAGE_PARALLEL) {
+            run();
+        } else {
+            q.waiting.push(run);
         }
     });
 }
@@ -438,4 +596,203 @@ function getTitle(root) {
         title = firstPromptTitle(root);
     }
     return title;
+}
+
+// ── All sources of a grouped citation ─────────────────────────────────────
+//
+// ChatGPT prints a grouped citation as one pill, "PubMed Central (PMC) +1":
+// only the first source is in the page; the others live in its data and show
+// in a hover card (08.10, the author: «там слито 2 ссылки — нужно достать
+// все»). The data is the conversation the page itself loaded — on a chat
+// page from /backend-api/conversation/{id} with the person's own session, on
+// a shared page inline in its HTML. Read on Export only, never stored, never
+// sent anywhere but into the PDF, as the links ChatGPT itself shows.
+// Measured on the author's test chat (share 6ac75a91…, CHATGPT-DOM §11):
+// message.metadata.content_references, type grouped_webpages; a pill per
+// items[i]; its sources are [item, ...item.supporting_websites]; pills come
+// in the order of the refs by start_idx.
+
+// Which conversation the page shows: a chat, a shared copy, or none.
+function gptpdfConversationRef(pathname) {
+    const uuid = '([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})';
+    let m = new RegExp('^/share/' + uuid).exec(pathname || '');
+    if(m) {
+        return { kind: 'share', id: m[1] };
+    }
+    m = new RegExp('^(?:/g/[^/]+)?/c/' + uuid).exec(pathname || '');
+    return m ? { kind: 'chat', id: m[1] } : null;
+}
+
+// React Router's turbo-stream, as a shared page carries its data: a flat
+// array, objects as {"_<key index>": <value index>}, negative specials.
+function gptpdfDecodeTurboStream(text) {
+    const line = (text || '').split('\n').find(l => l.trim().startsWith('['));
+    if(!line) {
+        return null;
+    }
+    const values = JSON.parse(line);
+    const memo = new Map();
+    const special = { '-1': undefined, '-2': NaN, '-3': -Infinity, '-4': -0,
+                      '-5': null, '-6': Infinity, '-7': undefined };
+    const hyd = function(i) {
+        if(typeof i === 'number' && i < 0) {
+            return special[String(i)];
+        }
+        if(memo.has(i)) {
+            return memo.get(i);
+        }
+        const v = values[i];
+        let r = v;
+        if(Array.isArray(v)) {
+            if(v.length && typeof v[0] === 'string') {
+                r = null;                   // a typed value (date, promise…): not needed
+            } else {
+                r = [];
+                memo.set(i, r);
+                v.forEach(x => r.push(hyd(x)));
+            }
+        } else if(v && typeof v === 'object') {
+            r = {};
+            memo.set(i, r);
+            Object.keys(v).forEach(function(k) {
+                const key = /^_\d+$/.test(k) ? values[+k.slice(1)] : k;
+                r[key] = hyd(v[k]);
+            });
+        }
+        memo.set(i, r);
+        return r;
+    };
+    return hyd(0);
+}
+
+// A shared page: its data is inline, in streamController.enqueue("…") calls.
+function gptpdfShareMapping(doc) {
+    let text = '';
+    Array.from(doc.querySelectorAll('script:not([src])')).forEach(function(s) {
+        // Runs, not single characters: one loop step per character overflowed
+        // the regex stack on a 10 MB payload (review 08.10).
+        const re = /streamController\.enqueue\(("(?:[^"\\]+|\\.)*")\)/g;
+        let m;
+        while((m = re.exec(s.textContent || ''))) {
+            text += JSON.parse(m[1]);
+        }
+    });
+    const root = text && gptpdfDecodeTurboStream(text);
+    const found = [];
+    (function walk(o, depth) {
+        if(!o || typeof o !== 'object' || depth > 8 || found.length) {
+            return;
+        }
+        if(o.mapping && typeof o.mapping === 'object' && !Array.isArray(o.mapping)) {
+            found.push(o.mapping);
+            return;
+        }
+        Object.keys(o).forEach(k => walk(o[k], depth + 1));
+    })(root, 0);
+    return found[0] || null;
+}
+
+function gptpdfCookie(name) {
+    const m = new RegExp('(?:^|; )' + name + '=([^;]*)').exec(document.cookie || '');
+    return m ? decodeURIComponent(m[1]) : '';
+}
+
+// A chat page: the same request the page makes, with the person's session.
+function gptpdfChatMapping(id, signal) {
+    return fetch('/api/auth/session', { credentials: 'include', signal: signal })
+        .then(r => r.ok ? r.json() : null)
+        .then(function(session) {
+            const token = session && session.accessToken;
+            if(!token) {
+                return null;
+            }
+            const headers = { 'Authorization': 'Bearer ' + token };
+            const account = gptpdfCookie('_account');
+            if(account && account !== 'personal') {
+                headers['ChatGPT-Account-ID'] = account;
+            }
+            const device = gptpdfCookie('oai-did');
+            if(device) {
+                headers['OAI-Device-Id'] = device;
+            }
+            return fetch('/backend-api/conversation/' + id, {
+                credentials: 'include', headers: headers, signal: signal
+            }).then(r => r.ok ? r.json() : null);
+        })
+        .then(data => (data && data.mapping) || null);
+}
+
+// message id → its pills in page order, each with all its sources.
+function gptpdfCitationIndex(mapping) {
+    const index = new Map();
+    const usable = (it) => it && it.url && !/^(file:|https?:\/\/localhost)/i.test(it.url);
+    Object.keys(mapping || {}).forEach(function(k) {
+        const msg = mapping[k] && mapping[k].message;
+        const refs = msg && msg.metadata && msg.metadata.content_references;
+        if(!msg || !msg.id || !Array.isArray(refs)) {
+            return;
+        }
+        const pills = [];
+        refs.filter(function(r) {
+            return r && !r.invalid && r.style !== 'hidden' &&
+                /^(grouped_webpages|webpage|webpage_extended)$/.test(r.type || '');
+        }).sort(function(a, b) {
+            return (a.start_idx - b.start_idx) || (a.end_idx - b.end_idx);
+        }).forEach(function(r) {
+            const items = r.type === 'grouped_webpages' ? (r.items || []) : [r];
+            items.filter(usable).forEach(function(it) {
+                pills.push({ url: it.url, start: r.start_idx,
+                             sources: [it].concat((it.supporting_websites || []).filter(usable)) });
+            });
+        });
+        if(pills.length) {
+            index.set(msg.id, pills);
+        }
+    });
+    return index;
+}
+
+// Rewrites the copy's pills and says so in one console line; never throws.
+function gptpdfApplyCitationSources(root, index) {
+    let n = 0;
+    try {
+        n = gptpdfRewriteCitationPills(root, index);
+    } catch(e) {
+        n = -1;
+    }
+    console.log('[gptpdf] citations: ' + (index ? index.size + ' messages with pills in the data, ' +
+        (n < 0 ? 'REWRITE FAILED' : n + ' grouped pills given all their sources') :
+        'no data (pills keep their first source)'));
+}
+
+// Started on Export, waited for at most `ms` later; never rejects — without
+// the data the pills print as before, with their first source.
+function gptpdfCitationSourcesStart(ms) {
+    const ref = gptpdfConversationRef(location.pathname);
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    let work;
+    try {
+        work = !ref ? Promise.resolve(null) :
+            ref.kind === 'share' ? Promise.resolve(gptpdfShareMapping(document)) :
+            gptpdfChatMapping(ref.id, ctl && ctl.signal);
+    } catch(e) {
+        work = Promise.resolve(null);
+    }
+    const done = work.then(m => m ? gptpdfCitationIndex(m) : null).catch(() => null);
+    // Only a copy with a "+N" pill can use the data: any other export does
+    // not wait for it (review 08.10).
+    return function wait(root) {
+        const grouped = root && Array.from(root.querySelectorAll(
+            '[data-testid="webpage-citation-pill"]')).some(p => /\+\d+\s*$/.test(p.textContent));
+        if(root && !grouped) {
+            if(ctl) ctl.abort();
+            return Promise.resolve(null);
+        }
+        return Promise.race([done, new Promise(function(r) {
+            setTimeout(function() {
+                if(ctl) ctl.abort();
+                r(null);
+            }, ms || 4000);
+        })]);
+    };
 }

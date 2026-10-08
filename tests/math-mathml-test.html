@@ -1,0 +1,63 @@
+<meta charset="utf-8">
+<title>Тест формул в PDF</title>
+<!--
+  Формула ChatGPT (KaTeX) в PDF печаталась «x2» вместо x² и дробями в строку:
+  стили и шрифты KaTeX до сервера печати не доходят. MathML Chromium рисует сам
+  (замер на нашем сервере 08.10). gptpdfMathToMathML (render.js) переводит каждую
+  формулу из её исходника TeX (data-math-source) в MathML встроенной библиотекой
+  KaTeX (lib/katex.min.js). Формулы для стенда строятся той же библиотекой в той
+  разметке, что у ChatGPT (span[role=math][data-math-source] > .katex > .katex-html).
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=3000 --dump-dom "file://$PWD/tests/math-mathml-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../shared.js"></script>
+<script src="../helpers.js"></script>
+<script src="../theme.js"></script>
+<script src="../templates.js"></script>
+<script src="../lib/katex.min.js"></script>
+<script src="../render.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, ok, detail) {
+    if(!ok) failed++;
+    out.push((ok ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+// Как у ChatGPT: видимая разметка KaTeX без MathML, исходник — в атрибуте.
+function chatgpt(src, display) {
+    const html = katex.renderToString(src, { output: 'html', displayMode: display, throwOnError: false });
+    const esc = src.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    return '<span role="math" data-math-source="' + esc + '">' + html + '</span>';
+}
+const root = document.createElement('div');
+root.className = 'markdown';
+root.innerHTML =
+    '<p>График функции ' + chatgpt('y = x^2') + ' на отрезке ' + chatgpt('[-5,5]') + ':</p>' +
+    '<p>' + chatgpt('\\frac{a+b}{2}', false) + '</p>' +
+    chatgpt('\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}', true) +
+    '<p>' + chatgpt('\\notacommand{x}') + '</p>';           // не читается — остаётся как было
+document.body.appendChild(root);
+const before = root.querySelectorAll('.katex-html').length;
+const n = gptpdfMathToMathML(root);
+const maths = root.querySelectorAll('math');
+
+check('четыре формулы из пяти — в MathML', n === 4 && maths.length === 4, n + ' переведено');
+check('x² — степень (msup), а не «x2»', !!root.querySelector('math msup'));
+check('дробь — mfrac', !!root.querySelector('math mfrac'));
+check('сумма — блочная формула', !!root.querySelector('math[display="block"]'));
+check('исходник TeX не дублирует текст', root.querySelectorAll('annotation').length === 0 &&
+      !/\\\\frac|\\^/.test(root.textContent.replace(/\\notacommand/, '')), root.textContent.slice(0, 60));
+document.head.insertAdjacentHTML('beforeend', '<style>.katex-mathml{display:none !important}</style>');  // наш CSS
+check('формулы видны и под нашим CSS (.katex-mathml прячется)', [...root.querySelectorAll('math')]
+      .every(m => m.getBoundingClientRect().width > 0));
+check('нечитаемая формула осталась видимой разметкой', root.querySelectorAll('.katex-html').length === 1,
+      before + ' → ' + root.querySelectorAll('.katex-html').length);
+check('повторный проход ничего не ломает', gptpdfMathToMathML(root) === 0 && root.querySelectorAll('math').length === 4);
+
+out.push('\n' + (failed ? '❌ провалено проверок: ' + failed : '✅ все проверки пройдены'));
+document.getElementById('log').textContent = out.join('\n');
+</script>

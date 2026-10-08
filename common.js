@@ -7,10 +7,20 @@ function sendGA4Event(eventName, params) {
         { action: 'ga4Event', eventName: eventName, eventParams: params });
 }
 
+// One export at a time, whichever path started it: the full export (convert)
+// or "Select to export" (blockmode.js). Set when an export starts, released
+// when it ends — its file came, it failed (showError), or it was cancelled.
+// The disabled button is no guard: checkForContent turns it back on every
+// second, and a second click started a second export and a second file (the
+// double-click bug; for block mode, review 07.10).
+let gptpdfExportInProgress = false;
+
 // Shared in-button export feedback (dots spinner + 8s seconds counter), used by
 // BOTH the full export and the block-selection export — one UI, no extra modal.
 let _exportSecs = 0, _exportTick = null, _exportCountStart = null;
 function startExportSpinner() {
+    gptpdfExportBegin();
+    gptpdfImageStatsReset();
     const btn = document.getElementById('gptpdf-convert-main');
     if(btn) btn.disabled = true;
     const spinner = document.getElementById('gptpdf-spinner');
@@ -38,6 +48,7 @@ function startExportSpinner() {
     }, 8000);
 }
 function stopExportSpinner() {
+    gptpdfExportEnd();
     clearTimeout(_exportCountStart);
     if(_exportTick) { clearInterval(_exportTick); _exportTick = null; }
     const spinner = document.getElementById('gptpdf-spinner');
@@ -56,21 +67,37 @@ function stopExportSpinner() {
 
 const gptpdfChatGPT = {};
 
+// Two copies of the extension in one browser (store + an unpacked dev build)
+// both run here, and the one that injects its button first does every export,
+// while the other only prints its build line. 06.10 that cost three exports
+// read as "the new build fails". The page now says who owns the button.
+const GPTPDF_COPY = gptpdfShared.build + '#' + Math.random().toString(36).slice(2, 8);
+let gptpdfToldOwner = false;
+
 gptpdfChatGPT.init = function() {
     if(document.querySelectorAll('.gptpdf-convert').length > 0) {
         // avoid double init
+        // A button without a stamp is an older copy's (1.1.11 and earlier do
+        // not stamp); one copy never sees its own button twice — init runs
+        // once per content-script world.
+        const owner = document.documentElement.getAttribute('data-gptpdf-owner');
+        if(owner !== GPTPDF_COPY && !gptpdfToldOwner) {
+            gptpdfToldOwner = true;
+            console.warn('[gptpdf] build ' + gptpdfShared.build +
+                ' is idle: the Export button belongs to another copy of the ' +
+                'extension (' + (owner ? owner.split('#')[0]
+                    : 'an older build, 1.1.11 or earlier') +
+                '). Turn one of them off in chrome://extensions.');
+        }
         return;
     }
+    document.documentElement.setAttribute('data-gptpdf-owner', GPTPDF_COPY);
 
     const blockStyle = document.createElement('style');
     blockStyle.textContent = UI_CSS;
     document.head.appendChild(blockStyle);
 
     const gptpdfBlockHtml = EXPORT_BUTTON_HTML;
-
-    // Re-entrancy guard: ignore clicks while an export is already running
-    // (prevents the double-click -> two half-finished files bug).
-    let exportInProgress = false;
 
     async function convert(event) {
         // Rate Us intercept: open dropdown instead of exporting
@@ -79,19 +106,44 @@ gptpdfChatGPT.init = function() {
             return;
         }
 
-        if(exportInProgress) {
+        // Re-entrancy guard: ignore clicks while an export is already running
+        // (prevents the double-click -> two half-finished files bug).
+        if(gptpdfExportInProgress) {
             return;
         }
-        exportInProgress = true;
+        gptpdfExportInProgress = true;
 
         document.getElementById('gptpdf-extra-btns').classList.add(
             'gptpdf-hidden');
 
         startExportSpinner();
+        // All sources of grouped citations: read alongside the harvest.
+        const citeWait = gptpdfCitationSourcesStart(4000);
 
         function restoreButtonState() {
-            exportInProgress = false;
+            gptpdfExportInProgress = false;
             stopExportSpinner();
+        }
+
+        // Pressed while the chat was still opening: the button is up before
+        // the messages are, and the export read an empty page — a PDF with
+        // only the title (author, 08.10: «нажал сразу»). Wait for the chat
+        // (a question and an answer on the page), up to 15 s; if it does not
+        // come, say so instead of making an empty file.
+        const chatReady = () => gptpdfHasConversation() &&
+            !!document.querySelector('[data-message-author-role="assistant"], div[data-turn-key]');
+        if(!gptpdfPendingTurnCache && !chatReady()) {
+            const t0 = Date.now();
+            while(!chatReady() && Date.now() - t0 < 15000) {
+                await new Promise(r => setTimeout(r, 200));
+            }
+            if(!chatReady()) {
+                restoreButtonState();
+                gptpdfChatGPT.showError(null, 'The chat has not loaded yet. ' +
+                    'Wait until its messages appear, then press Export again.', true);
+                return;
+            }
+            await new Promise(r => setTimeout(r, 1500));     // its turns settle
         }
 
         // Harvest all virtualized turns before cloning the DOM.
@@ -110,9 +162,14 @@ gptpdfChatGPT.init = function() {
         const hasSelection = !prefetched && selection &&
             !selection.isCollapsed && selection.rangeCount > 0;
         let turnCache = prefetched;
+        // Отметки времени экспорта по фазам: сбор → сборка страницы с
+        // картинками → ужатие картинок → наш сервер. «Долго» без них — догадка,
+        // а подсказку «это займёт до …» не на чем строить (вопрос автора 07.10).
+        gptpdfChatGPT._t = { start: Date.now() };
         if(!turnCache && !hasSelection) {
             try {
                 turnCache = await harvestVirtualizedTurns();
+                gptpdfChatGPT._t.harvested = Date.now();
             } catch(e) {
                 turnCache = null;
             }
@@ -120,6 +177,10 @@ gptpdfChatGPT.init = function() {
         if(harvestCancelled) {
             restoreButtonState();
             return;
+        }
+        // The scrolling's card goes straight on — no blank moment between steps.
+        if(gptpdfExportCard.shown) {
+            gptpdfExportStep('Preparing the PDF…');
         }
 
         gptpdfShared.getOptions(function(options) {
@@ -129,7 +190,10 @@ gptpdfChatGPT.init = function() {
 
             // Lock computed image sizes and convert external images to base64
             const imgPromises = [];
+            const liveImgs = [];
             main.querySelectorAll('img').forEach(function(img) {
+                gptpdfLiveImagesSave(img, liveImgs);
+                gptpdfMarkPicture(img, img.getAttribute('src'));
                 const isGallery = !!img.closest('.no-scrollbar');
                 if (!isGallery) {
                     const rect = img.getBoundingClientRect();
@@ -167,22 +231,31 @@ gptpdfChatGPT.init = function() {
                     if (needsBackgroundFetch) {
                         const capturedImg = img;
                         const srcToFetch = capturedImg.getAttribute('src') || capturedImg.src;
-                        imgPromises.push(new Promise(function(resolve) {
-                            chrome.runtime.sendMessage({
-                                action: 'fetchImageAsBase64',
-                                src: srcToFetch
-                            }, function(response) {
-                                if (response && response.data) capturedImg.setAttribute('src', response.data);
-                                resolve();
-                            });
+                        imgPromises.push(gptpdfFetchImageData(srcToFetch).then(function(data) {
+                            if (data) capturedImg.setAttribute('src', data);
                         }));
                     }
                 }
             });
 
+            // Шаг 3 карточки: картинки вшиваются в страницу (два прохода —
+            // видимые сейчас и пришедшие из сбора, счёт общий).
+            const imgCount = { done: 0, total: imgPromises.length };
+            const imgTick = function() {
+                imgCount.done++;
+                gptpdfExportImages('Adding images', imgCount.done, imgCount.total);
+            };
+            gptpdfExportImages('Adding images', 0, imgCount.total);
+            imgPromises.forEach(function(p) { p.then(imgTick); });
+
             Promise.all(imgPromises).then(function() {
 
-            const main_clone = prepareContent(main);
+            let main_clone;
+            try {
+                main_clone = prepareContent(main);
+            } finally {
+                gptpdfLiveImagesRestore(liveImgs);
+            }
 
             // Log all images in clone to check src
             main_clone.querySelectorAll('img').forEach(function(img, i) {
@@ -190,6 +263,10 @@ gptpdfChatGPT.init = function() {
             });
 
             restoreVirtualizedTurns(main_clone, turnCache);
+            // «Creating the PDF from N messages»: the same count the card showed
+            // while reading (a turn; on the new page a question with its answer).
+            gptpdfChatGPT._t.messages =
+                main_clone.querySelectorAll(GPTPDF_TURN).length;
 
             // Block mode's "Select all": the conversation is whole, now take
             // out the blocks the user unchecked. Done here, before the images
@@ -207,18 +284,17 @@ gptpdfChatGPT.init = function() {
                     return;
                 }
                 const capturedImg = img;
-                lateImgPromises.push(new Promise(function(resolve) {
-                    chrome.runtime.sendMessage({
-                        action: 'fetchImageAsBase64',
-                        src: src
-                    }, function(response) {
-                        if (response && response.data) capturedImg.setAttribute('src', response.data);
-                        resolve();
-                    });
+                gptpdfMarkPicture(img, src);
+                lateImgPromises.push(gptpdfFetchImageData(src).then(function(data) {
+                    if (data) capturedImg.setAttribute('src', data);
                 }));
             });
 
-            Promise.all(lateImgPromises).then(function() {
+            imgCount.total += lateImgPromises.length;
+            gptpdfExportImages('Adding images', imgCount.done, imgCount.total);
+            lateImgPromises.forEach(function(p) { p.then(imgTick); });
+
+            Promise.all([Promise.all(lateImgPromises), citeWait(main_clone)]).then(function(ready) {
 
             main_clone.querySelectorAll('.no-scrollbar img').forEach(function(img, i) {
                 const src = img.getAttribute('src') || '';
@@ -227,6 +303,7 @@ gptpdfChatGPT.init = function() {
             // Pair layout: each question+answer turn becomes two classic
             // turns, so everything from here on reads one markup (render.js).
             gptpdfNormalizeTurns(main_clone);
+            gptpdfApplyCitationSources(main_clone, ready[1]);
 
             cleanupForPdf(main_clone);
 
@@ -291,8 +368,8 @@ gptpdfChatGPT.init = function() {
                 // in the viewer's side panel whenever the table of contents is
                 // on — they are the same list (background.js, render.js).
                 data.page_numbers = !!options.page_numbers && !singlePagePrint;
-                data.outline = !!options.toc && !options.no_questions;
-                if(data.outline) gptpdfMarkOutline(main_clone);
+                data.outline = !!options.toc;
+                if(data.outline) gptpdfMarkOutline(main_clone, options.no_questions);
 
                 const classes = buildCssClasses(options, singlePagePrint);
                 if(isDarkMode) {
@@ -340,6 +417,7 @@ gptpdfChatGPT.init = function() {
                     'gptpdf-title-overlay');
                 const titleInput = document.getElementById('gptpdf-title');
                 titleInput.value = title;
+                gptpdfExportPause();
                 dlgTitle.style.display = 'flex';
                 titleInput.focus();
                 document.getElementById('gptpdf-title-convert')
@@ -790,6 +868,8 @@ if (aiOnlyBtn) {
 }
 
 gptpdfChatGPT.showError = function(status, text, hideContact) {
+  gptpdfExportEnd();     // the progress card must not sit over the error
+  gptpdfExportInProgress = false;   // a failure ends the export, whoever reports it
   // Every failed export funnels through here (all four paths in request.js),
   // mirroring saveBlob for success. Fire the failed-export signal with a coarse
   // reason so success rate — and the "not works" split between a too-large

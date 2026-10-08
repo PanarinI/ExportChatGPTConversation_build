@@ -5,8 +5,77 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
-## [Unreleased]
+## [1.2.2] — 2026-10-08
 ### Fixed
+- **Formulas print the way ChatGPT shows them.** Powers, fractions, roots,
+  sums, integrals and matrices used to fall apart into a line in the PDF
+  ("x2" instead of x²). Each formula is now rebuilt from its own source and
+  drawn as real math.
+
+## [1.2.1] — 2026-10-08
+### Added
+- **Every source of a grouped citation.** Where ChatGPT shows a citation as one
+  chip with "+1" ("PubMed Central +1"), the PDF used to keep only the first
+  source. Now it lists them all, each as its own link ("matplotlib.org · NumPy").
+- **Contents and bookmarks in "AI answers only".** That mode used to have
+  neither, because the contents were made of the questions it leaves out. Now
+  each answer gets an entry — its first heading, or its first sentence — that
+  links to it, and the same list shows as bookmarks in the PDF viewer.
+
+### Fixed
+- **No more stray boxes in the text.** Links to files a code run once made
+  ("download it here") printed as a button with a broken icon, "code citation"
+  chips as empty boxes, and an image edit left a small empty bubble next to the
+  question. Now the link is plain text and the empty pieces are gone.
+- **No more empty PDF when Export is pressed too early.** Pressed while the
+  chat was still opening, the export made a file with only the title. Now it
+  waits for the chat to appear, and if it does not, says so.
+- **Interactive graphs are no longer exported half-loaded.** ChatGPT draws its
+  live graph a few seconds after the answer; an export made in that time
+  printed a page-wide loading spinner. The export now waits for the graph.
+
+## [1.2.0] — 2026-10-08
+### Added
+- **One progress card from the click to the file.** It says what is happening
+  at each step — loading older messages, reading them, adding and compressing
+  images, creating the PDF with a running clock — so a long export never sits
+  in silence. On long chats it adds a short fact about how ChatGPT loads them,
+  and it tells you when you may switch tabs: not while messages are being read
+  (a hidden tab pauses the export), yes once the PDF is being created.
+- **ChatGPT is yours again while the PDF is created.** From "Compressing
+  images" on, the screen is no longer dimmed and the card stays under the
+  button: you can read, scroll or open another chat, and the file still downloads.
+  Only closing or reloading the tab stops it.
+
+### Fixed
+- **Generated pictures no longer go missing.** A picture in an answer that had
+  not finished loading on the page when you exported — for example because you
+  switched tabs — was left out of the PDF, with an empty space in its place; a
+  second export in the same tab lost the same pictures again until the page was
+  reloaded. Now every picture of an answer reaches the PDF, and exporting leaves
+  the chat page as it was. Pictures are also fetched four at a time, with more
+  time each and one retry.
+- **Charts drawn by code are no longer lost.** ChatGPT shows the answer's text
+  first and draws its chart about a second later; on long chats the export
+  sometimes moved on before the chart arrived. It now waits for it.
+- **ChatGPT's interactive graphs print cleanly.** The graph is kept; its buttons
+  (copy, expand, zoom, "Add more", "Leave feedback") and the function input
+  boxes no longer appear in the PDF, and the half page of empty space under the
+  graph is gone.
+- **A second click on Export no longer makes a second file.** While "Select to
+  export" was still preparing the PDF, the Export button came back on after a
+  second, and clicking it again started another export and downloaded the
+  selection twice. Now one export runs at a time, whichever kind it is; if
+  preparing a selection fails, an error says so instead of a spinner that never
+  stops.
+- **Chats with generated pictures are sent at half the size.** Each picture
+  taken out of ChatGPT's frame was also kept, hidden, in the frame, so it was
+  sent and compressed twice. Now it goes once: on a chat with 40 pictures the
+  upload is about half as heavy and "Compressing images" takes half the time.
+- **Questions with an uploaded picture keep their text.** When the picture was
+  a large PNG (for example a downloaded DALL·E image uploaded again), the PDF
+  showed the picture and dropped the question written under it, while the table
+  of contents still listed it.
 - **Long chats are read in one pass.** On ChatGPT's classic page the
   extension now follows the page's own list of messages from the first to the
   last. Before, it crawled up to the start of the chat and back down again —

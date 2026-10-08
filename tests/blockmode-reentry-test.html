@@ -1,0 +1,311 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Второй клик во время экспорта ничего не начинает</title>
+<!--
+  Проверяет защиту от второго клика (DECISIONS 10-07): пока идёт экспорт — полный или
+  «Select to export», — клик по Export ничего не начинает. Страница сама раз в секунду
+  включает кнопку обратно (checkForContent), поэтому выключенная кнопка защитой не служит:
+  стенд ждёт, пока она включится, и только тогда кликает второй раз.
+
+  Настоящие content-скрипты в порядке манифеста на маленьком макете старой вёрстки (без
+  прокрутки, сбор пустой и мгновенный). Фон расширения — заглушка: картинку отдаёт, когда
+  стенд разрешит. Отправка на сервер перехвачена и считается: одна отправка — один PDF.
+
+  Сцены:
+    A. Выбор блоков, экспорт стоит на картинках. Второй клик по Export и клик по «Export
+       selected»: картинку второй раз не просят, второго события нет, PDF один.
+    B. Выбор блоков, режим выбора уже снят, PDF делается на сервере. Клик по Export не
+       начинает полный экспорт.
+    C. Полный экспорт после блочного начинается (защита отпустила); его собственный второй
+       клик тоже ничего не начинает.
+    D. Отказ сервера отпускает защиту; showError и сам по себе её отпускает.
+    E. Сбой внутри сборки блочного экспорта: окно ошибки, защита отпущена, режим выбора
+       снят, следующий экспорт идёт.
+    F. Идёт полный экспорт, человек открыл «Select to export». Ни «Select all», ни ручной
+       выбор второго экспорта не начинают; «Select all» не отдаёт исключения и не закрывает
+       режим.
+
+  Клики — .click() из скрипта: стенд проверяет логику второго входа, а не попадание мыши
+  (кнопки не новые и не сдвинуты).
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=60000 --dump-dom \
+      "file://$PWD/tests/blockmode-reentry-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<main>
+  <article data-testid="conversation-turn-1">
+    <h5 class="sr-only">You said:</h5>
+    <div data-message-author-role="user" data-message-id="u0"><div class="whitespace-pre-wrap">Вопрос 1?</div></div>
+  </article>
+  <article data-testid="conversation-turn-2">
+    <h6 class="sr-only">ChatGPT said:</h6>
+    <div data-message-author-role="assistant" data-message-id="a0">
+      <div class="markdown prose"><p>Ответ 1, абзац 1.</p><p>Ответ 1, абзац 2.</p></div>
+    </div>
+  </article>
+  <article data-testid="conversation-turn-3">
+    <h5 class="sr-only">You said:</h5>
+    <div data-message-author-role="user" data-message-id="u1"><div class="whitespace-pre-wrap">Вопрос 2?</div></div>
+  </article>
+  <article data-testid="conversation-turn-4">
+    <h6 class="sr-only">ChatGPT said:</h6>
+    <div data-message-author-role="assistant" data-message-id="a1">
+      <div class="markdown prose"><p>Ответ 2 — картинка ниже.</p></div>
+    </div>
+    <!-- Файла нет: картинка не загружена, экспорт просит её у фона (как незагруженную на странице). -->
+    <div class="imagegen-image"><img src="reentry-missing-picture.png" alt="Generated image" style="width:160px;height:100px;display:block"></div>
+  </article>
+</main>
+<script>
+'use strict';
+// ── заглушка браузерного API расширения ───────────────────────────────
+window.__ga = [];
+let holdImages = false;   // true — фон не отвечает, пока стенд не разрешит
+let imgAsked = 0;         // сколько раз картинку просили у фона
+const imgHeld = [];
+const PNG = (function() {
+    const c = document.createElement('canvas'); c.width = 4; c.height = 4;
+    c.getContext('2d').fillRect(0, 0, 4, 4); return c.toDataURL('image/png');
+})();
+const memory = { sync: {}, local: {} };
+function area(name) {
+    return {
+        get: function(k, cb) {
+            const o = {};
+            (Array.isArray(k) ? k : (k ? [k] : Object.keys(memory[name]))).forEach(function(x) {
+                if(x in memory[name]) o[x] = memory[name][x];
+            });
+            if(cb) setTimeout(function() { cb(o); }, 0);
+        },
+        set: function(o, cb) { Object.assign(memory[name], o); if(cb) setTimeout(cb, 0); },
+        remove: function(k, cb) { [].concat(k).forEach(function(x) { delete memory[name][x]; }); if(cb) setTimeout(cb, 0); }
+    };
+}
+window.chrome = {
+    runtime: {
+        id: 'stand',
+        sendMessage: function(msg, cb) {
+            if(msg && msg.action === 'ga4Event') { window.__ga.push(msg.eventName); return; }
+            if(msg && msg.action === 'fetchImageAsBase64') {
+                imgAsked++;
+                const answer = function() { if(cb) cb({ data: PNG }); };
+                if(holdImages) imgHeld.push(answer); else setTimeout(answer, 5);
+                return;
+            }
+            if(cb) setTimeout(function() { cb({}); }, 0);
+        },
+        onMessage: { addListener: function() {} },
+        getURL: function(p) { return '../' + p; }
+    },
+    storage: { sync: area('sync'), local: area('local') }
+};
+</script>
+<script src="../shared.js"></script>
+<script src="../templates.js"></script>
+<script src="../helpers.js"></script>
+<script src="../theme.js"></script>
+<script src="../render.js"></script>
+<script src="../capture.js"></script>
+<script src="../settings.js"></script>
+<script src="../blockmode.js"></script>
+<script src="../common.js"></script>
+<script src="../request.js"></script>
+<script>
+'use strict';
+// ── сервер: перехват отправки; одна отправка — один PDF ──────────────
+const sent = [];
+let serverMode = 'ok';    // 'ok' · 'hold' (PDF делается, пока стенд не отпустит) · 'error'
+const serverHeld = [];
+gptpdfChatGPT.sendChunkedData = function(html, params, fileName, fnCleanup) {
+    sent.push(fileName);
+    if(serverMode === 'hold') { serverHeld.push(fnCleanup); return; }
+    // Как request.js: сначала уборка, потом файл или окно ошибки.
+    setTimeout(function() {
+        fnCleanup();
+        if(serverMode === 'error') gptpdfChatGPT.showError(500, 'stand: server refused');
+    }, 10);
+};
+
+const out = [];
+let failed = 0;
+function check(name, cond, detail) {
+    if(!cond) failed++;
+    out.push((cond ? '✓ ' : '✗ ') + name + (detail !== undefined && !cond ? '   → ' + detail : ''));
+}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+async function until(cond, ms) {
+    for(let t = 0; t < (ms || 3000) && !cond(); t += 50) await wait(50);
+    return !!cond();
+}
+const mainBtn = () => document.getElementById('gptpdf-convert-main');
+const label = () => mainBtn().querySelector('.gptpdf-lg').textContent.trim();
+const events = name => window.__ga.filter(x => x === name).length;
+const running = () => typeof gptpdfExportInProgress !== 'undefined' && gptpdfExportInProgress;
+const spinnerOn = () => !document.getElementById('gptpdf-spinner').classList.contains('gptpdf-hidden');
+const inBlockMode = () => !!document.querySelector('[data-gptpdf-bid]');
+const errorShown = () => document.getElementById('gptpdf-error-overlay').style.display === 'flex';
+const errorText = () => document.getElementById('gptpdf-error-message').textContent;
+function closeError() { document.getElementById('gptpdf-error-overlay').style.display = 'none'; }
+function releaseImages() { holdImages = false; imgHeld.splice(0).forEach(f => f()); }
+async function enterBlockMode() {
+    document.getElementById('gptpdf-blocks').click();
+    return until(inBlockMode, 3000);
+}
+function tick(n) { document.querySelectorAll('.gptpdf-block-cb input')[n].click(); }
+// Страница включает кнопку раз в секунду — второй клик только по включённой.
+const reenabled = () => until(() => !mainBtn().disabled, 2500);
+
+(async function() {
+    try {
+        check('кнопка Export появилась на странице',
+              await until(() => mainBtn() && !mainBtn().disabled &&
+                  !document.querySelector('.gptpdf-block').classList.contains('gptpdf-hidden'), 3000));
+
+        // ── A ─────────────────────────────────────────────────────────
+        out.push('', '— A. Выбор блоков, экспорт стоит на картинках —');
+        check('режим выбора открылся', await enterBlockMode());
+        tick(0);
+        check('выбран один блок', label() === 'Export (1)', label());
+        holdImages = true;
+        mainBtn().click();
+        check('экспорт начался: картинку попросили у фона', await until(() => imgAsked === 1, 2000), imgAsked);
+        check('export_selected_used — одно', events('export_selected_used') === 1, events('export_selected_used'));
+        check('защита поднята', running());
+        check('страница снова включила кнопку (выключенная кнопка — не защита)', await reenabled());
+        mainBtn().click();
+        document.getElementById('gptpdf-blocks-export').click();
+        await wait(500);
+        check('второй клик: картинку второй раз не просили', imgAsked === 1, imgAsked);
+        check('второй клик: второго export_selected_used нет', events('export_selected_used') === 1,
+              events('export_selected_used'));
+        releaseImages();
+        await until(() => sent.length >= 1 && !running(), 3000);
+        await wait(500);
+        check('ушёл один PDF', sent.length === 1, sent.length);
+        check('защита отпущена', !running());
+        check('спиннер снят', !spinnerOn());
+        check('режим выбора снят', !inBlockMode());
+
+        // ── B ─────────────────────────────────────────────────────────
+        out.push('', '— B. Режим выбора уже снят, PDF делается на сервере —');
+        await enterBlockMode();
+        tick(1);
+        serverMode = 'hold';
+        mainBtn().click();
+        check('блочный экспорт дошёл до сервера', await until(() => sent.length === 2, 3000), sent.length);
+        check('режим выбора уже снят', !inBlockMode());
+        check('защита держится, пока PDF делается', running());
+        check('страница снова включила кнопку', await reenabled());
+        const askedB = imgAsked;
+        mainBtn().click();
+        await wait(1500);
+        check('клик по Export не начал полный экспорт', sent.length === 2 && imgAsked === askedB,
+              'отправок ' + sent.length + ', запросов картинки +' + (imgAsked - askedB));
+        serverMode = 'ok';
+        serverHeld.splice(0).forEach(f => f());
+        await wait(100);
+        check('PDF пришёл — защита отпущена', !running());
+
+        // ── C ─────────────────────────────────────────────────────────
+        out.push('', '— C. Полный экспорт после блочного —');
+        holdImages = true;
+        const askedC = imgAsked;
+        mainBtn().click();
+        check('полный экспорт начался (защита не залипла)', await until(() => imgAsked === askedC + 1, 2000),
+              imgAsked - askedC);
+        check('страница снова включила кнопку', await reenabled());
+        mainBtn().click();
+        await wait(500);
+        check('второй клик по полному экспорту ничего не начал', imgAsked === askedC + 1, imgAsked - askedC);
+        releaseImages();
+        await until(() => sent.length >= 3 && !running(), 3000);
+        await wait(500);
+        check('ушёл один PDF', sent.length === 3, sent.length);
+        check('защита отпущена', !running());
+
+        // ── D ─────────────────────────────────────────────────────────
+        out.push('', '— D. Отказ сервера —');
+        serverMode = 'error';
+        await enterBlockMode();
+        tick(0);
+        mainBtn().click();
+        check('окно ошибки показано', await until(errorShown, 3000));
+        check('защита отпущена', !running());
+        check('спиннер снят', !spinnerOn());
+        closeError();
+        serverMode = 'ok';
+        try { gptpdfExportInProgress = true; } catch(e) {}
+        gptpdfChatGPT.showError(null, 'stand: showError alone');
+        check('showError сам по себе отпускает защиту', !running());
+        closeError();
+
+        // ── E ─────────────────────────────────────────────────────────
+        out.push('', '— E. Сбой внутри сборки блочного экспорта —');
+        const realPrepare = window.prepareContent;
+        window.prepareContent = function() { throw new Error('stand: prepareContent broke'); };
+        await enterBlockMode();
+        tick(0);
+        const sentE = sent.length;
+        const failedE = events('export_failed');
+        mainBtn().click();
+        check('сбой виден: окно ошибки', await until(errorShown, 3000));
+        window.prepareContent = realPrepare;
+        check('в окне сказано, что сломалось', /prepareContent broke/.test(errorText()), errorText());
+        check('export_failed отправлен', events('export_failed') === failedE + 1, events('export_failed') - failedE);
+        check('защита отпущена', !running());
+        check('спиннер снят', !spinnerOn());
+        check('режим выбора снят', !inBlockMode());
+        closeError();
+        await enterBlockMode();
+        tick(0);
+        mainBtn().click();
+        check('следующий экспорт идёт и доходит до PDF', await until(() => sent.length === sentE + 1 && !running(), 3000),
+              sent.length - sentE);
+
+        // ── F ─────────────────────────────────────────────────────────
+        out.push('', '— F. Идёт полный экспорт, человек открыл «Select to export» —');
+        await wait(300);
+        holdImages = true;
+        const askedF = imgAsked;
+        const sentF = sent.length;
+        mainBtn().click();
+        check('полный экспорт начался', await until(() => imgAsked === askedF + 1, 2000), imgAsked - askedF);
+        check('режим выбора открылся поверх', await enterBlockMode());
+        document.querySelector('.gptpdf-all-row').click();
+        tick(1);   // «всё, кроме этого»
+        check('«Select all» включён, один блок снят', label() === 'Export all but 1', label());
+        await reenabled();
+        mainBtn().click();
+        await wait(300);
+        check('клик в «Select all» не отдал исключения', gptpdfPendingExclusions === null,
+              gptpdfPendingExclusions && gptpdfPendingExclusions.size);
+        check('и не закрыл режим выбора', inBlockMode());
+        document.querySelector('.gptpdf-all-row').click();   // назад к ручному выбору
+        tick(0);
+        check('ручной выбор: один блок', label() === 'Export (1)', label());
+        const usedF = events('export_selected_used');
+        await reenabled();
+        mainBtn().click();
+        await wait(300);
+        check('ручной выбор: второй экспорт не начался',
+              events('export_selected_used') === usedF && imgAsked === askedF + 1,
+              'событий +' + (events('export_selected_used') - usedF) + ', запросов картинки +' + (imgAsked - askedF - 1));
+        releaseImages();
+        await until(() => sent.length >= sentF + 1 && !running(), 3000);
+        await wait(500);
+        check('ушёл один PDF — полного экспорта', sent.length === sentF + 1, sent.length - sentF);
+        document.getElementById('gptpdf-exit-select').click();
+        check('режим выбора закрыт крестиком', !inBlockMode());
+    } catch(e) {
+        failed++;
+        out.push('✗ стенд упал: ' + (e && e.stack || e));
+    }
+
+    out.push('');
+    out.push(failed ? '✗ ПРОВАЛОВ: ' + failed : '✓ ВСЁ ЗЕЛЁНОЕ');
+    document.getElementById('log').textContent = out.join('\n');
+})();
+</script>

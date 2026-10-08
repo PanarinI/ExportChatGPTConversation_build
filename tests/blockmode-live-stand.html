@@ -45,6 +45,7 @@
   <div id="left"><div id="page-top">Макет ChatGPT · <span id="layout-name"></span></div><main></main></div>
   <div id="side"><div id="side-head">Здесь появится то, что ушло бы в PDF.</div><iframe id="out"></iframe></div>
 </div>
+<script src="../lib/katex.min.js"></script>
 <script>
 'use strict';
 const LAYOUT = /layout=classic/.test(location.search) ? 'classic' : 'pair';
@@ -101,7 +102,7 @@ function blobImage(label, color) {
 }
 
 // ?demo=1 — правдоподобный английский чат для витрины (баннер CWS снят с настоящего PDF, а не нарисован)
-const DEMO = /demo=1/.test(location.search) ? [
+let DEMO = /demo=1/.test(location.search) ? [
   ['Plan a 3-day trip to Lisbon for two, mid-range budget.',
    '<h3>Your 3-day Lisbon plan</h3><p>A relaxed pace: one big sight each morning, free evenings.</p>' +
    '<table><thead><tr><th>Day</th><th>Morning</th><th>Afternoon</th><th>Evening</th></tr></thead><tbody>' +
@@ -127,7 +128,38 @@ const DEMO = /demo=1/.test(location.search) ? [
 ] : null;
 if(DEMO) document.title = 'Lisbon trip: 3-day plan';
 
+// ?demo=formats — витрина форматов для третьего баннера CWS (08.10): таблица, код,
+// формулы (как у ChatGPT: видимая разметка KaTeX + исходник в data-math-source),
+// картинка. Выгружается настоящим конвейером на наш сервер (tests/e2e-render.js).
+function demoMath(src, display) {
+    const esc = src.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    return '<span role="math" data-math-source="' + esc + '">' +
+        katex.renderToString(src, { output: 'html', displayMode: !!display }) + '</span>';
+}
+const DEMO_FORMATS = /demo=formats/.test(location.search) ? [
+  ['Compare three note-taking methods.',
+   '<p>Each method fits a different kind of material:</p>' +
+   '<table><thead><tr><th>Method</th><th>Best for</th><th>Review</th></tr></thead><tbody>' +
+   '<tr><td>Cornell</td><td>Lectures</td><td>Cue column</td></tr>' +
+   '<tr><td>Mind map</td><td>Big picture</td><td>Redraw from memory</td></tr>' +
+   '<tr><td>Outline</td><td>Textbooks</td><td>Headings as questions</td></tr>' +
+   '</tbody></table>'],
+  ['Write a Python function that merges two sorted lists.',
+   '<p>Two pointers, one pass:</p>' +
+   '<pre><code class="language-python">def merge(a, b):\n    i = j = 0\n    out = []\n    while i &lt; len(a) and j &lt; len(b):\n' +
+   '        if a[i] &lt;= b[j]:\n            out.append(a[i]); i += 1\n        else:\n            out.append(b[j]); j += 1\n' +
+   '    return out + a[i:] + b[j:]</code></pre>'],
+  ['How do I solve a quadratic equation?',
+   '<p>For ' + demoMath('ax^2 + bx + c = 0') + ' with ' + demoMath('a \\neq 0') + ':</p>' +
+   demoMath('x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}', true) +
+   '<p>The sign of ' + demoMath('D = b^2 - 4ac') + ' tells how many real roots there are.</p>'],
+  ['Draw a lighthouse at sunrise in watercolor.',
+   '<p>Here is the lighthouse:</p>' +
+   '<p><img src="fixtures/demo-picture.jpg" alt="Watercolor lighthouse at sunrise" width="512" height="512"></p>']
+] : null;
+
 // ── диалог: 12 вопросов и ответов, у некоторых — части, код, список, картинка ──
+if(DEMO_FORMATS) { DEMO = DEMO_FORMATS; document.title = 'Study notes: formats'; }
 const N = DEMO ? DEMO.length : 12;
 const IMG = blobImage('IMG 5', '#2a7');
 function answerParts(i) {
@@ -252,6 +284,7 @@ render();
 <script src="../templates.js"></script>
 <script src="../helpers.js"></script>
 <script src="../theme.js"></script>
+<script src="../lib/katex.min.js"></script>
 <script src="../render.js"></script>
 <script src="../capture.js"></script>
 <script src="../settings.js"></script>

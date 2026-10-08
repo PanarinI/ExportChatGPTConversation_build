@@ -9,6 +9,10 @@
   src начинается с `data:image/png` И длиннее 500 000 символов. Всё, что
   пришло другим типом или оказалось мельче, обёртку не покидает.
 
+  С 1.2.0 (07.10) у гейта второй вход — метка data-gptpdf-pic: картинка ответа
+  из хранилища ChatGPT вынимается любого типа и веса (gptpdfMarkPicture,
+  helpers.js); там же — кого метка обходит и возврат живой страницы.
+
   Что тест НЕ проверяет: с каким MIME реальные картинки ChatGPT приходят с
   сервера. Это решается только живым экспортом (08-01 у автора была png).
 
@@ -45,12 +49,20 @@ function wrapped(src) {
         '</span></div></div></div>';
     return root;
 }
-// «Спасена» = функция вставила рядом чистый блок и погасила исходную обёртку.
+// «Спасена» = функция вставила рядом чистый блок, погасила исходную обёртку и
+// забрала из неё картинку: картинка едет в HTML один раз, только чистой копией.
+// До 07.10 спрятанный оригинал хранил тот же data: — каждая вынутая картинка
+// ехала на сервер дважды.
+function rescuedIn(root, src) {
+    const box = root.querySelector('.aspect');
+    const imgs = root.querySelectorAll('img');
+    return box.style.display === 'none' && imgs.length === 1 &&
+        !box.contains(imgs[0]) && imgs[0].getAttribute('src') === src;
+}
 function rescued(src) {
     const root = wrapped(src);
     extractDalleImages(root);
-    const hidden = root.querySelector('.aspect').style.display === 'none';
-    return hidden && root.querySelectorAll('img').length === 2;
+    return rescuedIn(root, src);
 }
 
 const big = 'x'.repeat(500001);
@@ -78,6 +90,231 @@ out.push('\n— галерею трогать нельзя (там свой пу
     extractDalleImages(root);
     eq('картинка в .no-scrollbar не вскрывается', root.querySelectorAll('img').length, 1);
 })();
+
+// Вопрос с загруженной картинкой — разметка со страницы автора 06.10
+// (`vopros-s-kartinkoj.html`, «мудрец»): картинка и пузырь с текстом — соседи в
+// одном блоке, на пять уровней выше <img>. Подъём на шесть уровней доходил до
+// этого блока и прятал его вместе с текстом вопроса.
+out.push('\n— вопрос с картинкой: текст вопроса остаётся —');
+(function() {
+    const root = document.createElement('div');
+    root.innerHTML =
+        '<div data-message-author-role="user" data-message-id="q1">' +
+        '<div class="flex w-full flex-col gap-1 items-end">' +
+          '<div class="flex w-[var(--user-chat-width,70%)] flex-col items-end">' +
+            '<div class="flex flex-row items-center justify-end gap-1">' +
+              '<div class="overflow-hidden rounded w-full h-full">' +
+                '<div class="group/message-image">' +
+                  '<span class="unwrapped-button">' +
+                    '<img alt="DALL·E 2024-12-15" src="data:image/png;base64,' + big + '">' +
+                  '</span>' +
+                '</div></div></div></div>' +
+          '<div class="flex w-fit flex-col"><div class="contents w-full">' +
+            '<div class="corner relative min-w-0 overflow-hidden">' +
+              '<div data-testid="collapsible-user-message-root">' +
+                '<div data-testid="collapsible-user-message-content">' +
+                  '<div class="whitespace-pre-wrap">чем-то мне этот вариант все равно нравится больше.</div>' +
+                '</div></div></div></div></div>' +
+        '</div></div>';
+    document.body.appendChild(root);
+    extractDalleImages(root);
+    const text = root.querySelector('.whitespace-pre-wrap');
+    let hiddenUp = false;
+    for(let el = text; el && el !== root; el = el.parentElement) {
+        if(getComputedStyle(el).display === 'none') hiddenUp = true;
+    }
+    eq('текст вопроса не спрятан', hiddenUp, false);
+    eq('текст вопроса виден в раскладке', text.getBoundingClientRect().height > 0, true);
+    eq('картинка вынута ровно одна видимая', [...root.querySelectorAll('img')]
+        .filter(i => !i.closest('[style*="display: none"]')).length, 1);
+    eq('и одна всего: спрятанный оригинал пуст', root.querySelectorAll('img').length, 1);
+    root.remove();
+})();
+
+// 07.10, «Художник_базовый»: 7 из 40 картинок ответов пропали из PDF — ровно
+// те 7, что пришли фоном (webp). Картинка ответа из хранилища ChatGPT теперь
+// помечена при вшивании (gptpdfMarkPicture) и вынимается по метке, какого бы
+// типа и веса ни была.
+function marked(src) {
+    const root = wrapped(src);
+    root.querySelector('img').setAttribute('data-gptpdf-pic', '');
+    return root;
+}
+function rescuedMarked(src) {
+    const root = marked(src);
+    extractDalleImages(root);
+    return rescuedIn(root, src);
+}
+out.push('\n— картинка ответа с меткой: вынимается любой тип и вес —');
+eq('WEBP с меткой (так пришли те 7)',        rescuedMarked('data:image/webp;base64,' + small), true);
+eq('JPEG с меткой',                          rescuedMarked('data:image/jpeg;base64,' + small), true);
+eq('маленький PNG с меткой',                 rescuedMarked('data:image/png;base64,' + small),  true);
+eq('с меткой, но не вшита (ссылка)',         rescuedMarked('https://chatgpt.com/backend-api/estuary/content?id=f'), false);
+(function() {
+    const root = marked('data:image/webp;base64,' + small);
+    root.querySelector('.aspect').classList.add('no-scrollbar');
+    extractDalleImages(root);
+    eq('с меткой в .no-scrollbar — не трогаем', root.querySelectorAll('img').length, 1);
+})();
+
+// Ревью 07.10: вынутая картинка ехала в HTML дважды — чистой копией и в
+// спрятанном оригинале. Вес выгрузки, работа «Compressing images» и счётчик
+// `pictures: N embedded` удваивались («78 embedded» на 40 картинок автора).
+out.push('\n— картинка едет в HTML один раз —');
+(function() {
+    const body = 'y'.repeat(5000);
+    const pic = 'data:image/webp;base64,' + body;
+    const turn = '<article data-testid="conversation-turn-2">' +
+        '<div data-message-author-role="assistant"><div class="markdown"><p>Вот три варианта.</p></div>' +
+        '<div class="imagegen-image"><div class="aspect" style="position:relative;aspect-ratio:1/1">' +
+        '<button type="button"><img data-gptpdf-pic data-gptpdf-w="480" data-gptpdf-h="480" src="' + pic + '" ' +
+        'style="position:absolute;inset:0"></button></div></div></div></article>';
+    const root = document.createElement('div');
+    root.innerHTML = '<article data-testid="conversation-turn-1"><div data-message-author-role="user">' +
+        '<div class="whitespace-pre-wrap">Нарисуй</div></div></article>' + turn + turn + turn;
+    cleanupForPdf(root);                         // полный путь (common.js)
+    const html = root.outerHTML;
+    eq('полный путь: копий картинки в HTML',      html.split(body).length - 1, 3);
+    eq('счётчик embedded = 3 (было 6)',           gptpdfCountPictures(html).embedded, 3);
+    const hidden = [...root.querySelectorAll('*')].filter(el => el.style.display === 'none');
+    eq('спрятанных обёрток 3, картинок в них 0',
+       hidden.length + ' / ' + hidden.filter(el => el.querySelector('img')).length, '3 / 0');
+    eq('видимых картинок 3',                      root.querySelectorAll('img').length, 3);
+
+    const sel = document.createElement('div');   // выбор блоков: тот же вызов на своей копии
+    sel.innerHTML = turn;
+    extractDalleImages(sel);
+    eq('выбор блоков: копий картинки в HTML',     sel.outerHTML.split(body).length - 1, 1);
+})();
+(function() {
+    // Подъём остановился на самой картинке (у родителя свой текст): прятать было
+    // нечего, кроме неё, — теперь она просто уходит, чистая копия стоит на её месте.
+    const pic = 'data:image/webp;base64,' + 'z'.repeat(3000);
+    const root = document.createElement('div');
+    root.innerHTML = '<div data-message-author-role="assistant"><p>Вот она: ' +
+        '<img data-gptpdf-pic src="' + pic + '"> — нравится?</p></div>';
+    extractDalleImages(root);
+    const imgs = root.querySelectorAll('img');
+    eq('картинка внутри текста: одна, чистая копия',
+       imgs.length === 1 && imgs[0].style.position === '' &&
+       imgs[0].parentElement.style.display === 'block', true);
+    eq('текст вокруг цел',                        /Вот она:.*нравится\?/.test(root.textContent), true);
+})();
+
+out.push('\n— кого метка помечает —');
+function markOf(html, src, attrs) {
+    const root = document.createElement('div');
+    root.innerHTML = html.replace('IMG', '<img ' + (attrs || '') + ' src="' + src + '">');
+    document.body.appendChild(root);
+    const img = root.querySelector('img');
+    gptpdfMarkPicture(img, src);
+    const got = img.hasAttribute('data-gptpdf-pic');
+    root.remove();
+    return got;
+}
+const answer = '<section data-turn="assistant"><div class="pb-2">IMG</div></section>';
+const question = '<div data-message-author-role="user"><div>IMG</div></div>';
+const estuary = 'https://chatgpt.com/backend-api/estuary/content?id=file_00&sig=x';
+eq('ответ, хранилище chatgpt.com',            markOf(answer, estuary), true);
+eq('ответ, files.oaiusercontent.com',         markOf(answer, 'https://files.oaiusercontent.com/file-1?se=1'), true);
+eq('вопрос (загруженное фото) — да',           markOf(question, estuary), true);
+eq('ответ, картинка из поиска — нет',         markOf(answer, 'https://images.openai.com/static-rsc-4/a.jpg'), false);
+eq('ответ, значок сайта — нет',               markOf(answer, 'https://www.google.com/s2/favicons?domain=a.com'), false);
+eq('ответ, width=32 (значок) — нет',          markOf(answer, estuary, 'width="32" height="32"'), false);
+eq('ответ, показана 56 px (миниатюра) — нет', markOf(answer, estuary, 'style="width:56px"'), false);
+eq('ответ, width=1024 — да',                  markOf(answer, estuary, 'width="1024" height="1024"'), true);
+(function() {
+    // Второй проход: копия без раскладки — размер берётся из штампа первого.
+    const box = document.createElement('div');
+    box.innerHTML = answer.replace('IMG', '<img width="1536" data-gptpdf-w="56" src="' + estuary + '">');
+    const img = box.querySelector('img');
+    gptpdfMarkPicture(img, estuary);
+    eq('копия без раскладки, штамп 56 px — нет', img.hasAttribute('data-gptpdf-pic'), false);
+    img.setAttribute('data-gptpdf-w', '480');
+    gptpdfMarkPicture(img, estuary);
+    eq('копия без раскладки, штамп 480 px — да', img.hasAttribute('data-gptpdf-pic'), true);
+})();
+
+out.push('\n— живая страница получает свои картинки назад —');
+(function() {
+    const root = document.createElement('div');
+    root.innerHTML = answer.replace('IMG', '<img src="' + estuary + '">');
+    document.body.appendChild(root);
+    const img = root.querySelector('img');
+    const saved = [];
+    gptpdfLiveImagesSave(img, saved);
+    gptpdfLiveImagesSave(img, saved);                 // второй раз — не дублирует
+    gptpdfMarkPicture(img, estuary);
+    img.setAttribute('data-gptpdf-w', '480');
+    img.setAttribute('src', 'data:image/webp;base64,' + small);   // как первый проход
+    const copy = root.cloneNode(true);
+    gptpdfLiveImagesRestore(saved);
+    eq('в копии осталась вшитая картинка с меткой',
+       copy.querySelector('img').getAttribute('src').startsWith('data:image/webp') &&
+       copy.querySelector('img').hasAttribute('data-gptpdf-pic'), true);
+    eq('на странице снова её ссылка',            img.getAttribute('src'), estuary);
+    eq('и никаких наших пометок',                ['data-gptpdf-pic', 'data-gptpdf-w', 'data-gptpdf-live']
+                                                 .some(a => img.hasAttribute(a)), false);
+    eq('сохранённых записей не остаётся',        saved.length, 0);
+    root.remove();
+})();
+(function() {
+    // Что страница сменила сама, пока шла выгрузка, — её; трогаем только свою копию.
+    const root = document.createElement('div');
+    root.innerHTML = answer.replace('IMG', '<img src="' + estuary + '"><img>');
+    document.body.appendChild(root);
+    const [a, b] = root.querySelectorAll('img');
+    const saved = [];
+    gptpdfLiveImagesSave(a, saved);
+    gptpdfLiveImagesSave(b, saved);
+    a.setAttribute('src', estuary + '&v=2');               // страница поменяла сама
+    b.setAttribute('src', estuary);                        // страница дала src позже
+    gptpdfLiveImagesRestore(saved);
+    eq('src, сменённый страницей, не откатывается', a.getAttribute('src'), estuary + '&v=2');
+    eq('src, данный страницей позже, не снимается', b.getAttribute('src'), estuary);
+    root.remove();
+})();
+
+// 08.10, «Pineapple Express»: фото в вопросе, не загруженное в чате, пришло фоном
+// (jpeg) и не напечаталось — место есть, фото нет. Рамка, что его прячет, не
+// замерена: прячем на каждом уровне обёртки, вынутое фото должно быть видно,
+// текст вопроса — на месте.
+out.push('\n— фото в вопросе, рамка прячет незагруженное —');
+['.group\\/message-image', '.overflow-hidden.rounded', '.items-center.justify-end'].forEach(function(level) {
+    const root = document.createElement('div');
+    root.innerHTML =
+        '<div data-message-author-role="user" data-message-id="q2">' +
+        '<div class="flex w-full flex-col gap-1 items-end">' +
+          '<div class="flex w-[var(--user-chat-width,70%)] flex-col items-end">' +
+            '<div class="flex flex-row items-center justify-end gap-1">' +
+              '<div class="overflow-hidden rounded max-w-64 max-h-64">' +
+                '<div class="group/message-image relative flex">' +
+                  '<button type="button" aria-haspopup="dialog" aria-label="Open image: photo.jpg">' +
+                    '<img alt="photo.jpg" width="1200" height="1600" src="' + estuary + '">' +
+                  '</button>' +
+                '</div></div></div></div>' +
+          '<div class="flex w-fit flex-col"><div class="whitespace-pre-wrap">я взял её и меня разочаровал эффект</div></div>' +
+        '</div></div>';
+    document.body.appendChild(root);
+    const img = root.querySelector('img');
+    gptpdfMarkPicture(img, estuary);
+    // как пришло фоном; 5000 знаков — настоящее фото, не значок (шаг 3 держит кнопку
+    // с картинкой только от 2000 знаков)
+    img.setAttribute('src', 'data:image/jpeg;base64,' + 'x'.repeat(5000));
+    root.querySelector(level).style.opacity = '0';                     // «ещё не загружено»
+    cleanupForPdf(root);
+    const shown = [...root.querySelectorAll('img')].filter(function(i) {
+        for(let e = i; e && e !== root; e = e.parentElement) {
+            const c = getComputedStyle(e);
+            if(c.display === 'none' || c.opacity === '0' || c.visibility === 'hidden') return false;
+        }
+        return true;
+    });
+    eq('прячет ' + level.replace(/\\/g, '') + ': фото видно', shown.length, 1);
+    eq('   …и текст вопроса на месте', /разочаровал/.test(root.textContent) &&
+       getComputedStyle(root.querySelector('.whitespace-pre-wrap')).display !== 'none', true);
+    root.remove();
+});
 
 out.push('\n' + (failed ? '❌ провалено проверок: ' + failed
                         : '✅ все проверки пройдены — гейт ведёт себя ровно как описано'));

@@ -209,8 +209,11 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
     if (message.action === 'fetchImageAsBase64') {
+        // 20 s: the content script now asks for at most four at a time
+        // (helpers.js, gptpdfFetchImageData), so a slow big picture is not a
+        // lost one; 5 s with everything at once lost several per long chat.
         const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('timeout')), 5000)
+                    setTimeout(() => reject(new Error('timeout')), 20000)
                 );
                 Promise.race([
                     fetch(message.src, {
@@ -222,8 +225,16 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
                     }),
                     timeoutPromise
                 ])
-                    .then(r => r.blob())
+                    .then(r => {
+                        if (!r.ok) throw new Error('http ' + r.status);
+                        return r.blob();
+                    })
                     .then(blob => {
+                        // An expired link answers with a page, not a picture —
+                        // that is a failure, not something to embed.
+                        if (/^(text\/|application\/(json|xml))/.test(blob.type || '')) {
+                            throw new Error('not an image: ' + blob.type);
+                        }
                         const reader = new FileReader();
                         reader.onload = () => sendResponse({ data: reader.result });
                         reader.readAsDataURL(blob);

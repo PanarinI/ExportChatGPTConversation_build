@@ -1,0 +1,90 @@
+<meta charset="utf-8">
+<title>Тест оглавления «только ответы»</title>
+<!--
+  «AI answers only» прячет вопросы, а оглавление строилось из них — в этом режиме
+  его не было вовсе, как и закладок (слово автора 08.10: строка на каждый ответ).
+  Теперь: строка на каждый вопрос — для ответа после него: начало ответа — его первый
+  блок (заголовок, если ответ с него начинается, иначе первая фраза); ссылка — на ответ; закладка — тот же заголовок или абзац.
+  Обычный режим — как был: строки из вопросов.
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=3000 --dump-dom "file://$PWD/tests/toc-answers-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../shared.js"></script>
+<script src="../helpers.js"></script>
+<script src="../theme.js"></script>
+<script src="../templates.js"></script>
+<script src="../render.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, ok, detail) {
+    if(!ok) failed++;
+    out.push((ok ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+const q = (n, t) => '<article data-testid="conversation-turn-' + n + '" class="gptpdf-user-turn">' +
+    '<div data-message-author-role="user" data-message-id="q' + n + '"><div>' + t + '</div></div></article>';
+const a = (n, md) => '<article data-testid="conversation-turn-' + n + '">' +
+    '<div data-message-author-role="assistant" data-message-id="a' + n + '"><div class="markdown">' + md + '</div></div></article>';
+function chat() {
+    const m = document.createElement('main');
+    m.innerHTML =
+        q(1, 'Как устроен фотосинтез?') +
+        a(2, '<h2>Фотосинтез в двух словах</h2><p>Растение делает сахар из света.</p>') +
+        q(3, 'А при чём тут хлорофилл?') +
+        a(4, '<p>Хлорофилл ловит свет. Без него реакция не идёт.</p>') +
+        q(5, 'Ещё вопрос') +
+        a(6, '<p>' + 'Очень длинная фраза без точки '.repeat(6) + '</p>') +
+        q(7, '') +                                        // пустой вопрос — не строка
+        a(8, '<p>Ответ на пустое.</p>') +
+        q(9, 'дай тестовый вывод') +                      // как у автора: вступление, потом заголовок
+        a(10, '<p>Да. Вот тест, в котором я использую несколько типов ссылок.</p><h3>1. Обычные цитаты</h3>');
+    document.body.appendChild(m);
+    return m;
+}
+const tocText = (html) => {
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    return [...d.querySelectorAll('li a')].map(x => ({ text: x.textContent, href: x.getAttribute('href') }));
+};
+
+out.push('— «только ответы» —');
+let m = chat();
+let toc = tocText(buildTocHtml({ toc: 'bullets', no_questions: true }, m));
+check('строк столько, сколько вопросов с текстом', toc.length === 4, toc.length + '');
+check('4: начало ответа, не заголовок ниже', toc[3] && /^Да\. Вот тест/.test(toc[3].text), toc[3] && toc[3].text);
+check('1: заголовок ответа', toc[0] && toc[0].text === 'Фотосинтез в двух словах', toc[0] && toc[0].text);
+check('2: первая фраза ответа', toc[1] && toc[1].text === 'Хлорофилл ловит свет.', toc[1] && toc[1].text);
+check('3: длинное обрезано', toc[2] && toc[2].text.length <= 80 && /\.\.\.$/.test(toc[2].text), toc[2] && toc[2].text.length + ' знаков');
+check('ни одного вопроса в оглавлении', !toc.some(t => /фотосинтез\?|хлорофилл\?|Ещё вопрос/.test(t.text)));
+check('ссылки ведут на ответы', toc.every(t => {
+    const el = m.querySelector(t.href);
+    return el && el.getAttribute('data-message-author-role') === 'assistant';
+}), toc.map(t => t.href).join(' '));
+gptpdfMarkOutline(m, true);
+const marks = [...m.querySelectorAll('[role="heading"][aria-level="2"]')];
+check('закладки: по одной на ответ, у вопросов — нет', marks.length === 4 &&
+      !marks.some(e => e.closest('[data-message-author-role="user"]')),
+      marks.map(e => e.tagName + ':' + e.textContent.slice(0, 20)).join(' | '));
+m.remove();
+
+out.push('\n— обычный режим — как был —');
+m = chat();
+toc = tocText(buildTocHtml({ toc: 'bullets', no_questions: false }, m));
+check('строки — вопросы', toc.length === 4 && toc[0].text === 'Как устроен фотосинтез?', toc.map(t => t.text).join(' | '));
+check('ссылки ведут на вопросы', toc.every(t => (m.querySelector(t.href) || {}).getAttribute &&
+      m.querySelector(t.href).getAttribute('data-message-author-role') === 'user'));
+gptpdfMarkOutline(m, false);
+check('закладки — на вопросах', [...m.querySelectorAll('[role="heading"][aria-level="2"]')]
+      .every(e => e.getAttribute('data-message-author-role') === 'user'));
+m.remove();
+
+out.push('\n— оглавление выключено —');
+check('без оглавления — пусто', buildTocHtml({ toc: '', no_questions: true }, chat()) === '');
+
+out.push('\n' + (failed ? '❌ провалено проверок: ' + failed : '✅ все проверки пройдены'));
+document.getElementById('log').textContent = out.join('\n');
+</script>

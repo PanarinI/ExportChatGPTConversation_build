@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "__MSG_appName__",
-    "version": "1.1.12",
+    "version": "1.2.2",
     "description": "__MSG_shortDesc__",
     "default_locale": "en",
     "action": {
@@ -36,7 +36,7 @@
                 "templates.js",
                 "helpers.js",
                 "theme.js",
-                "render.js",
+                "lib/katex.min.js", "render.js",
                 "capture.js",
                 "settings.js",
                 "blockmode.js",
