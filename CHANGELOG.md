@@ -14,6 +14,9 @@ history and working notes.
   PDF, and the rest of the chat prints as usual.
 - **The error dialog shows the real version** of the extension (it used to say
   "v3.9" whatever was installed).
+- **The Export button is back in ChatGPT's header.** On the new ChatGPT page it
+  slid into the right corner under the header, with its arrow fallen under the
+  button. Now it stands in the header, next to Share, in one row.
 
 ## [1.2.2] — 2026-10-08
 ### Fixed

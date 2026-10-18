@@ -285,6 +285,38 @@ setInterval(function() {
     if(scroller.scrollTop !== lastTop) { lastTop = scroller.scrollTop; render(); }
 }, 50);
 render();
+
+// ?header=new — шапка новой страницы ChatGPT по замеру 18.10 (аккаунт автора): фиксированный
+// <header> 52 px, в нём поверхность app-shell-header-context-menu-surface, справа группа
+// «Upgrade · × · Share · More» на 8 px от верха. ?header=old — прежний #page-header из трёх блоков.
+// Кнопка Export должна встать слева от группы, на одной линии с ней (не под ней).
+(function() {
+    const kind = (location.search.match(/header=(new|old)/) || [])[1];
+    if(!kind) return;
+    const top = document.getElementById('page-top');
+    const btn = function(label, w, h) {
+        return '<button type="button" aria-label="' + label + '" style="width:' + w + 'px;height:' + h +
+            'px;flex-shrink:0;border:1px solid #ddd;border-radius:8px;background:#fafafa;font-size:12px">' + label + '</button>';
+    };
+    if(kind === 'new') {
+        top.style.cssText = 'height:52px;box-sizing:border-box;padding:0;border-bottom:1px solid #e5e5e5';
+        top.innerHTML = '';
+        const header = document.createElement('header');
+        header.style.cssText = 'pointer-events:none;position:fixed;top:0;left:0;width:54%;height:52px;z-index:30;display:flex';
+        header.innerHTML = '<div data-testid="app-shell-header-context-menu-surface" ' +
+            'style="pointer-events:none;flex:1;min-width:0;display:flex;height:52px">' +
+            '<div class="ms-auto" style="margin-left:auto;display:flex;align-items:center;gap:8px;padding-right:8px;pointer-events:auto">' +
+            btn('Upgrade', 145, 34) + btn('×', 28, 28) + btn('Share', 129, 36) + btn('More', 36, 36) +
+            '</div></div>';
+        document.body.appendChild(header);
+    } else {
+        top.style.cssText = 'padding:0;border-bottom:1px solid #e5e5e5';
+        top.innerHTML = '<div id="page-header" style="display:flex;align-items:center;height:52px;width:100%">' +
+            '<div style="width:8px"></div><div>' + btn('ChatGPT 5 ▾', 110, 36) + '</div>' +
+            '<div style="margin-left:auto;display:flex;gap:8px;padding-right:8px">' + btn('Share', 90, 36) + btn('⋯', 36, 36) +
+            '</div></div>';
+    }
+})();
 </script>
 <script src="../shared.js"></script>
 <script src="../templates.js"></script>

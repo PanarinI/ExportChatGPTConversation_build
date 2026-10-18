@@ -111,7 +111,13 @@ const UI_CSS = `
 color: #EA4C3A;
 }
 
+ /* Our own row: "Export" and the arrow side by side. Until 1.2.3 the row came
+    from ChatGPT's .btn class; the new page (10-2026) dropped it, and the arrow
+    fell under the button (author's screenshot 18.10). */
  #gptpdf-convert-main {
+     display: inline-flex;
+     align-items: center;
+     white-space: nowrap;
      padding: 0;
      border-radius: 12px;
     background: transparent;

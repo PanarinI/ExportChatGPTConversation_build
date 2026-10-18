@@ -628,50 +628,100 @@ gptpdfChatGPT.init = function() {
 
     let prevClass = null;
 
-    function changeButtonPosition() {
+    // The free gap in ChatGPT's header, left of its right-hand actions:
+    // { start, end, top } in viewport px, or null when no header is known.
+    function headerGap() {
+        // Old page: #page-header of three blocks — the gap runs from the
+        // middle block's last control to the right block.
         const header = document.getElementById('page-header');
-
         if(header) {
             const children = header.querySelectorAll(':scope > div');
             if(children.length >= 3) {
-                const leftContainer = children[1];
-                const rightContainer = children[2];
-                const leftContent = findRightmostContent(leftContainer);
-                const rightRect = rightContainer.getBoundingClientRect();
-                const gapEnd = rightRect.left;
-                // When the left container is empty (e.g. newer
-                // ChatGPT layouts), fall back to the header's
-                // left edge so the available-space check still
-                // works and the right-sized button is picked.
-                const gapStart = leftContent
-                    ? leftContent.getBoundingClientRect().right
-                    : header.getBoundingClientRect().left;
-                const availableSpace = gapEnd - gapStart;
+                const leftContent = findRightmostContent(children[1]);
+                // When the left container is empty, fall back to the
+                // header's left edge so the right-sized button is picked.
+                return {
+                    start: leftContent
+                        ? leftContent.getBoundingClientRect().right
+                        : header.getBoundingClientRect().left,
+                    end: children[2].getBoundingClientRect().left,
+                    top: 10
+                };
+            }
+        }
+        // New page (10-2026, measured on the author's account 18.10): no
+        // #page-header. A fixed <header>, 52 px, holds the surface
+        // [data-testid="app-shell-header-context-menu-surface"] with a cluster
+        // of actions on its right (upgrade nudge · × · Share · More, 8 px from
+        // the top, 36 px tall). Without this the button fell back to its spare
+        // place under the header's right corner (STATE 12.10). The cluster is
+        // found by position, not by names: its buttons carry no test ids, and
+        // the nudge comes and goes.
+        const surface = document.querySelector(
+            '[data-testid="app-shell-header-context-menu-surface"]');
+        if(!surface) {
+            return null;
+        }
+        const bar = surface.closest('header') || surface;
+        const controls = Array.from(bar.querySelectorAll('button, a, [role="button"]'))
+            .map(function(el) { return el.getBoundingClientRect(); })
+            .filter(function(r) { return r.width > 0 && r.height > 0; })
+            .sort(function(a, b) { return a.left - b.left; });
+        if(!controls.length) {
+            return null;
+        }
+        // From the rightmost control leftwards while the controls stand
+        // close together: that run is the cluster.
+        let first = controls.length - 1;
+        while(first > 0 && controls[first].left - controls[first - 1].right < 24) {
+            first--;
+        }
+        const cluster = controls.slice(first);
+        const before = controls.slice(0, first);
+        const top = Math.min.apply(null, cluster.map(function(r) { return r.top; }));
+        const bottom = Math.max.apply(null, cluster.map(function(r) { return r.bottom; }));
+        const height = gptpdf_block.offsetHeight || 36;
+        return {
+            start: before.length
+                ? Math.max.apply(null, before.map(function(r) { return r.right; }))
+                : surface.getBoundingClientRect().left,
+            end: cluster[0].left - 8,     // the cluster's own spacing
+            top: Math.max(0, Math.round((top + bottom - height) / 2))
+        };
+    }
 
-                // Try each button size
-                for(let j = 0; j < WIDTHS.length; j++) {
-                    const width = WIDTHS[j];
-                    if(availableSpace >= width.width + BUTTON_MARGIN * 2) {
-                        const rightPos = Math.round(
-                            window.innerWidth - gapEnd + BUTTON_MARGIN
-                        ) + 'px';
-                        const newClass = width.cls;
+    function changeButtonPosition() {
+        const gap = headerGap();
 
-                        if(rightPos !== gptpdf_block.style.right ||
-                           prevClass !== newClass) {
-                            gptpdf_block.style.right = rightPos;
-                            gptpdf_block.style.top = '10px';
-                            prevClass = newClass;
-                            gptpdf_block.classList.remove(
-                                'gptpdf-btn-smaller',
-                                'gptpdf-btn-smallest',
-                                'gptpdf-btn-xs-small');
-                            if(newClass) {
-                                gptpdf_block.classList.add(newClass);
-                            }
+        if(gap) {
+            const gapEnd = gap.end;
+            const availableSpace = gapEnd - gap.start;
+
+            // Try each button size
+            for(let j = 0; j < WIDTHS.length; j++) {
+                const width = WIDTHS[j];
+                if(availableSpace >= width.width + BUTTON_MARGIN * 2) {
+                    const rightPos = Math.round(
+                        window.innerWidth - gapEnd + BUTTON_MARGIN
+                    ) + 'px';
+                    const topPos = gap.top + 'px';
+                    const newClass = width.cls;
+
+                    if(rightPos !== gptpdf_block.style.right ||
+                       topPos !== gptpdf_block.style.top ||
+                       prevClass !== newClass) {
+                        gptpdf_block.style.right = rightPos;
+                        gptpdf_block.style.top = topPos;
+                        prevClass = newClass;
+                        gptpdf_block.classList.remove(
+                            'gptpdf-btn-smaller',
+                            'gptpdf-btn-smallest',
+                            'gptpdf-btn-xs-small');
+                        if(newClass) {
+                            gptpdf_block.classList.add(newClass);
                         }
-                        return;
                     }
+                    return;
                 }
             }
         }
