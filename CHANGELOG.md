@@ -5,7 +5,7 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
-## [Unreleased]
+## [1.2.3] — 2026-10-18
 ### Fixed
 - **Chats with an embedded window export again.** A page shown inside the
   chat — an app's window, a preview, a map — made the whole export fail with
