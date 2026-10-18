@@ -1,5 +1,11 @@
 'use strict';
 
+// A dark ChatGPT page, for every dark rule below. The old page put class
+// "dark" on <html>; the new one (10-2026) sets data-theme="dark" instead and
+// has no such class — measured on the author's account 18.10, where our menu
+// stayed light on a black page. Either marker turns our dark styles on.
+const GPTPDF_DARK = ':is(html.dark, html[data-theme="dark"])';
+
 // In-page UI styles (Export button, dropdown, settings modal, block-selection).
 // Static CSS, extracted verbatim from common.js.
 const UI_CSS = `
@@ -51,7 +57,7 @@ const UI_CSS = `
      transition: opacity 0.2s;
      z-index: 100001;
  }
- html.dark .gptpdf-no-chat-tooltip {
+ ${GPTPDF_DARK} .gptpdf-no-chat-tooltip {
      background: rgba(60,60,60,0.96);
  }
  .gptpdf-no-chat-tooltip.gptpdf-tooltip-visible {
@@ -138,8 +144,8 @@ color: #EA4C3A;
     background: rgba(0,0,0,0.06);
 }
 
-html.dark #gptpdf-convert-main:hover #gptpdf-btn-left,
-html.dark #gptpdf-convert-main:hover #gptpdf-more {
+${GPTPDF_DARK} #gptpdf-convert-main:hover #gptpdf-btn-left,
+${GPTPDF_DARK} #gptpdf-convert-main:hover #gptpdf-more {
     background: rgba(255,255,255,0.1);
 }
 
@@ -186,7 +192,7 @@ html.dark #gptpdf-convert-main:hover #gptpdf-more {
      background-color: rgba(0,0,0,0.06);
  }
 
- html.dark #gptpdf-more:hover {
+ ${GPTPDF_DARK} #gptpdf-more:hover {
      background-color: rgba(255,255,255,0.1);
  }
 
@@ -220,7 +226,7 @@ html.dark #gptpdf-convert-main:hover #gptpdf-more {
     z-index: 99999;
 }
 
-html.dark #gptpdf-extra-btns {
+${GPTPDF_DARK} #gptpdf-extra-btns {
     border: 1px solid rgba(255,255,255,0.08);
     background: rgba(32, 33, 35, 0.96);
     color: rgba(255,255,255,0.92);
@@ -236,12 +242,12 @@ html.dark #gptpdf-extra-btns {
     background: rgba(234,76,58,0.08) !important;
 }
 
-html.dark .gptpdf-active {
+${GPTPDF_DARK} .gptpdf-active {
     background: rgba(234,76,58,0.18) !important;
 }
 
-html.dark .gptpdf-active .gptpdf-menu-icon,
-html.dark .gptpdf-active .gptpdf-menu-title {
+${GPTPDF_DARK} .gptpdf-active .gptpdf-menu-icon,
+${GPTPDF_DARK} .gptpdf-active .gptpdf-menu-title {
     color: #ff9b8f !important;
 }
 
@@ -249,7 +255,7 @@ html.dark .gptpdf-active .gptpdf-menu-title {
     background: rgba(0,0,0,0.05);
 }
 
-html.dark .gptpdf-extra-btn:hover {
+${GPTPDF_DARK} .gptpdf-extra-btn:hover {
     background: rgba(255,255,255,0.06);
 }
 
@@ -261,7 +267,7 @@ html.dark .gptpdf-extra-btn:hover {
     background: rgba(0,0,0,0.08);
 }
 
-html.dark .gptpdf-divider {
+${GPTPDF_DARK} .gptpdf-divider {
     background: rgba(255,255,255,0.08);
 }
 
@@ -293,7 +299,7 @@ html.dark .gptpdf-divider {
     transition: background 0.15s ease;
 }
 
-html.dark .gptpdf-extra-btn {
+${GPTPDF_DARK} .gptpdf-extra-btn {
     color: rgba(255,255,255,0.92);
 }
 
@@ -309,7 +315,7 @@ html.dark .gptpdf-extra-btn {
     color: rgba(0,0,0,0.55);
 }
 
-html.dark .gptpdf-menu-icon {
+${GPTPDF_DARK} .gptpdf-menu-icon {
     background: rgba(255,255,255,0.1);
     color: rgba(255,255,255,0.65);
 }
@@ -328,7 +334,7 @@ html.dark .gptpdf-menu-icon {
     line-height: 1.3;
 }
 
-html.dark .gptpdf-menu-title {
+${GPTPDF_DARK} .gptpdf-menu-title {
     color: rgba(255,255,255,0.92);
 }
 
@@ -339,7 +345,7 @@ html.dark .gptpdf-menu-title {
     margin-top: 2px;
 }
 
-html.dark .gptpdf-menu-desc {
+${GPTPDF_DARK} .gptpdf-menu-desc {
     color: rgba(255,255,255,0.38);
 }
 
@@ -350,7 +356,7 @@ html.dark .gptpdf-menu-desc {
     line-height: 1;
 }
 
-html.dark .gptpdf-menu-arrow {
+${GPTPDF_DARK} .gptpdf-menu-arrow {
     color: rgba(255,255,255,0.25);
 }
 
@@ -421,7 +427,7 @@ html.dark .gptpdf-menu-arrow {
     gap: 6px;
     white-space: nowrap;
 }
-html.dark #gptpdf-rateus-dropdown {
+${GPTPDF_DARK} #gptpdf-rateus-dropdown {
     background: rgba(32,33,35,0.97);
     border-color: rgba(255,255,255,0.08);
     box-shadow: 0 8px 32px rgba(0,0,0,0.35);
@@ -432,7 +438,7 @@ html.dark #gptpdf-rateus-dropdown {
     color: rgba(0,0,0,0.45);
     letter-spacing: 0.03em;
 }
-html.dark #gptpdf-rateus-dropdown .gptpdf-dropdown-label {
+${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-dropdown-label {
     color: rgba(255,255,255,0.4);
 }
 #gptpdf-rateus-dropdown .gptpdf-stars { gap: 4px; }
@@ -447,8 +453,8 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-dropdown-label {
     transition: color 0.15s;
 }
 #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(0,0,0,0.65); }
-html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later { color: rgba(255,255,255,0.35); }
-html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,255,255,0.6); }
+${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later { color: rgba(255,255,255,0.35); }
+${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,255,255,0.6); }
 
  .gptpdf-invisible {
      visibility: hidden;
@@ -474,7 +480,7 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,2
      white-space: nowrap;
  }
  #gptpdf-blocks-bar.gptpdf-active { display: none; } /* replaced by main button */
- html.dark #gptpdf-blocks-bar {
+ ${GPTPDF_DARK} #gptpdf-blocks-bar {
      background: #2a2a2a;
      border-color: #444;
      color: #eee;
@@ -500,7 +506,7 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,2
      font-size: 14px;
      cursor: pointer;
  }
- html.dark #gptpdf-blocks-cancel { border-color: #555; }
+ ${GPTPDF_DARK} #gptpdf-blocks-cancel { border-color: #555; }
 
  /* Individual content blocks */
  .gptpdf-block-sel {
@@ -532,7 +538,7 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,2
      border-radius: 4px;
      padding: 2px;
  }
- html.dark .gptpdf-block-cb {
+ ${GPTPDF_DARK} .gptpdf-block-cb {
      background: rgba(40,40,40,0.85);
  }
  .gptpdf-block-cb input[type=checkbox] {
@@ -588,7 +594,7 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,2
      color: #888;
      border-top: 1px solid rgba(0,0,0,0.07);
  }
- html.dark .gptpdf-rate-row { border-top-color: rgba(255,255,255,0.08); color: #666; }
+ ${GPTPDF_DARK} .gptpdf-rate-row { border-top-color: rgba(255,255,255,0.08); color: #666; }
  .gptpdf-stars {
      display: flex;
      gap: 2px;
@@ -601,7 +607,7 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,2
      line-height: 1;
      user-select: none;
  }
- html.dark .gptpdf-star { color: #444; }
+ ${GPTPDF_DARK} .gptpdf-star { color: #444; }
  .gptpdf-star.filled { color: #EA4C3A; }
  /* CSS-only hover: all stars orange on hover, stars after hovered one go gray */
  .gptpdf-stars:hover .gptpdf-star { color: #EA4C3A !important; }
@@ -794,7 +800,7 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,2
      border-color: #EA4C3A !important;
      box-shadow: 0 0 0 3px rgba(234,76,58,0.12) !important;
  }
- html.dark #gptpdf-title {
+ ${GPTPDF_DARK} #gptpdf-title {
      background: #3a3a3a !important;
      border-color: rgba(255,255,255,0.18) !important;
      color: #e8e8e8 !important;
@@ -807,7 +813,7 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,2
      overflow: hidden;
      font-family: inherit;
  }
- html.dark #gptpdf-title-dialog {
+ ${GPTPDF_DARK} #gptpdf-title-dialog {
      background: #2a2a2a;
      color: #e8e8e8;
  }
@@ -820,7 +826,7 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,2
      font-weight: 600;
      border-bottom: 1px solid rgba(0,0,0,0.07);
  }
- html.dark #gptpdf-title-dialog-header {
+ ${GPTPDF_DARK} #gptpdf-title-dialog-header {
      border-bottom-color: rgba(255,255,255,0.08);
  }
  #gptpdf-title-close-btn {
@@ -835,8 +841,8 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,2
      transition: background 0.15s, color 0.15s;
  }
  #gptpdf-title-close-btn:hover { background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.7); }
- html.dark #gptpdf-title-close-btn { color: rgba(255,255,255,0.4); }
- html.dark #gptpdf-title-close-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8); }
+ ${GPTPDF_DARK} #gptpdf-title-close-btn { color: rgba(255,255,255,0.4); }
+ ${GPTPDF_DARK} #gptpdf-title-close-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8); }
  #gptpdf-title-dialog-body { padding: 14px 18px; }
  #gptpdf-title-dialog-footer {
      display: flex;
@@ -868,8 +874,8 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,2
      transition: background 0.15s;
  }
  #gptpdf-title-cancel-btn:hover { background: rgba(0,0,0,0.09); }
- html.dark #gptpdf-title-cancel-btn { background: rgba(255,255,255,0.08); }
- html.dark #gptpdf-title-cancel-btn:hover { background: rgba(255,255,255,0.13); }
+ ${GPTPDF_DARK} #gptpdf-title-cancel-btn { background: rgba(255,255,255,0.08); }
+ ${GPTPDF_DARK} #gptpdf-title-cancel-btn:hover { background: rgba(255,255,255,0.13); }
 
  .gptpdf-category {
      line-height: normal;
@@ -910,7 +916,7 @@ html.dark #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(255,2
     font-family: inherit;
     font-size: 14px;
 }
-html.dark #gptpdf-settings-modal {
+${GPTPDF_DARK} #gptpdf-settings-modal {
     background: #202123;
     color: rgba(255,255,255,0.92);
 }
@@ -924,7 +930,7 @@ html.dark #gptpdf-settings-modal {
     border-bottom: 1px solid rgba(0,0,0,0.08);
     flex-shrink: 0;
 }
-html.dark #gptpdf-settings-header { border-bottom-color: rgba(255,255,255,0.08); }
+${GPTPDF_DARK} #gptpdf-settings-header { border-bottom-color: rgba(255,255,255,0.08); }
 
 #gptpdf-settings-header h2 {
     font-size: 16px; font-weight: 600; margin: 0; padding: 0; color: inherit;
@@ -937,8 +943,8 @@ html.dark #gptpdf-settings-header { border-bottom-color: rgba(255,255,255,0.08);
     line-height: 1;
 }
 #gptpdf-settings-close:hover { background: rgba(0,0,0,0.1); }
-html.dark #gptpdf-settings-close { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
-html.dark #gptpdf-settings-close:hover { background: rgba(255,255,255,0.15); }
+${GPTPDF_DARK} #gptpdf-settings-close { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
+${GPTPDF_DARK} #gptpdf-settings-close:hover { background: rgba(255,255,255,0.15); }
 
 #gptpdf-settings-body { display: flex; flex: 1; overflow: hidden; }
 
@@ -951,52 +957,52 @@ html.dark #gptpdf-settings-close:hover { background: rgba(255,255,255,0.15); }
     display: flex; flex-direction: column; align-items: center;
     border-left: 1px solid rgba(0,0,0,0.06);
 }
-html.dark #gptpdf-settings-preview-col { border-left-color: rgba(255,255,255,0.06); }
+${GPTPDF_DARK} #gptpdf-settings-preview-col { border-left-color: rgba(255,255,255,0.06); }
 
 #gptpdf-settings-footer {
     display: flex; align-items: center; justify-content: flex-end;
     gap: 8px; padding: 12px 20px;
     border-top: 1px solid rgba(0,0,0,0.08); flex-shrink: 0;
 }
-html.dark #gptpdf-settings-footer { border-top-color: rgba(255,255,255,0.08); }
+${GPTPDF_DARK} #gptpdf-settings-footer { border-top-color: rgba(255,255,255,0.08); }
 
 .gptpdf-section {
     background: #fff; border-radius: 14px; padding: 12px 14px;
     display: flex; flex-direction: column; gap: 12px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
-html.dark .gptpdf-section { background: rgba(255,255,255,0.05); }
+${GPTPDF_DARK} .gptpdf-section { background: rgba(255,255,255,0.05); }
 
 .gptpdf-section-title {
     font-size: 10px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.09em; color: rgba(0,0,0,0.38); margin-bottom: -2px;
 }
-html.dark .gptpdf-section-title { color: rgba(255,255,255,0.32); }
+${GPTPDF_DARK} .gptpdf-section-title { color: rgba(255,255,255,0.32); }
 
 .gptpdf-row {
     display: flex; align-items: center; justify-content: space-between;
     gap: 10px; min-height: 30px;
 }
 .gptpdf-label { font-size: 13px; font-weight: 500; color: rgba(0,0,0,0.75); flex-shrink: 0; }
-html.dark .gptpdf-label { color: rgba(255,255,255,0.8); }
+${GPTPDF_DARK} .gptpdf-label { color: rgba(255,255,255,0.8); }
 
 .gptpdf-segment {
     display: flex; background: rgba(0,0,0,0.06);
     border-radius: 9px; padding: 2px; gap: 1px;
 }
-html.dark .gptpdf-segment { background: rgba(255,255,255,0.08); }
+${GPTPDF_DARK} .gptpdf-segment { background: rgba(255,255,255,0.08); }
 
 .gptpdf-seg-btn {
     flex: 1; padding: 4px 9px; border: none; border-radius: 7px;
     background: transparent; font-size: 12px; font-weight: 500;
     color: rgba(0,0,0,0.45); cursor: pointer; transition: all 0.15s; white-space: nowrap;
 }
-html.dark .gptpdf-seg-btn { color: rgba(255,255,255,0.4); }
+${GPTPDF_DARK} .gptpdf-seg-btn { color: rgba(255,255,255,0.4); }
 .gptpdf-seg-btn.active {
     background: #fff; color: rgba(0,0,0,0.85);
     box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
-html.dark .gptpdf-seg-btn.active { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.92); }
+${GPTPDF_DARK} .gptpdf-seg-btn.active { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.92); }
 
 .gptpdf-toggle { position: relative; display: inline-block; width: 38px; height: 22px; cursor: pointer; flex-shrink: 0; }
 .gptpdf-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
@@ -1004,7 +1010,7 @@ html.dark .gptpdf-seg-btn.active { background: rgba(255,255,255,0.18); color: rg
     position: absolute; inset: 0; border-radius: 11px;
     background: rgba(0,0,0,0.15); transition: background 0.2s;
 }
-html.dark .gptpdf-toggle-track { background: rgba(255,255,255,0.2); }
+${GPTPDF_DARK} .gptpdf-toggle-track { background: rgba(255,255,255,0.2); }
 .gptpdf-toggle input:checked + .gptpdf-toggle-track { background: #EA4C3A; }
 .gptpdf-toggle-track::after {
     content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%;
@@ -1018,13 +1024,13 @@ html.dark .gptpdf-toggle-track { background: rgba(255,255,255,0.2); }
     flex: 1; height: 4px; -webkit-appearance: none; appearance: none;
     background: rgba(0,0,0,0.12); border-radius: 2px; outline: none; cursor: pointer;
 }
-html.dark .gptpdf-slider { background: rgba(255,255,255,0.15); }
+${GPTPDF_DARK} .gptpdf-slider { background: rgba(255,255,255,0.15); }
 .gptpdf-slider::-webkit-slider-thumb {
     -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
     background: #EA4C3A; cursor: pointer; box-shadow: 0 1px 4px rgba(234,76,58,0.4);
 }
 .gptpdf-slider-value { font-size: 12px; font-weight: 600; color: rgba(0,0,0,0.5); min-width: 32px; text-align: right; }
-html.dark .gptpdf-slider-value { color: rgba(255,255,255,0.5); }
+${GPTPDF_DARK} .gptpdf-slider-value { color: rgba(255,255,255,0.5); }
 
 .gptpdf-swatches { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
 .gptpdf-swatch {
@@ -1033,7 +1039,7 @@ html.dark .gptpdf-slider-value { color: rgba(255,255,255,0.5); }
     cursor: pointer; transition: all 0.15s;
     background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.55);
 }
-html.dark .gptpdf-swatch { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
+${GPTPDF_DARK} .gptpdf-swatch { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
 .gptpdf-swatch.active { border-color: #EA4C3A; color: #EA4C3A; background: rgba(234,76,58,0.08); }
 .gptpdf-swatch-color-wrap { display: flex; align-items: center; gap: 5px; }
 .gptpdf-swatch-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; }
@@ -1046,9 +1052,9 @@ html.dark .gptpdf-swatch { background: rgba(255,255,255,0.08); color: rgba(255,2
     display: flex; flex-direction: column; align-items: center; gap: 5px;
     background: transparent; font-size: 11px; font-weight: 500; color: rgba(0,0,0,0.5);
 }
-html.dark .gptpdf-theme-card { border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.45); }
+${GPTPDF_DARK} .gptpdf-theme-card { border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.45); }
 .gptpdf-theme-card.active { border-color: #EA4C3A !important; color: #EA4C3A !important; background: rgba(234,76,58,0.09) !important; box-shadow: 0 0 0 1px rgba(234,76,58,0.3); }
-html.dark .gptpdf-theme-card.active { color: #ff9b8f !important; }
+${GPTPDF_DARK} .gptpdf-theme-card.active { color: #ff9b8f !important; }
 .gptpdf-theme-mini-doc {
     width: 44px; height: 56px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1);
     padding: 5px 4px; gap: 3px; display: flex; flex-direction: column;
@@ -1066,25 +1072,25 @@ html.dark .gptpdf-theme-card.active { color: #ff9b8f !important; }
     flex-direction: column; gap: 8px; padding-top: 10px;
     border-top: 1px solid rgba(0,0,0,0.06); margin-top: 2px;
 }
-html.dark .gptpdf-sub-section { border-top-color: rgba(255,255,255,0.06); }
+${GPTPDF_DARK} .gptpdf-sub-section { border-top-color: rgba(255,255,255,0.06); }
 .gptpdf-margins-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
 .gptpdf-margin-field { display: flex; flex-direction: column; gap: 3px; }
 .gptpdf-margin-field label { font-size: 11px; color: rgba(0,0,0,0.4); font-weight: 500; }
-html.dark .gptpdf-margin-field label { color: rgba(255,255,255,0.35); }
+${GPTPDF_DARK} .gptpdf-margin-field label { color: rgba(255,255,255,0.35); }
 .gptpdf-margin-input {
     width: 100%; padding: 5px 8px; border: 1px solid rgba(0,0,0,0.12); border-radius: 7px;
     font-size: 12px; background: rgba(0,0,0,0.03); color: inherit; outline: none; box-sizing: border-box;
 }
-html.dark .gptpdf-margin-input { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.85); }
+${GPTPDF_DARK} .gptpdf-margin-input { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.85); }
 .gptpdf-margin-input:focus { border-color: #EA4C3A; }
 
 .gptpdf-btn-reset {
     padding: 7px 14px; border: 1.5px solid rgba(0,0,0,0.12); border-radius: 10px;
     background: transparent; font-size: 13px; font-weight: 500; color: rgba(0,0,0,0.5); cursor: pointer; transition: all 0.15s;
 }
-html.dark .gptpdf-btn-reset { border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.45); }
+${GPTPDF_DARK} .gptpdf-btn-reset { border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.45); }
 .gptpdf-btn-reset:hover { background: rgba(0,0,0,0.05); }
-html.dark .gptpdf-btn-reset:hover { background: rgba(255,255,255,0.05); }
+${GPTPDF_DARK} .gptpdf-btn-reset:hover { background: rgba(255,255,255,0.05); }
 
 .gptpdf-btn-apply {
     padding: 7px 18px; border: none; border-radius: 10px;
@@ -1099,7 +1105,7 @@ html.dark .gptpdf-btn-reset:hover { background: rgba(255,255,255,0.05); }
     font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em;
     color: rgba(0,0,0,0.32); margin-bottom: 10px; align-self: flex-start; margin-left: 16px;
 }
-html.dark #gptpdf-preview-label { color: rgba(255,255,255,0.28); }
+${GPTPDF_DARK} #gptpdf-preview-label { color: rgba(255,255,255,0.28); }
 
 #gptpdf-preview-doc {
     width: 152px; border-radius: 8px; padding: 12px 10px;

@@ -5,6 +5,12 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [Unreleased]
+### Fixed
+- **The menu is dark again in ChatGPT's dark theme.** On the new ChatGPT page
+  the Export menu, the settings window and the other dialogs stayed light on a
+  black page. They follow ChatGPT's theme again.
+
 ## [1.2.3] — 2026-10-18
 ### Fixed
 - **Chats with an embedded window export again.** A page shown inside the

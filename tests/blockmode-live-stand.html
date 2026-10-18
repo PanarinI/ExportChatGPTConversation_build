@@ -290,6 +290,17 @@ render();
 // <header> 52 px, в нём поверхность app-shell-header-context-menu-surface, справа группа
 // «Upgrade · × · Share · More» на 8 px от верха. ?header=old — прежний #page-header из трёх блоков.
 // Кнопка Export должна встать слева от группы, на одной линии с ней (не под ней).
+// ?pagetheme=newdark — тёмная тема новой страницы: data-theme="dark" на <html>, класса dark нет
+// (замер 18.10: меню расширения оставалось светлым). ?pagetheme=olddark — прежний class="dark".
+(function() {
+    const t = (location.search.match(/pagetheme=(newdark|olddark)/) || [])[1];
+    if(!t) return;
+    const h = document.documentElement;
+    if(t === 'newdark') { h.className = 'chatgpt-theme'; h.dataset.theme = 'dark'; }
+    else h.classList.add('dark');
+    h.style.colorScheme = 'dark';
+    document.head.insertAdjacentHTML('beforeend', '<style>html,body,#page-top{background:#000 !important;color:#ddd}</style>');
+})();
 (function() {
     const kind = (location.search.match(/header=(new|old)/) || [])[1];
     if(!kind) return;

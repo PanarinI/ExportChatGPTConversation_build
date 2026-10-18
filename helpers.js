@@ -464,9 +464,11 @@ function isLight(body) {
     const docStyle = window.getComputedStyle(docEl);
     const bodyStyle = window.getComputedStyle(body || document.body);
 
+    // data-theme: the new page's marker (10-2026), no class "dark" there.
     if(docEl.classList.contains('dark') ||
        docEl.style.colorScheme === 'dark' ||
        docStyle.colorScheme === 'dark' ||
+       docEl.dataset.theme === 'dark' ||
        docEl.dataset.chatTheme === 'dark') {
         return false;
     }
@@ -474,6 +476,7 @@ function isLight(body) {
     if(docEl.classList.contains('light') ||
        docEl.style.colorScheme === 'light' ||
        docStyle.colorScheme === 'light' ||
+       docEl.dataset.theme === 'light' ||
        docEl.dataset.chatTheme === 'light') {
         return true;
     }

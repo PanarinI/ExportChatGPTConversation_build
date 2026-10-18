@@ -1,0 +1,76 @@
+<meta charset="utf-8">
+<title>Тест тёмной темы меню</title>
+<!--
+  Наше меню и окна перекрашиваются в тёмное по признаку тёмной страницы ChatGPT.
+  Старая страница ставила на <html> класс "dark"; новая (10-2026) ставит data-theme="dark"
+  и класса не имеет — меню оставалось светлым на чёрной странице (замер на аккаунте автора
+  18.10). Все тёмные правила templates.js идут через GPTPDF_DARK, который знает оба признака;
+  isLight() (тема PDF в режиме Auto) — тоже.
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=3000 --dump-dom "file://$PWD/tests/ui-dark-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../shared.js"></script>
+<script src="../helpers.js"></script>
+<script src="../templates.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, ok, detail) {
+    if(!ok) failed++;
+    out.push((ok ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+const style = document.createElement('style');
+style.textContent = UI_CSS;
+document.head.appendChild(style);
+const menu = document.createElement('div');
+menu.id = 'gptpdf-extra-btns';
+menu.innerHTML = '<span class="gptpdf-menu-title">Select all</span>';
+document.body.appendChild(menu);
+const title = menu.querySelector('.gptpdf-menu-title');
+const DARK_BG = 'rgba(32, 33, 35, 0.96)';   // html.dark #gptpdf-extra-btns в templates.js
+
+const html = document.documentElement;
+function page(cls, theme) {
+    html.className = cls;
+    if(theme) html.dataset.theme = theme; else delete html.dataset.theme;
+    return { bg: getComputedStyle(menu).backgroundColor, fg: getComputedStyle(title).color, light: isLight(document.body) };
+}
+
+const light = page('', null);
+out.push('— светлая страница (признаков нет) —');
+check('меню светлое', light.bg !== DARK_BG, light.bg);
+check('isLight → светлая', light.light === true);
+
+const oldDark = page('dark', null);
+out.push('\n— старая тёмная: class="dark" —');
+check('меню тёмное', oldDark.bg === DARK_BG, oldDark.bg);
+check('текст меню другого цвета, чем на светлой', oldDark.fg !== light.fg, oldDark.fg + ' / ' + light.fg);
+check('isLight → тёмная', oldDark.light === false);
+
+const newDark = page('chatgpt-theme', 'dark');
+out.push('\n— новая тёмная: data-theme="dark", класса dark нет (замер 18.10) —');
+check('меню тёмное', newDark.bg === DARK_BG, newDark.bg);
+check('текст меню как на старой тёмной', newDark.fg === oldDark.fg, newDark.fg);
+check('isLight → тёмная (без color-scheme, только по атрибуту)', newDark.light === false);
+
+const newLight = page('chatgpt-theme', 'light');
+out.push('\n— новая светлая: data-theme="light" —');
+check('меню светлое', newLight.bg === light.bg, newLight.bg);
+check('isLight → светлая', newLight.light === true);
+
+out.push('\n— исходник —');
+const x = new XMLHttpRequest();
+x.open('GET', '../templates.js', false);
+x.send();
+const plain = (x.responseText.match(/^\s*html\.dark /gm) || []).length;
+check('в templates.js нет тёмных правил мимо GPTPDF_DARK', plain === 0, plain + ' строк');
+check('все тёмные правила на месте', (UI_CSS.match(/:is\(html\.dark, html\[data-theme="dark"\]\)/g) || []).length >= 55);
+
+page('', null);
+out.push('\n' + (failed ? '❌ провалено проверок: ' + failed : '✅ все проверки пройдены'));
+document.getElementById('log').textContent = out.join('\n');
+</script>
