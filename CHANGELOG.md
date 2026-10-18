@@ -5,6 +5,16 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [Unreleased]
+### Fixed
+- **Chats with an embedded window export again.** A page shown inside the
+  chat — an app's window, a preview, a map — made the whole export fail with
+  "code 400 … ERR_BLOCKED_BY_RESPONSE" when its site does not allow being shown
+  inside another page. Such windows now become a short line with a link in the
+  PDF, and the rest of the chat prints as usual.
+- **The error dialog shows the real version** of the extension (it used to say
+  "v3.9" whatever was installed).
+
 ## [1.2.2] — 2026-10-08
 ### Fixed
 - **Formulas print the way ChatGPT shows them.** Powers, fractions, roots,

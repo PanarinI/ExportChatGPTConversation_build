@@ -1091,6 +1091,7 @@ function setupBlockMode() {
             extractDalleImages(main_clone);
             gptpdfCleanMathBlocks(main_clone);
             gptpdfCleanTextButtons(main_clone);
+            gptpdfReplaceEmbeds(main_clone, location.href);
 
             const body =
                 metaRow +

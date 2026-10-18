@@ -84,7 +84,17 @@ gptpdfShared.defaultOptions = {
     single_page: false
 }
 
-gptpdfShared.version = 'v3.9';
+// Shown under the error dialog. Until 1.2.3 it was a fixed 'v3.9' left from the
+// donor fork, so a user's screenshot said nothing about which version failed
+// (letter 18.10). Now the manifest's own: 'v1.2.3', a dev build 'v1.2.3-dev'.
+gptpdfShared.version = (function() {
+    try {
+        const m = chrome.runtime.getManifest();
+        return 'v' + (m.version_name || m.version);
+    } catch(e) {
+        return '';
+    }
+})();
 
 // Метка сборки. В дереве репозитория всегда 'source'; в ПАКЕТ её штампует
 // tools/build.sh (дев — версия + время сборки, прод — чистый номер). Одна

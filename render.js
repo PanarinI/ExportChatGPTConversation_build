@@ -922,6 +922,9 @@ function cleanupForPdf(clone) {
 
     // ── 12. Buttons inside the answer text, empty rows over a question ─
     gptpdfCleanTextButtons(clone);
+
+    // ── 13. Pages set inside the chat (iframes) → a line with a link ──
+    gptpdfReplaceEmbeds(clone, location.href);
 }
 
 // Step 3 leaves every button inside the answer text alone — a picture's own
@@ -951,6 +954,66 @@ function gptpdfCleanTextButtons(root) {
     root.querySelectorAll('[data-message-author-role="user"] > div').forEach(function(row) {
         if(!row.textContent.trim() && !row.querySelector('img, video, canvas')) {
             row.remove();
+        }
+    });
+}
+
+// A page set inside the chat — a ChatGPT app's window, a canvas preview, a
+// video, a map — reaches the PDF as an <iframe>. Gotenberg loads it, and when
+// that site does not allow being shown inside another page (X-Frame-Options,
+// CSP frame-ancestors), the load fails with net::ERR_BLOCKED_BY_RESPONSE —
+// which Gotenberg counts as the WHOLE page failing: code 400, no PDF at all
+// (letter 18.10, «every time i run it failed»; on our server an iframe to
+// chatgpt.com or google.com → 400, to YouTube → PDF). A PDF cannot play such
+// a page anyway, so each one becomes a short line with a link: to the frame's
+// own address when it is an ordinary web page, to the chat otherwise — a
+// ChatGPT sandbox opens only inside ChatGPT. Same for <frame>, <embed>, <object>.
+function gptpdfReplaceEmbeds(root, chatUrl) {
+    const doc = root.ownerDocument;
+    root.querySelectorAll('iframe, frame, embed, object').forEach(function(el) {
+        if(!root.contains(el)) {
+            return;     // inside an <object> already replaced
+        }
+        const raw = el.getAttribute('src') || el.getAttribute('data') || '';
+        let href = '';
+        let label = '';
+        try {
+            const url = new URL(raw, chatUrl);
+            if(/^https?:$/.test(url.protocol) &&
+               !/(^|\.)(oaiusercontent\.com|openai\.com|chatgpt\.com)$/.test(url.hostname)) {
+                href = url.href;
+                label = url.hostname.replace(/^www\./, '');
+            }
+        } catch(e) {}
+        if(!href && /^https?:/.test(chatUrl || '')) {
+            href = chatUrl;
+            label = 'open in ChatGPT';
+        }
+        const line = doc.createElement('div');
+        line.className = 'gptpdf-embed';
+        line.setAttribute('style', 'margin:8px 0;padding:6px 10px;font-size:13px;' +
+            'border:1px dashed rgba(128,128,128,.6);border-radius:8px;opacity:.85');
+        line.appendChild(doc.createTextNode(
+            'Embedded content — not included in the PDF' + (href ? ': ' : '')));
+        if(href) {
+            const a = doc.createElement('a');
+            a.setAttribute('href', href);
+            a.textContent = label;
+            a.style.setProperty('color', 'inherit', 'important');
+            a.style.setProperty('text-decoration', 'underline', 'important');
+            line.appendChild(a);
+        }
+        el.replaceWith(line);
+        // The frame's own boxes kept its height (an app window is drawn at
+        // a fixed size): without the frame they would print as empty space.
+        const text = line.textContent;
+        let box = line.parentElement;
+        while(box && box !== root && box.textContent.trim() === text &&
+              !box.querySelector('img, svg, canvas, video')) {
+            ['height', 'min-height', 'max-height', 'aspect-ratio'].forEach(function(p) {
+                box.style.removeProperty(p);
+            });
+            box = box.parentElement;
         }
     });
 }

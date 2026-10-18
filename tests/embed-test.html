@@ -1,0 +1,132 @@
+<meta charset="utf-8">
+<title>Тест встроенных страниц (iframe)</title>
+<!--
+  Страница внутри чата (окно приложения ChatGPT, превью canvas, видео, карта) — это
+  <iframe>. Сайт, который не разрешает показывать себя в рамке, валит у Gotenberg ВЕСЬ
+  экспорт: 400 «net::ERR_BLOCKED_BY_RESPONSE: loading failed» (письмо 18.10). В копии для
+  PDF каждая такая рамка становится строкой со ссылкой (gptpdfReplaceEmbeds, render.js,
+  шаг 13; и в выборе блоков). Плюс версия под окном ошибки — из манифеста, не «v3.9».
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=3000 --dump-dom "file://$PWD/tests/embed-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../shared.js"></script>
+<script src="../helpers.js"></script>
+<script src="../theme.js"></script>
+<script src="../templates.js"></script>
+<script src="../render.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, ok, detail) {
+    if(!ok) failed++;
+    out.push((ok ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+const CHAT = 'https://chatgpt.com/c/68f3a1b2-test';
+function scene(html) {
+    const root = document.createElement('main');
+    root.innerHTML = html;
+    document.body.appendChild(root);
+    return root;
+}
+const embeds = root => root.querySelectorAll('iframe, frame, embed, object').length;
+const lines = root => Array.from(root.querySelectorAll('.gptpdf-embed'));
+
+// A — окно приложения: рамка на сайт, который запрещает показ в рамке, в коробках
+//     фиксированной высоты; вокруг — текст ответа
+out.push('— A. окно приложения в коробках фиксированной высоты —');
+let r = scene('<div class="markdown"><p>До окна.</p>' +
+    '<div id="outer" style="height:500px;min-height:500px"><div id="inner" style="aspect-ratio:4/3;height:480px">' +
+    '<iframe src="https://abc123.web-sandbox.oaiusercontent.com/?app=demo" style="width:100%;height:480px"></iframe>' +
+    '</div></div><p>После окна.</p></div>');
+gptpdfReplaceEmbeds(r, CHAT);
+check('рамок не осталось', embeds(r) === 0, embeds(r) + '');
+check('одна строка на месте окна', lines(r).length === 1, lines(r).length + '');
+let a = lines(r)[0] && lines(r)[0].querySelector('a');
+check('песочница ChatGPT → ссылка на сам чат', a && a.getAttribute('href') === CHAT, a && a.getAttribute('href'));
+check('подпись ссылки — «open in ChatGPT»', a && a.textContent === 'open in ChatGPT', a && a.textContent);
+check('текст строки', /^Embedded content — not included in the PDF: /.test(lines(r)[0].textContent),
+      lines(r)[0].textContent);
+const outer = r.querySelector('#outer'), inner = r.querySelector('#inner');
+check('коробки окна потеряли высоту (не печатаются пустотой)',
+      !outer.style.height && !outer.style.minHeight && !inner.style.height && !inner.style.aspectRatio,
+      outer.getAttribute('style') + ' | ' + inner.getAttribute('style'));
+check('текст до и после окна на месте', /До окна\.[\s\S]*После окна\./.test(r.textContent));
+
+// B — обычная веб-страница (видео) → ссылка на её адрес, подпись — имя сайта
+out.push('\n— B. видео YouTube —');
+r = scene('<p>Видео:</p><iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>');
+gptpdfReplaceEmbeds(r, CHAT);
+a = r.querySelector('.gptpdf-embed a');
+check('ссылка на адрес рамки', a && a.getAttribute('href') === 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      a && a.getAttribute('href'));
+check('подпись — имя сайта без www', a && a.textContent === 'youtube.com', a && a.textContent);
+
+// C — рамка без адреса (srcdoc / about:blank) → ссылка на чат
+out.push('\n— C. рамка без адреса —');
+r = scene('<iframe srcdoc="<p>hi</p>"></iframe><iframe src="about:blank"></iframe>');
+gptpdfReplaceEmbeds(r, CHAT);
+check('обе стали строками', embeds(r) === 0 && lines(r).length === 2, lines(r).length + '');
+check('обе ведут в чат', lines(r).every(function(l) {
+    const x = l.querySelector('a'); return x && x.getAttribute('href') === CHAT; }));
+
+// D — вложенные <object><embed> → одна строка, не две
+out.push('\n— D. object с embed внутри —');
+r = scene('<object data="https://maps.example.com/map"><embed src="https://maps.example.com/map"></object>');
+gptpdfReplaceEmbeds(r, CHAT);
+check('одна строка', lines(r).length === 1 && embeds(r) === 0, lines(r).length + ' строк, рамок ' + embeds(r));
+a = r.querySelector('.gptpdf-embed a');
+check('ссылка на адрес объекта', a && a.getAttribute('href') === 'https://maps.example.com/map',
+      a && a.getAttribute('href'));
+
+// E — коробка, где кроме рамки есть текст, высоту СОХРАНЯЕТ
+out.push('\n— E. коробка с текстом и рамкой —');
+r = scene('<div id="mixed" style="height:300px"><p>Подпись к окну</p><iframe src="https://chatgpt.com/"></iframe></div>');
+gptpdfReplaceEmbeds(r, CHAT);
+check('у смешанной коробки высота не тронута', r.querySelector('#mixed').style.height === '300px',
+      r.querySelector('#mixed').getAttribute('style'));
+check('рамка chatgpt.com → ссылка на чат', r.querySelector('.gptpdf-embed a').getAttribute('href') === CHAT);
+
+// F — страница не по http (стенд, file://): строка без ссылки, но рамки нет
+out.push('\n— F. без адреса чата —');
+r = scene('<iframe src="https://abc.web-sandbox.oaiusercontent.com/"></iframe>');
+gptpdfReplaceEmbeds(r, 'file:///tmp/x.html');
+check('строка без ссылки', lines(r).length === 1 && !lines(r)[0].querySelector('a') &&
+      lines(r)[0].textContent === 'Embedded content — not included in the PDF', lines(r)[0].textContent);
+
+// G — полный путь: cleanupForPdf зовёт шаг 13
+out.push('\n— G. полная чистка (cleanupForPdf) —');
+r = scene('<article data-testid="conversation-turn-2"><div data-message-author-role="assistant">' +
+    '<div class="markdown"><p>Ответ.</p><iframe src="https://www.google.com/"></iframe></div></div></article>');
+cleanupForPdf(r);
+check('после cleanupForPdf рамок нет', embeds(r) === 0, embeds(r) + '');
+check('строка на месте рамки', lines(r).length === 1);
+
+// H — путь выбора блоков зовёт ту же функцию
+out.push('\n— H. выбор блоков —');
+const x = new XMLHttpRequest();
+x.open('GET', '../blockmode.js', false);
+x.send();
+check('blockmode.js зовёт gptpdfReplaceEmbeds(main_clone, …)',
+      /gptpdfReplaceEmbeds\(main_clone,/.test(x.responseText));
+
+// I — версия под окном ошибки
+out.push('\n— I. версия под окном ошибки —');
+const y = new XMLHttpRequest();
+y.open('GET', '../shared.js', false);
+y.send();
+function versionWith(chromeStub) {
+    return new Function('chrome', y.responseText + '\n;return gptpdfShared.version;')(chromeStub);
+}
+check('прод: v + номер манифеста', versionWith({ runtime: { getManifest: () => ({ version: '1.2.3' }) } }) === 'v1.2.3');
+check('дев: v + version_name', versionWith({ runtime: { getManifest: () =>
+      ({ version: '1.2.3', version_name: '1.2.3-dev' }) } }) === 'v1.2.3-dev');
+check('без chrome (стенд) — пусто и без падения', gptpdfShared.version === '', JSON.stringify(gptpdfShared.version));
+check('«v3.9» в shared.js больше не присваивается', !/version\s*=\s*'v3\.9'/.test(y.responseText));
+
+out.push('\n' + (failed ? '❌ провалено проверок: ' + failed : '✅ все проверки пройдены'));
+document.getElementById('log').textContent = out.join('\n');
+</script>
