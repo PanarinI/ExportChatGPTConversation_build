@@ -1,0 +1,64 @@
+<meta charset="utf-8">
+<title>Тест: выделение считается только в чате</title>
+<!--
+  Export с выделенным текстом выгружает выделенные сообщения — но только если выделение
+  в чате (gptpdfSelectionInChat, helpers.js). До 13.11 считалось любое выделение на
+  странице: сбор пропускался, и в PDF уходили лишь турны на экране («Creating the PDF
+  from 1 message» у автора — он копировал текст нашей карточки).
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=3000 --dump-dom "file://$PWD/tests/selection-in-chat-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<div id="card">Creating the PDF from 1 message… Don't close or reload this tab.</div>
+<nav id="side">Projects · Chats</nav>
+<main id="chat">
+  <article data-testid="conversation-turn-1"><div data-message-author-role="user"><p id="q1">Вопрос один</p></div></article>
+  <article data-testid="conversation-turn-2"><div data-message-author-role="assistant"><p id="a1">Ответ один</p></div></article>
+  <div data-turn-key="k3"><p id="pair">Пара вопрос-ответ</p></div>
+  <div id="loose">Строка в main вне турнов</div>
+</main>
+<script src="../helpers.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, ok, detail) {
+    if(!ok) failed++;
+    out.push((ok ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+const main = document.getElementById('chat');
+function select(fromId, toId) {
+    const s = window.getSelection();
+    s.removeAllRanges();
+    if(!fromId) return;
+    const r = document.createRange();
+    r.setStart(document.getElementById(fromId).firstChild, 0);
+    const end = document.getElementById(toId || fromId).firstChild;
+    r.setEnd(end, end.length);
+    s.addRange(r);
+}
+
+select(null);
+check('ничего не выделено → не выделение', gptpdfSelectionInChat(main) === false);
+select('card');
+check('текст нашей карточки (так было у автора) → не выделение', gptpdfSelectionInChat(main) === false);
+select('side');
+check('боковая панель → не выделение', gptpdfSelectionInChat(main) === false);
+select('loose');
+check('в main, но не в сообщении → не выделение', gptpdfSelectionInChat(main) === false);
+select('a1');
+check('текст ответа (classic) → выделение', gptpdfSelectionInChat(main) === true);
+select('q1', 'a1');
+check('от вопроса до ответа → выделение', gptpdfSelectionInChat(main) === true);
+select('pair');
+check('текст пары (новая вёрстка) → выделение', gptpdfSelectionInChat(main) === true);
+select('card', 'a1');
+check('началось вне чата, кончилось в нём → не выделение (как prepareSelection)', gptpdfSelectionInChat(main) === false);
+check('без корня чата → не выделение', gptpdfSelectionInChat(null) === false);
+
+select(null);
+out.push('\n' + (failed ? '❌ провалено проверок: ' + failed : '✅ все проверки пройдены'));
+document.getElementById('log').textContent = out.join('\n');
+</script>

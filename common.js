@@ -158,9 +158,10 @@ gptpdfChatGPT.init = function() {
             // left by clicking checkboxes must not shrink the export to itself.
             try { window.getSelection().removeAllRanges(); } catch(e) {}
         }
-        const selection = window.getSelection();
-        const hasSelection = !prefetched && selection &&
-            !selection.isCollapsed && selection.rangeCount > 0;
+        // Only a selection inside the chat narrows the export (helpers.js).
+        const chatRoot = document.getElementsByTagName('main')[0] ||
+            document.querySelector('div.grow');
+        const hasSelection = !prefetched && gptpdfSelectionInChat(chatRoot);
         let turnCache = prefetched;
         // Отметки времени экспорта по фазам: сбор → сборка страницы с
         // картинками → ужатие картинок → наш сервер. «Долго» без них — догадка,

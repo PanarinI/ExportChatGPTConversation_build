@@ -11,6 +11,10 @@ history and working notes.
   of a long chat (say, 9 of 269 messages), it now says so before making the PDF:
   "Only 9 of 269 messages could be read", with "Try again" and "Download
   anyway". Until now such a PDF just downloaded without a word.
+- **Selected text elsewhere on the page no longer cuts the export short.**
+  Export with text selected in the chat still saves just those messages. But a
+  selection anywhere else (the sidebar, the export's own progress card) used to
+  count too, and the PDF came out with only the messages on screen.
 
 ## [1.2.4] — 2026-10-18
 ### Fixed

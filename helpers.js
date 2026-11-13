@@ -285,6 +285,24 @@ function gptpdfPartialHarvest(h) {
     return { found: h.loaded, read: read, mode: h.mode || 'climb' };
 }
 
+// Text selected INSIDE the chat — only then does Export mean "the selected
+// messages". A selection anywhere else on the page (the text of our own
+// progress card, copied a moment ago; the sidebar; the composer) used to count
+// too: the harvest was skipped, prepareSelection found nothing of the chat in
+// it and cloned the page as it stood — only the turns on screen («Creating the
+// PDF from 1 message», author 13.11). Same test as prepareSelection: the row
+// where the selection starts is a turn of the chat.
+function gptpdfSelectionInChat(root) {
+    const sel = window.getSelection();
+    if(!root || !sel || sel.isCollapsed || sel.rangeCount === 0) {
+        return false;
+    }
+    const node = sel.getRangeAt(0).startContainer;
+    const el = node.nodeType === 1 ? node : node.parentElement;
+    const row = el && findRow(el);
+    return !!row && hasParent(row, root);
+}
+
 function hasParent(element, parent) {
     while(element) {
         if(element === parent) {
