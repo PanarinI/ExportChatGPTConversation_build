@@ -162,6 +162,37 @@ const DEMO_FORMATS = /demo=formats/.test(location.search) ? [
 if(DEMO_FORMATS) { DEMO = DEMO_FORMATS; document.title = 'Study notes: formats'; }
 const N = DEMO ? DEMO.length : 12;
 const IMG = blobImage('IMG 5', '#2a7');
+// ?lateimg=empty|append — картинки новой страницы опаздывают (замер у автора 13.11, «Художник»):
+// в каждом втором ответе галерея из двух картинок blob:; после появления сообщения на экране
+// первая приходит через 0,6 с, вторая — через 1,9 с. empty — обе кнопки превью стоят сразу,
+// пустые; append — вторая кнопка появляется только вместе со своей картинкой. Какой из двух
+// видов у ChatGPT — не замерено, сбор обязан пережить оба.
+const LATE_IMG = (location.search.match(/lateimg=(empty|append)/) || [])[1] || null;
+const LATE_PICS = {};
+function latePic(label, color) {
+    return LATE_PICS[label] || (LATE_PICS[label] = blobImage(label, color));
+}
+function lateGalleryHtml() {
+    const btn = '<div class="group/generated-image-preview"><button type="button" data-testid="generated-image-preview"></button></div>';
+    return '<div data-testid="generated-image-gallery"><div class="flex gap-2">' + btn +
+        (LATE_IMG === 'empty' ? btn : '') + '</div></div>';
+}
+function lateArrive(slot, i) {
+    const gallery = slot.querySelector('[data-testid="generated-image-gallery"] .flex');
+    if(!gallery) return;
+    const put = function(n, color) {
+        const img = '<img src="' + latePic('P' + (i + 1) + '-' + n, color) + '" alt="" width="160" height="100">';
+        let btns = gallery.querySelectorAll('[data-testid="generated-image-preview"]');
+        if(n === 2 && LATE_IMG === 'append') {
+            gallery.insertAdjacentHTML('beforeend', '<div class="group/generated-image-preview">' +
+                '<button type="button" data-testid="generated-image-preview">' + img + '</button></div>');
+            return;
+        }
+        if(btns[n - 1]) btns[n - 1].innerHTML = img;
+    };
+    setTimeout(function() { put(1, '#a35'); }, 600);
+    setTimeout(function() { put(2, '#35a'); }, 1900);
+}
 // ?embed=1 — в ответе 6 окно приложения: рамка на сайт, который не даёт показать себя
 // в рамке (письмо 18.10: такой iframe валил у Gotenberg весь экспорт кодом 400)
 const EMBED = /embed=1/.test(location.search);
@@ -194,10 +225,11 @@ function pairHtml(i) {
           '<button type="button" data-testid="generated-image-preview">' +
           '<img src="' + IMG + '" alt="Generated image 1"></button></div></div>';
     const ids = parts ? parts.map(function(p) { return p[0]; }).join(' ') : 'a' + i;
+    const late = LATE_IMG && parts && i % 2 === 1 ? lateGalleryHtml() : '';
     const a = '<div' + (parts ? ' data-chatgpt-search-unit-key="fallback-turn-' + i + ':2:assistant"' : '') +
         ' data-chatgpt-search-message-ids="' + ids + '">' +
         '<h4 class="sr-only" style="position:absolute;left:-9999px" data-conversation-role="assistant">ChatGPT said:</h4>' +
-        body + '</div>';
+        body + late + '</div>';
     return '<div data-turn-key="' + key + '"><div data-content-search-turn-key="fallback-turn-' + i + '">' +
         '<h4 class="sr-only" style="position:absolute;left:-9999px">You said:</h4>' + q + a +
         '<div><button type="button" aria-label="Copy">⧉</button></div>' +
@@ -277,6 +309,7 @@ function render() {
         mounted.forEach(function(el, j) { if(j > k && (!next || j < next.j)) next = { j: j, el: el }; });
         win.insertBefore(slot, next ? next.el : null);
         mounted.set(k, slot);
+        if(LATE_IMG && LAYOUT === 'pair') lateArrive(slot, k);
     }
     win.style.marginTop = (Math.max(0, first) * H) + 'px';
 }

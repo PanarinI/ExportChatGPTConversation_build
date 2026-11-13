@@ -360,10 +360,109 @@ function orderFromPositions(cache) {
 const GPTPDF_PENDING_PICTURE = '.flex-wrap > [class*="max-h-64"]:not(:has(img)), ' +
     '[data-testid="math-block-layout"] [role="status"]';
 
+// Generated pictures of the new page (measured 13.11 on the author's
+// «Художник_базовый», pair layout): each sits in
+// [data-testid="generated-image-gallery"] › button[data-testid=
+// "generated-image-preview"] › <img src="blob:…">, and comes AFTER its turn —
+// a gallery of two showed its first picture 0.6 s after the turn mounted and
+// its second at 1.9 s. The climb-and-descend harvest steps every 0.22 s and
+// waited for none of it: the turn left the screen before its pictures came,
+// and the PDF lost them without a word (2 of 40 on 13.11, 21 of 40 on 12.11;
+// 40 of 40 in October, when the author's page still went by wrappers). Whether
+// a picture not come yet has an empty button or no button at all is not
+// measured, so a gallery is ready only when every button holds a loaded
+// picture AND nothing in it changed for GALLERY_SETTLE_MS — longer than the
+// 1.25 s measured between two pictures. GALLERY_MAX_MS: a picture that never
+// comes must not hold the export.
+const GPTPDF_GALLERY = '[data-testid="generated-image-gallery"]';
+const GALLERY_SETTLE_MS = 1500;
+const GALLERY_MAX_MS = 5000;
+
+function galleryState(t) {
+    if(!t.querySelector(GPTPDF_GALLERY)) {
+        return null;
+    }
+    let loaded = 0, waiting = 0;
+    t.querySelectorAll(GPTPDF_GALLERY + ' [data-testid="generated-image-preview"]')
+        .forEach(function(b) {
+            const img = b.querySelector('img');
+            if(img && img.complete && img.naturalWidth > 0) {
+                loaded++;
+            } else {
+                waiting++;
+            }
+        });
+    return { loaded: loaded, waiting: waiting };
+}
+
+// Is this turn's gallery ready? True with no gallery; with every picture in
+// and nothing changed for GALLERY_SETTLE_MS; or once it has been waited for
+// GALLERY_MAX_MS. A turn gone from the screen and back starts its wait anew —
+// the page fetches its pictures again on every mount (measured 13.11).
+function gallerySettled(t, seen) {
+    const s = galleryState(t);
+    if(!s) {
+        return true;
+    }
+    const key = turnKey(t);
+    const now = Date.now();
+    const sig = s.loaded + '/' + s.waiting;
+    let e = seen.get(key);
+    if(!e || now - e.last > 1000) {
+        e = { sig: sig, at: now, first: now, last: now };
+        seen.set(key, e);
+    } else if(e.sig !== sig) {
+        e.sig = sig;
+        e.at = now;
+    }
+    e.last = now;
+    if(now - e.first >= GALLERY_MAX_MS) {
+        return true;
+    }
+    return s.waiting === 0 && now - e.at >= GALLERY_SETTLE_MS;
+}
+
+// Wait in place until the galleries of the mounted turns are ready. Each turn
+// is waited for once (`done`); its snapshot with the pictures stays in the
+// cache — captureTurn keeps the fuller one. True when it waited, so the
+// caller takes a fresh snapshot.
+async function waitGalleries(seen, done, budget) {
+    let waited = false;
+    while(!harvestCancelled) {
+        let open = 0;
+        document.querySelectorAll(GPTPDF_TURN).forEach(function(t) {
+            const key = turnKey(t);
+            if(done.has(key)) {
+                return;
+            }
+            if(gallerySettled(t, seen)) {
+                if(galleryState(t)) {
+                    done.add(key);
+                }
+                return;
+            }
+            open++;
+        });
+        if(!open) {
+            return waited;
+        }
+        if(document.hidden) {
+            await waitForegroundTab(budget);
+            continue;
+        }
+        waited = true;
+        budget.progress();
+        await new Promise(r => setTimeout(r, 100));
+    }
+    return waited;
+}
+
 // What a mounted turn still waits for: hrefless citation links, pictures.
 function turnPending(t) {
+    const g = galleryState(t);
     return t.querySelectorAll('a.decorated-link:not([href])').length +
-        t.querySelectorAll(GPTPDF_PENDING_PICTURE).length;
+        t.querySelectorAll(GPTPDF_PENDING_PICTURE).length +
+        (g ? g.waiting : 0);
 }
 
 // One mounted turn into the cache. Returns its key, or null for an empty node.
@@ -1040,6 +1139,7 @@ async function loadOlderPages(scroller, ax, budget) {
 
 async function harvestByWrappers(scroller, cache, budget) {
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const gallerySeen = new Map();   // turn key → gallery wait (gallerySettled)
     const keyOf = new Map();    // wrapper id → turn key, once held
     const seenKey = new Map();  // wrapper id → turn key, whenever captured
     const hidden = new Set();
@@ -1146,10 +1246,12 @@ async function harvestByWrappers(scroller, cache, budget) {
             }
             let pictures = 0;
             if(t) {
-                if(!turnPending(t)) {
+                const galleryReady = gallerySettled(t, gallerySeen);
+                if(!turnPending(t) && galleryReady) {
                     break;
                 }
-                pictures = t.querySelectorAll(GPTPDF_PENDING_PICTURE).length;
+                pictures = t.querySelectorAll(GPTPDF_PENDING_PICTURE).length +
+                    (galleryReady ? 0 : 1);
                 const now = t.querySelectorAll('a.decorated-link[href], img').length;
                 if(resolved >= 0 && now > resolved) {
                     moved = true;
@@ -1218,6 +1320,9 @@ async function harvestVirtualizedTurns() {
     const origScroll = scroller.scrollTop;   // raw: handed back as it was
     const ax = gptpdfScrollAxis(scroller);
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    // Pictures that come after their turn (GPTPDF_GALLERY): waited for on
+    // the way down, each turn once.
+    const gallerySeen = new Map(), galleryDone = new Set();
     showLoadingOverlay();
     setHarvestProgress('Loading conversation...');
     // Only into an empty line: a person who already left and came back
@@ -1316,6 +1421,9 @@ async function harvestVirtualizedTurns() {
                 ax.set(scroller.scrollHeight);
                 await wait(250);
                 captureRenderedTurns(cache);
+                if(await waitGalleries(gallerySeen, galleryDone, budget)) {
+                    captureRenderedTurns(cache);
+                }
                 if(scroller.scrollHeight === lastHeight) {
                     stableTries++;
                     if(stableTries >= 2) {
@@ -1331,6 +1439,9 @@ async function harvestVirtualizedTurns() {
             ax.set(next);
             await wait(220);
             captureRenderedTurns(cache);
+            if(await waitGalleries(gallerySeen, galleryDone, budget)) {
+                captureRenderedTurns(cache);
+            }
             if(cache.size > seen) {
                 budget.progress();
             }

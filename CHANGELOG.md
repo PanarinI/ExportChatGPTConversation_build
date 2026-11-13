@@ -15,6 +15,10 @@ history and working notes.
   Export with text selected in the chat still saves just those messages. But a
   selection anywhere else (the sidebar, the export's own progress card) used to
   count too, and the PDF came out with only the messages on screen.
+- **Generated pictures make it to the PDF on the new ChatGPT page.** There a
+  picture comes a second or two after its message, and the export moved on
+  without it — a long chat with forty pictures could come out with two. The
+  export now waits for each message's pictures.
 
 ## [1.2.4] — 2026-10-18
 ### Fixed
