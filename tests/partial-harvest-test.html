@@ -1,0 +1,46 @@
+<meta charset="utf-8">
+<title>Тест неполного сбора</title>
+<!--
+  Когда экспорт спрашивает «прочитано только 9 из 269» (gptpdfPartialHarvest, helpers.js;
+  окно — common.js gptpdfAskPartial). Заметно меньше = не хватает двух сообщений и больше
+  и прочитано меньше 90 %. Одна дыра в нумерации или скрытый турн — не повод. Без общего
+  числа (страница его не называет, «257 of ?») — не спрашиваем.
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=3000 --dump-dom "file://$PWD/tests/partial-harvest-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<script src="../helpers.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, ok, detail) {
+    if(!ok) failed++;
+    out.push((ok ? '✓ ' : '✗ ') + name + (detail ? '   → ' + detail : ''));
+}
+const P = gptpdfPartialHarvest;
+const j = x => JSON.stringify(x);
+
+let r = P({ mode: 'wrappers', turns: 9, loaded: 269, missing: 260 });
+check('9 из 269 по обёрткам → спросить', r && r.found === 269 && r.read === 9 && r.mode === 'wrappers', j(r));
+r = P({ turns: 257, loaded: null, missing: null });
+check('страница не называет общего числа («257 of ?») → не спрашивать', r === null, j(r));
+r = P({ turns: 515, loaded: 516, missing: 1 });
+check('не хватает одного (дыра в нумерации) → не спрашивать', r === null, j(r));
+r = P({ turns: 18, loaded: 20, missing: 2 });
+check('18 из 20 — ровно 90 % → не спрашивать', r === null, j(r));
+r = P({ turns: 17, loaded: 20, missing: 3 });
+check('17 из 20 → спросить, путь по умолчанию — climb', r && r.read === 17 && r.mode === 'climb', j(r));
+r = P({ mode: 'wrappers', turns: 4, loaded: 5, missing: 1 });
+check('4 из 5 — не хватает одного → не спрашивать', r === null, j(r));
+r = P({ mode: 'wrappers', turns: 0, loaded: 12, missing: 12 });
+check('0 из 12 → спросить', r && r.read === 0 && r.found === 12, j(r));
+check('нет сводки сбора (выделенный текст, ошибка сбора) → не спрашивать', P(null) === null && P(undefined) === null);
+r = P({ turns: 0, loaded: 0, missing: 0 });
+check('пустой чат → не спрашивать', r === null, j(r));
+
+out.push('\n' + (failed ? '❌ провалено проверок: ' + failed : '✅ все проверки пройдены'));
+document.getElementById('log').textContent = out.join('\n');
+</script>

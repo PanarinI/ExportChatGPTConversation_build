@@ -1291,6 +1291,26 @@ const EXPORT_BUTTON_HTML = `
         </div>
     </div>
 
+    <!-- Asked when the harvest read noticeably less than the chat holds
+         (common.js gptpdfAskPartial). No gptpdf-close-btn: every way out
+         is an answer that is counted. -->
+    <div class="gptpdf-overlay" id="gptpdf-partial-overlay">
+        <div class="gptpdf-dialog">
+            <div class="gptpdf-dialog-header">
+                Only part of the chat was read
+                <span class="gptpdf-close-x" id="gptpdf-partial-close">&times;</span>
+            </div>
+            <div class="gptpdf-dialog-body" style="text-align: center;">
+                <p id="gptpdf-partial-message"></p>
+            </div>
+            <div class="gptpdf-dialog-footer">
+                <button class="gptpdf-loading-cancel" id="gptpdf-partial-download">Download anyway</button>
+                <button class="gptpdf-btn-apply" id="gptpdf-partial-retry" style="margin-left:8px">Try again</button>
+                <div class="gptpdf-version">${gptpdfShared.version}</div>
+            </div>
+        </div>
+    </div>
+
     <div id="gptpdf-blocks-bar">
         <span id="gptpdf-blocks-count">0 blocks selected</span>
         <button id="gptpdf-blocks-export">Export selected</button>

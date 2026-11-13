@@ -266,6 +266,25 @@ function gptpdfFailureReason(status, text) {
     return 'client';
 }
 
+// A harvest that read noticeably less than the page says the chat holds
+// (uninstall 10.11: «it only exported 9 of 269 messages» — the card had
+// counted 269 and read 9, and the PDF went out without a word). Noticeably:
+// two messages or more AND over a tenth of the chat — a hidden turn or a hole
+// in the numbering (one message) is not worth stopping an export for. Null
+// when the harvest is whole enough, or when the page states no total (the
+// climb on a page without wrappers logs "257 of ?").
+function gptpdfPartialHarvest(h) {
+    if(!h || typeof h.loaded !== 'number' || typeof h.missing !== 'number' ||
+       h.loaded <= 0) {
+        return null;
+    }
+    const read = Math.max(0, h.loaded - h.missing);
+    if(h.missing < 2 || read >= h.loaded * 0.9) {
+        return null;
+    }
+    return { found: h.loaded, read: read, mode: h.mode || 'climb' };
+}
+
 function hasParent(element, parent) {
     while(element) {
         if(element === parent) {

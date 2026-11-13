@@ -353,6 +353,18 @@ gptpdfChatGPT.sendChunkedData = function(htmlContent, params, fileName, fnCleanu
     setTimeout(fnCleanup, 30);
 };
 
+// ?partial=1 — сбор «прочёл 9 из 269» (как у человека 10.11): экспорт должен спросить
+// «Only 9 of 269 messages could be read», а не отдать огрызок молча. Сам сбор настоящий,
+// подменена только его сводка.
+if(/partial=1/.test(location.search)) {
+    const realHarvest = harvestVirtualizedTurns;
+    harvestVirtualizedTurns = async function() {
+        const cache = await realHarvest();
+        cache.gptpdfHarvest = { mode: 'wrappers', turns: 9, loaded: 269, missing: 260 };
+        return cache;
+    };
+}
+
 // ?auto=export — без рук: нажать Export, когда кнопка проснётся, и выложить выгрузку
 // в блок payload-dump для headless-прогона (tests/e2e-render.js шлёт её на сервер).
 // Интерфейс так не проверяют — для него клики руками; это только снять HTML и параметры.

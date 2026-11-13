@@ -178,6 +178,29 @@ gptpdfChatGPT.init = function() {
             restoreButtonState();
             return;
         }
+        // Read noticeably less than the chat holds (uninstall 10.11: «it only
+        // exported 9 of 269 messages»): ask before making the PDF instead of
+        // handing over a stub without a word — and count it, since a stub
+        // used to pass for a completed export.
+        const partial = gptpdfPartialHarvest(turnCache && turnCache.gptpdfHarvest);
+        if(partial) {
+            gptpdfExportPause();
+            const choice = await gptpdfAskPartial(partial);
+            console.log('[gptpdf] partial: ' + partial.read + ' of ' +
+                partial.found + ' read (' + partial.mode + '), choice: ' + choice);
+            sendGA4Event('export_partial', {
+                found: partial.found, read: partial.read, mode: partial.mode,
+                choice: choice, layout: gptpdfLayoutName()
+            });
+            if(choice !== 'download') {
+                gptpdfExportEnd();
+                restoreButtonState();
+                if(choice === 'retry') {
+                    setTimeout(function() { convert(event); }, 0);
+                }
+                return;
+            }
+        }
         // The scrolling's card goes straight on — no blank moment between steps.
         if(gptpdfExportCard.shown) {
             gptpdfExportStep('Preparing the PDF…');
@@ -915,6 +938,30 @@ if (aiOnlyBtn) {
     wireSettings();
 
     setInterval(checkForContent, 1000);
+}
+
+// "Only 9 of 269 messages could be read": resolves with the person's answer —
+// 'retry', 'download' (the PDF of what was read) or 'close'.
+function gptpdfAskPartial(p) {
+    return new Promise(function(resolve) {
+        const overlay = document.getElementById('gptpdf-partial-overlay');
+        document.getElementById('gptpdf-partial-message').innerHTML =
+            'Only <strong>' + p.read + ' of ' + p.found + '</strong> messages ' +
+            'could be read.<br>ChatGPT shows messages only while they are on ' +
+            'screen. Keep this tab in front and the window open while the ' +
+            'export runs, then try again.';
+        function answer(choice) {
+            overlay.style.display = 'none';
+            resolve(choice);
+        }
+        document.getElementById('gptpdf-partial-retry').onclick =
+            function() { answer('retry'); };
+        document.getElementById('gptpdf-partial-download').onclick =
+            function() { answer('download'); };
+        document.getElementById('gptpdf-partial-close').onclick =
+            function() { answer('close'); };
+        overlay.style.display = 'flex';
+    });
 }
 
 gptpdfChatGPT.showError = function(status, text, hideContact) {

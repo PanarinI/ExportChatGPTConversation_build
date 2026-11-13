@@ -5,6 +5,13 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [Unreleased]
+### Fixed
+- **No more silent half-exports.** When the extension manages to read only part
+  of a long chat (say, 9 of 269 messages), it now says so before making the PDF:
+  "Only 9 of 269 messages could be read", with "Try again" and "Download
+  anyway". Until now such a PDF just downloaded without a word.
+
 ## [1.2.4] — 2026-10-18
 ### Fixed
 - **The menu is dark again in ChatGPT's dark theme.** On the new ChatGPT page
