@@ -15,6 +15,10 @@ zi6lL3TT
 # local research/media — not for git
 html_pdf_converter/
 
+# research with users' words or usage numbers — private, like ГОЛОСА.md (repo is public).
+# Went out by mistake in the 12.11 21:00 snapshot; untracked 13.11.
+research/udaleniya-2026-11/
+
 # сборки: dist/exportgpt-<версия>[-dev].zip + dist/unpacked-<версия>-dev/ (бывший versions_lib,
 # слит сюда 08-10 — один дом для всех версий). Артефакты, не исходники.
 dist/
