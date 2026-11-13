@@ -20,8 +20,32 @@ function gptpdfIsPairTurn(el) {
     return !!(el && el.hasAttribute && el.hasAttribute('data-turn-key'));
 }
 
+// The open chat. After a click to another chat in the sidebar ChatGPT keeps
+// the previous one in the page, hidden — two <main>, two timelines, the old
+// one under an ancestor with display:none (measured on the author's account
+// 13.11). Every "first one on the page" lookup found the hidden, previous
+// chat: its few mounted messages went into the PDF under the open chat's
+// title, unscrolled (author 13.11: «мудрец (31)» held another chat; 12.10's
+// «в PDF другой чат» was the same). The open chat is the visible <main> with
+// a conversation; lookups of the chat start from here, never from document.
+function gptpdfChatRoot() {
+    const mains = document.getElementsByTagName('main');
+    let shown = null;
+    for(let i = 0; i < mains.length; i++) {
+        const r = mains[i].getBoundingClientRect();
+        if(r.width > 0 && r.height > 0) {
+            if(gptpdfHasConversation(mains[i])) {
+                return mains[i];
+            }
+            shown = shown || mains[i];
+        }
+    }
+    return shown || mains[0] || document.querySelector('div.grow') ||
+        document.body;
+}
+
 function gptpdfIsPairLayout(root) {
-    return !!(root || document).querySelector('div[data-turn-key]');
+    return !!(root || gptpdfChatRoot()).querySelector('div[data-turn-key]');
 }
 
 // Analytics label for the page an export ran on: 'pair' | 'classic'.
@@ -33,7 +57,7 @@ function gptpdfLayoutName() {
 // asked only for the classic user message, so on the pair layout the button
 // stayed dimmed on an open chat — "always said load a chat" (ГОЛОСА 09-26).
 function gptpdfHasConversation(root) {
-    return !!(root || document).querySelector(
+    return !!(root || gptpdfChatRoot()).querySelector(
         '[data-message-author-role="user"], div[data-turn-key]');
 }
 

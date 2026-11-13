@@ -8,12 +8,15 @@ function findVirtualizedScroller() {
     // Pair layout: the thread scroller names itself. The sidebar has a
     // scroller of its own, so the name, not "some scrollable ancestor", is
     // what tells them apart (CHATGPT-DOM.md §9).
-    const named = document.querySelector('[data-app-action-timeline-scroll]');
+    // Only the open chat's: the previous one stays in the page, hidden
+    // (gptpdfChatRoot, helpers.js), and its timeline came first.
+    const root = gptpdfChatRoot();
+    const named = root.querySelector('[data-app-action-timeline-scroll]');
     if(named && named.querySelector('div[data-turn-key]') &&
        named.scrollHeight > named.clientHeight + 100) {
         return named;
     }
-    const turns = document.querySelectorAll(GPTPDF_TURN);
+    const turns = root.querySelectorAll(GPTPDF_TURN);
     if(!turns.length) {
         return null;
     }
@@ -204,7 +207,7 @@ function turnNumber(t, indexInSnapshot) {
 // conversation at this moment — the only total the page ever states out loud.
 // The pair layout states no total at all → null ("unknown", not zero).
 function loadedTurnCount() {
-    const turns = document.querySelectorAll(
+    const turns = gptpdfChatRoot().querySelectorAll(
         '[data-testid^="conversation-turn"]');
     if(!turns.length && gptpdfIsPairLayout()) {
         return null;
@@ -430,7 +433,7 @@ async function waitGalleries(seen, done, budget) {
     let waited = false;
     while(!harvestCancelled) {
         let open = 0;
-        document.querySelectorAll(GPTPDF_TURN).forEach(function(t) {
+        gptpdfChatRoot().querySelectorAll(GPTPDF_TURN).forEach(function(t) {
             const key = turnKey(t);
             if(done.has(key)) {
                 return;
@@ -488,7 +491,7 @@ function captureTurn(cache, t) {
 }
 
 function captureRenderedTurns(cache) {
-    const turns = document.querySelectorAll(GPTPDF_TURN);
+    const turns = gptpdfChatRoot().querySelectorAll(GPTPDF_TURN);
     const present = [];
     for(let i = 0; i < turns.length; i++) {
         const id = captureTurn(cache, turns[i]);
@@ -1469,7 +1472,7 @@ async function harvestVirtualizedTurns() {
         // window) — scroll each into view and wait for IT to render. Turns that
         // were unmounted behind us are handled by the gap sweep below.
         for(let attempt = 0; attempt < 3 && !harvestCancelled; attempt++) {
-            const pending = Array.from(document.querySelectorAll(
+            const pending = Array.from(gptpdfChatRoot().querySelectorAll(
                 GPTPDF_TURN
             )).filter(t => {
                 const c = cache.get(turnKey(t));

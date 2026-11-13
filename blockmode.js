@@ -509,7 +509,7 @@ function setupBlockMode() {
         syncAllRow();
     }
 
-    function findBlocks() { return gptpdfFindBlocks(document); }
+    function findBlocks() { return gptpdfFindBlocks(gptpdfChatRoot()); }
 
     const isRuLang = false; // UI is English-only
 
@@ -852,8 +852,7 @@ function setupBlockMode() {
         }
 
         gptpdfShared.getOptions(function(options) {
-            let main = document.getElementsByTagName('main');
-            main = main.length ? main[0] : document.querySelector('div.grow');
+            let main = gptpdfChatRoot();   // not the hidden previous chat
 
             // Convert images to base64 (canvas; with a background-fetch fallback for
             // CORS-tainted / auth-protected images like DALL-E) so Gotenberg renders them

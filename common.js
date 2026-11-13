@@ -131,7 +131,7 @@ gptpdfChatGPT.init = function() {
         // (a question and an answer on the page), up to 15 s; if it does not
         // come, say so instead of making an empty file.
         const chatReady = () => gptpdfHasConversation() &&
-            !!document.querySelector('[data-message-author-role="assistant"], div[data-turn-key]');
+            !!gptpdfChatRoot().querySelector('[data-message-author-role="assistant"], div[data-turn-key]');
         if(!gptpdfPendingTurnCache && !chatReady()) {
             const t0 = Date.now();
             while(!chatReady() && Date.now() - t0 < 15000) {
@@ -159,8 +159,7 @@ gptpdfChatGPT.init = function() {
             try { window.getSelection().removeAllRanges(); } catch(e) {}
         }
         // Only a selection inside the chat narrows the export (helpers.js).
-        const chatRoot = document.getElementsByTagName('main')[0] ||
-            document.querySelector('div.grow');
+        const chatRoot = gptpdfChatRoot();
         const hasSelection = !prefetched && gptpdfSelectionInChat(chatRoot);
         let turnCache = prefetched;
         // Отметки времени экспорта по фазам: сбор → сборка страницы с
@@ -208,9 +207,8 @@ gptpdfChatGPT.init = function() {
         }
 
         gptpdfShared.getOptions(function(options) {
-            let main = document.getElementsByTagName('main');
-            main = main.length ? main[0] :
-                document.querySelector('div.grow');
+            // The open chat, not the hidden previous one (helpers.js).
+            let main = gptpdfChatRoot();
 
             // Lock computed image sizes and convert external images to base64
             const imgPromises = [];

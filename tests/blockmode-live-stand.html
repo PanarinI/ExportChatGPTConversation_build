@@ -323,6 +323,31 @@ render();
 // <header> 52 px, в нём поверхность app-shell-header-context-menu-surface, справа группа
 // «Upgrade · × · Share · More» на 8 px от верха. ?header=old — прежний #page-header из трёх блоков.
 // Кнопка Export должна встать слева от группы, на одной линии с ней (не под ней).
+// ?prevchat=1 — переход в другой чат без перезагрузки (замер у автора 13.11): прежний чат
+// остаётся в странице, скрытый (display:none у предка), и стоит в ней ПЕРВЫМ — свой <main>,
+// своя лента, 4 пары. Экспорт обязан взять открытый чат, а не «Чужой вопрос N?».
+if(/prevchat=1/.test(location.search)) {
+    const old = document.createElement('div');
+    old.className = 'relative h-full min-h-0';
+    old.style.display = 'none';
+    let inner = '';
+    for(let i = 1; i <= 4; i++) {
+        inner += LAYOUT === 'pair'
+            ? '<div data-turn-key="old' + i + '"><div data-chatgpt-search-unit-key="old-' + i + ':0:user">' +
+              '<div class="q-row"><div data-user-message-bubble="true" class="bubble"><div class="whitespace-pre-wrap">' +
+              'Чужой вопрос ' + i + '?</div></div></div></div><div data-chatgpt-search-unit-key="old-' + i + ':2:assistant">' +
+              '<div data-chatgpt-selection-message-id="oa' + i + '"><div data-markdown-text-style="assistant-message">' +
+              '<p>Чужой ответ ' + i + '.</p></div></div></div></div>'
+            : '<article data-testid="conversation-turn-' + (2 * i - 1) + '"><div data-message-author-role="user" ' +
+              'data-message-id="ou' + i + '"><div class="whitespace-pre-wrap">Чужой вопрос ' + i + '?</div></div></article>' +
+              '<article data-testid="conversation-turn-' + (2 * i) + '"><div data-message-author-role="assistant" ' +
+              'data-message-id="oa' + i + '"><div class="markdown prose"><p>Чужой ответ ' + i + '.</p></div></div></article>';
+    }
+    old.innerHTML = '<main><div data-app-action-timeline-scroll style="height:400px;overflow-y:auto"><div>' +
+        inner + '</div></div></main>';
+    document.body.insertBefore(old, document.body.firstChild);
+}
+
 // ?pagetheme=newdark — тёмная тема новой страницы: data-theme="dark" на <html>, класса dark нет
 // (замер 18.10: меню расширения оставалось светлым). ?pagetheme=olddark — прежний class="dark".
 (function() {

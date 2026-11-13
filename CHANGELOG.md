@@ -7,6 +7,10 @@ history and working notes.
 
 ## [Unreleased]
 ### Fixed
+- **The right chat after switching chats.** Open one chat, click another in the
+  sidebar, press Export — the PDF used to carry a few messages of the chat you
+  had left, under the new chat's name. ChatGPT keeps the previous chat in the
+  page, hidden, and the export took it. Now it always takes the open one.
 - **No more silent half-exports.** When the extension manages to read only part
   of a long chat (say, 9 of 269 messages), it now says so before making the PDF:
   "Only 9 of 269 messages could be read", with "Try again" and "Download
