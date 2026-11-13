@@ -5,7 +5,7 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
-## [Unreleased]
+## [1.2.5] — 2026-11-13
 ### Fixed
 - **The right chat after switching chats.** Open one chat, click another in the
   sidebar, press Export — the PDF used to carry a few messages of the chat you
