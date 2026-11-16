@@ -425,6 +425,14 @@ gptpdfChatGPT.init = function() {
                     `<body class="${classes}" dir="${direction}">` +
                     `${body}</body>`;
 
+                // Dev builds only: keep the exact page the print server gets,
+                // next to the PDF, so a layout bug on a real chat can be
+                // reproduced outside it (16.11: question over answer on the
+                // author's chat, not on the stands).
+                if(/-dev/.test(gptpdfShared.build)) {
+                    gptpdfDevDump(htmlContent, data, filename);
+                }
+
                 gptpdfChatGPT.doRequest(
                     htmlContent,
                     data,
@@ -1013,3 +1021,28 @@ gptpdfChatGPT.saveBlob = function(url, filename) {
         window.URL.revokeObjectURL(url);
     }, 100);
 };
+
+// Dev builds only (see doConvert): the HTML the print server gets, with the
+// CSS background.js adds and the request parameters, saved as
+// "<title>.export.html" beside the PDF.
+function gptpdfDevDump(html, data, filename) {
+    try {
+        const params = Object.assign({}, data);
+        delete params.custom_css;
+        const page = html.replace('</head>',
+            '<style>' + (data.custom_css || '') + '</style>' +
+            '<style>img{max-width:100% !important}</style>' +
+            '<script type="application/json" id="gptpdf-dev-params">' +
+            JSON.stringify(params).replace(/</g, '\\u003c') + '</script></head>');
+        const url = URL.createObjectURL(new Blob([page], { type: 'text/html' }));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = String(filename || 'export').replace(/\.pdf$/i, '') + '.export.html';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
+    } catch(e) {
+        console.log('[gptpdf] dev dump failed', e);
+    }
+}
