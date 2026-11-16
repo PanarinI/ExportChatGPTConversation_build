@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ExportGPT · settings mock</title>
+<!-- Макет окна настроек ExportGPT (шаг 2 ревью 16.11). Не код расширения: всё в одном файле, расширение не грузится.
+     Открывать по http: сервер exportgpt-stend (порт 8840) →
+     http://localhost:8840/dizajn/obzor-2026-11-16/maket/nastrojki.html
+     Параметры: ?theme=dark — ChatGPT в тёмной теме · ?open=menu | settings — что открыто сразу ·
+     ?tab=style | paper | header · ?preset=chat | doc | compact · ?custom=1 — тронуть размер (метка Custom) ·
+     ?sheet=dark · ?bar=0 — без полосы макета (для кадров). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400&family=Noto+Sans:wght@400;600;700&family=Noto+Sans+Mono&family=Noto+Serif:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ffffff; --fg:#0d0d0d; --muted:#6e6e6e; --faint:#9b9b9b; --line:#e6e6e6; --line2:#d9d9d9;
+  --surface:#ffffff; --surface2:#f6f6f7; --hover:#f2f2f2; --pressed:#ececec;
+  --accent:#EA4C3A; --accent-ink:#c93a2a; --accent-soft:#fdeceA;
+  --shadow:0 12px 48px rgba(0,0,0,.20), 0 2px 8px rgba(0,0,0,.08);
+  --menu-shadow:0 8px 28px rgba(0,0,0,.14), 0 1px 3px rgba(0,0,0,.08);
+  --bubble:#f4f4f4; --scrim:rgba(0,0,0,.38); --stage:#efeff1;
+  --ui:ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
+}
+[data-theme=dark]{
+  --bg:#212121; --fg:#ececec; --muted:#a8a8a8; --faint:#7d7d7d; --line:#383838; --line2:#454545;
+  --surface:#2a2a2a; --surface2:#242424; --hover:#343434; --pressed:#3c3c3c;
+  --accent:#EF5A48; --accent-ink:#ff8676; --accent-soft:#4a2622;
+  --shadow:0 12px 48px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.4);
+  --menu-shadow:0 8px 28px rgba(0,0,0,.55), 0 1px 3px rgba(0,0,0,.4);
+  --bubble:#303030; --scrim:rgba(0,0,0,.55); --stage:#1b1b1b;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 var(--ui);-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit}
+
+/* ── a stand-in for the ChatGPT page ─────────────────────────────────────── */
+.gpt-head{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid transparent}
+.gpt-model{font-size:18px;font-weight:600;display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:10px}
+.gpt-model small{font-size:12px;color:var(--muted)}
+.gpt-right{display:flex;align-items:center;gap:8px;position:relative}
+.pill{height:36px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid var(--line2);border-radius:999px;background:var(--bg);cursor:pointer;font-size:14px}
+.pill:hover{background:var(--hover)}
+.avatar{width:32px;height:32px;border-radius:50%;background:#7c5cff;color:#fff;display:grid;place-items:center;font-size:13px;font-weight:600}
+#exportBtn{padding:0 6px 0 12px;gap:4px}
+#exportBtn .lbl{display:flex;align-items:center;gap:6px;padding-right:6px}
+#exportBtn .arrow{display:grid;place-items:center;width:24px;height:24px;border-radius:6px;color:var(--muted)}
+#exportBtn.open{background:var(--hover)}
+.gpt-main{height:calc(100% - 52px);overflow:hidden;display:flex;flex-direction:column;align-items:center}
+.thread{width:min(760px,92vw);padding:24px 0 140px;flex:1}
+.u-msg{display:flex;justify-content:flex-end;margin:20px 0 18px}
+.u-msg span{background:var(--bubble);padding:10px 16px;border-radius:22px;max-width:70%}
+.a-msg h3{font-size:17px;margin:0 0 8px}
+.a-msg p{margin:0 0 12px}
+.a-msg table{border-collapse:collapse;width:100%;margin:6px 0 14px;font-size:14px}
+.a-msg th,.a-msg td{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left}
+.a-msg th{font-weight:600}
+.composer{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);width:min(760px,92vw);height:56px;border-radius:28px;border:1px solid var(--line2);background:var(--bg);box-shadow:0 2px 12px rgba(0,0,0,.06);display:flex;align-items:center;padding:0 22px;color:var(--faint)}
+
+/* ── Export menu ─────────────────────────────────────────────────────────── */
+.menu{position:absolute;top:44px;right:72px;z-index:20;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--menu-shadow);padding:8px;display:none;width:452px}
+.menu.open{display:block}
+.menu-main{display:flex;gap:8px}
+.entry{flex:0 0 132px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 6px 8px;border-radius:12px;border:0;background:transparent;cursor:pointer;position:relative}
+.entry:hover{background:var(--hover)}
+.entry .frame{position:relative;border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.10),0 2px 6px rgba(0,0,0,.12);transition:transform .15s ease, box-shadow .15s ease;background:#fff}
+[data-theme=dark] .entry .frame{box-shadow:0 0 0 1px rgba(255,255,255,.12),0 2px 8px rgba(0,0,0,.5)}
+.entry:hover .frame{transform:translateY(-2px);box-shadow:0 0 0 1px rgba(0,0,0,.12),0 8px 18px rgba(0,0,0,.18)}
+.entry .hoverpill{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(20,20,20,.82);color:#fff;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;opacity:0;transition:opacity .15s;white-space:nowrap;pointer-events:none}
+.entry:hover .hoverpill{opacity:1}
+.entry .cap{font-size:12.5px;line-height:1.3;text-align:center;color:var(--muted)}
+.entry .cap b{color:var(--fg);font-weight:600}
+.actions{flex:1;display:flex;flex-direction:column;gap:2px;padding-top:2px}
+.mi{display:flex;align-items:flex-start;gap:10px;text-align:left;border:0;background:transparent;border-radius:10px;padding:9px 10px;cursor:pointer}
+.mi:hover{background:var(--hover)}
+.mi svg{flex:0 0 18px;margin-top:2px;color:var(--fg)}
+.mi b{display:block;font-weight:500;font-size:14px}
+.mi small{display:block;color:var(--muted);font-size:12.5px;margin-top:1px}
+.menu-foot{border-top:1px solid var(--line);margin-top:6px;padding:8px 10px 2px;display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:13px}
+.stars{letter-spacing:2px;color:var(--line2);font-size:15px;cursor:pointer}
+
+/* ── Settings window ─────────────────────────────────────────────────────── */
+.scrim{position:fixed;inset:0;background:var(--scrim);display:none;align-items:center;justify-content:center;z-index:40}
+.scrim.open{display:flex}
+.win{width:min(980px,96vw);height:min(720px,94vh);background:var(--surface);border-radius:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;animation:pop .16s ease-out}
+@keyframes pop{from{transform:scale(.97);opacity:.4}to{transform:none;opacity:1}}
+.win-head{height:58px;flex:0 0 58px;display:flex;align-items:center;justify-content:space-between;padding:0 18px 0 22px;border-bottom:1px solid var(--line)}
+.win-head h2{font-size:17px;margin:0;font-weight:600}
+.x{width:34px;height:34px;border-radius:50%;border:0;background:var(--hover);cursor:pointer;display:grid;place-items:center;color:var(--muted)}
+.x:hover{background:var(--pressed);color:var(--fg)}
+.win-body{flex:1;display:flex;min-height:0}
+.stage{flex:0 0 46%;background:var(--stage);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px 18px 14px;position:relative;min-width:0}
+.stage-sheet{position:relative;flex:1;width:100%;display:flex;align-items:center;justify-content:center;min-height:0}
+.stage-cap{margin-top:10px;font-size:12.5px;color:var(--muted);text-align:center;min-height:18px}
+.ctrl{flex:1;display:flex;flex-direction:column;min-width:0}
+.tabs{display:flex;gap:4px;padding:14px 22px 0;border-bottom:1px solid var(--line);background:var(--surface2)}
+.tab{border:1px solid transparent;border-bottom:0;background:transparent;border-radius:10px 10px 0 0;padding:8px 16px 9px;cursor:pointer;color:var(--muted);font-weight:500;position:relative;top:1px}
+.tab:hover{color:var(--fg)}
+.tab.on{background:var(--surface);border-color:var(--line);color:var(--fg)}
+.panes{flex:1;overflow:auto;padding:18px 22px 22px}
+.pane{display:none}
+.pane.on{display:block}
+.sec{display:flex;align-items:center;justify-content:space-between;margin:2px 0 10px}
+.sec-l{font-size:11.5px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.state{font-size:12.5px;color:var(--muted);border:0;background:transparent;padding:3px 0;cursor:default}
+.state.custom{border:0;cursor:pointer;background:var(--accent-soft);color:var(--accent-ink);font-weight:600;padding:3px 10px;border-radius:999px}
+.state.custom:hover{filter:brightness(.97)}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.tile{border:1.5px solid var(--line2);background:var(--surface);border-radius:14px;padding:12px 8px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;transition:border-color .12s, background .12s}
+.tile:hover{background:var(--hover)}
+.tile.on{border-color:var(--accent);background:var(--accent-soft)}
+.tile.base{border-style:dashed;border-color:var(--accent)}
+.tile .frame{border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.10),0 1px 4px rgba(0,0,0,.10);background:#fff}
+.tile .nm{font-weight:600;font-size:14px;line-height:1.1}
+.tile .ds{font-size:12px;color:var(--muted);line-height:1.2;text-align:center}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:4px 0}
+.row + .row{border-top:1px solid var(--line)}
+.row .lb{font-size:14px;white-space:nowrap}
+.row .lb small{display:block;color:var(--muted);font-size:12px;line-height:1.25;white-space:normal;max-width:190px}
+.seg{display:inline-flex;background:var(--hover);border-radius:10px;padding:3px;gap:2px;flex-wrap:nowrap}
+.seg button{border:0;background:transparent;border-radius:8px;padding:5px 11px;cursor:pointer;color:var(--muted);font-size:13.5px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.seg button:hover{color:var(--fg)}
+.seg button.on{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+[data-theme=dark] .seg button.on{background:#4a4a4a}
+.seg.fonts button{padding:4px 12px}
+.seg.fonts .aa{font-size:17px;line-height:1;color:var(--fg)}
+.seg.ico button{padding:5px 9px}
+.stepper{display:inline-flex;align-items:center;background:var(--hover);border-radius:10px;padding:3px}
+.stepper button{width:30px;height:28px;border:0;border-radius:8px;background:transparent;cursor:pointer;font-size:17px;color:var(--fg)}
+.stepper button:hover{background:var(--surface)}
+.stepper button:disabled{opacity:.35;cursor:default;background:transparent}
+.stepper output{min-width:58px;text-align:center;font-variant-numeric:tabular-nums}
+.sw{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:250px}
+.sw button{width:22px;height:22px;border-radius:50%;border:1px solid rgba(0,0,0,.14);cursor:pointer;padding:0;position:relative}
+[data-theme=dark] .sw button{border-color:rgba(255,255,255,.18)}
+.sw button.on{outline:2px solid var(--accent);outline-offset:2px}
+.sw button.none::after{content:"";position:absolute;left:3px;right:3px;top:50%;height:1.5px;background:#c9c9c9;transform:rotate(-45deg)}
+.toggle{width:42px;height:24px;border-radius:999px;border:0;background:var(--line2);position:relative;cursor:pointer;transition:background .15s}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s}
+.toggle.on{background:var(--accent)}
+.toggle.on::after{left:21px}
+.toggle:disabled{opacity:.4;cursor:default}
+.sheets2{display:flex;gap:10px}
+.sheet-opt{border:1.5px solid var(--line2);border-radius:12px;background:var(--surface);padding:8px 12px 8px 8px;display:flex;align-items:center;gap:10px;cursor:pointer;text-align:left}
+.sheet-opt:hover{background:var(--hover)}
+.sheet-opt.on{border-color:var(--accent);background:var(--accent-soft)}
+.sheet-opt .mini{width:26px;height:36px;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.14);padding:5px 4px;display:flex;flex-direction:column;gap:3px}
+.sheet-opt .mini i{display:block;height:2px;border-radius:1px;background:#bdbdbd}
+.sheet-opt .mini.dark{background:#1f1f1f}
+.sheet-opt .mini.dark i{background:#6d6d6d}
+.sheet-opt .mini.light{background:#fff}
+.sheet-opt b{display:block;font-weight:600;font-size:13.5px}
+.sheet-opt small{display:block;color:var(--muted);font-size:12px}
+.custom-m{display:none;gap:8px;justify-content:flex-end;padding:0 0 10px}
+.custom-m.on{display:flex}
+.custom-m label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px}
+.custom-m input{width:56px;height:30px;border-radius:8px;border:1px solid var(--line2);background:var(--surface);color:var(--fg);text-align:center;font:inherit}
+.win-foot{flex:0 0 62px;display:flex;align-items:center;gap:10px;padding:0 18px 0 22px;border-top:1px solid var(--line)}
+.ver{font-size:12px;color:var(--faint);margin-right:auto}
+.btn{height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--line2);background:var(--surface);cursor:pointer;font-weight:500}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(.95);background:var(--accent)}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#1f1f1f;color:#fff;padding:8px 14px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s;z-index:60;pointer-events:none}
+.toast.on{opacity:1}
+
+/* ── mock bar (for the author; not part of the product) ──────────────────── */
+.mockbar{position:fixed;left:12px;bottom:12px;z-index:80;display:flex;align-items:center;gap:6px;background:#262626;color:#ddd;border-radius:10px;padding:5px 6px 5px 10px;font:12.5px/1 var(--ui);box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.mockbar b{color:#fff;font-weight:600;margin-right:4px}
+.mockbar button{border:0;border-radius:7px;background:#3a3a3a;color:#eee;padding:6px 9px;cursor:pointer;font-size:12.5px}
+.mockbar button.on{background:#5a8f4a}
+.mockbar .sep{width:1px;height:18px;background:#4a4a4a;margin:0 2px}
+
+/* ── the PDF sheet (same renderer for the big preview, the tiles and the menu) ── */
+.frame{position:relative;overflow:hidden}
+.sheet{position:absolute;left:0;top:0;transform-origin:0 0;background:var(--s-bg);color:var(--s-fg);
+  font-family:var(--s-font);font-size:var(--s-size);line-height:var(--s-lh);text-align:left}
+.sheet .content{position:absolute;overflow:hidden}
+.sheet h1{font-size:calc(var(--s-size)*1.8);line-height:1.25;margin:0;padding-bottom:calc(5pt*var(--s-r));border-bottom:1px solid var(--s-rule);font-weight:700}
+.sheet h1 .ask{color:var(--s-muted);font-style:italic;font-weight:400}
+.sheet .meta{font-size:calc(var(--s-size)*.82);color:var(--s-muted);margin-top:5pt}
+.sheet .toc{margin-top:calc(13pt*var(--s-r))}
+.sheet .toc-h{font-weight:700;padding-bottom:4pt;border-bottom:1px solid var(--s-rule);margin-bottom:calc(5pt*var(--s-r))}
+.sheet .toc ul,.sheet .toc ol{margin:0;padding:0 0 calc(6pt*var(--s-r)) 16pt;border-bottom:1px solid var(--s-rule)}
+.sheet .toc li{font-size:calc(var(--s-size)*.88);margin:calc(2pt*var(--s-r)) 0}
+.sheet .q{margin:calc(20pt*var(--s-r)) 0 calc(6pt*var(--s-r))}
+.sheet .q.bubble{display:flex;justify-content:flex-end}
+.sheet .q.bubble span{background:var(--q-bg);border-radius:calc(var(--s-size)*1.2);padding:calc(var(--s-size)*.42) calc(var(--s-size)*.95);max-width:75%;font-size:calc(var(--s-size)*.95);line-height:1.45}
+.sheet .q.heading span{display:block;font-weight:700;background:var(--q-bg);padding:var(--q-pad);border-radius:3pt}
+.sheet .a h3{font-size:calc(var(--s-size)*1.18);line-height:1.3;margin:0 0 calc(5pt*var(--s-r))}
+.sheet .a p{margin:0 0 calc(7pt*var(--s-r))}
+.sheet .a ul{margin:calc(2pt*var(--s-r)) 0 calc(8pt*var(--s-r));padding-left:16pt}
+.sheet .a li{margin:calc(2pt*var(--s-r)) 0}
+.sheet .a table{border-collapse:collapse;width:100%;margin:calc(4pt*var(--s-r)) 0 calc(10pt*var(--s-r));font-size:calc(var(--s-size)*.9)}
+.sheet .a th,.sheet .a td{border:1px solid var(--s-rule);padding:calc(4pt*var(--s-r)) 7pt;text-align:left;line-height:1.35}
+.sheet .a th{background:var(--s-th);font-weight:700}
+.sheet .a pre{background:var(--s-code);border:1px solid var(--s-codeline);border-radius:6px;padding:8pt 10pt;margin:calc(4pt*var(--s-r)) 0 calc(10pt*var(--s-r));
+  font-family:'Noto Sans Mono',ui-monospace,monospace;font-size:calc(var(--s-size)*.82);line-height:1.5;white-space:pre-wrap}
+.sheet .pnum{position:absolute;left:0;right:0;text-align:center;font-size:8pt;color:var(--s-muted)}
+.longfade{position:absolute;left:0;right:0;bottom:0;height:34%;pointer-events:none}
+</style>
+</head>
+<body>
+
+<header class="gpt-head">
+  <div class="gpt-model">ChatGPT <small>▾</small></div>
+  <div class="gpt-right">
+    <button class="pill" id="exportBtn" title="Export this chat to PDF">
+      <span class="lbl">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 1.5h5.2L13 5.3V13a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 13V3a1.5 1.5 0 0 1 1-1.5Z" stroke="#EA4C3A" stroke-width="1.4"/><path d="M9 1.6V5.5h3.9" stroke="#EA4C3A" stroke-width="1.4"/><path d="M5.6 9.2h4.8M5.6 11.4h3.2" stroke="#EA4C3A" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Export
+      </span>
+      <span class="arrow"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5 6 7.5l3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </button>
+    <button class="pill" title="Share (ChatGPT)">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 10V2.5M5 5.2 8 2.3l3 2.9M3 9v3.5A1.5 1.5 0 0 0 4.5 14h7a1.5 1.5 0 0 0 1.5-1.5V9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Share
+    </button>
+    <div class="avatar">IP</div>
+
+    <div class="menu" id="menu" role="menu">
+      <div class="menu-main">
+        <button class="entry" id="entry" title="How your PDF will look — page 1 of this chat. Click to change the style, paper and header.">
+          <div class="frame" id="thumb"></div>
+          <span class="hoverpill">Settings</span>
+          <div class="cap"><b id="capStyle">Chat</b><br><span id="capPaper">A4</span> · Settings&nbsp;›</div>
+        </button>
+        <div class="actions">
+          <button class="mi" data-act="all">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="10" height="6.5" rx="2"/><rect x="6.5" y="9" width="10" height="6.5" rx="2"/></svg>
+            <span><b>Select all</b><small>Your prompts + AI answers</small></span>
+          </button>
+          <button class="mi" data-act="ai">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="11" height="8" rx="2"/><path d="M6 8.2h6M6 10.6h4"/></svg>
+            <span><b>AI answers only</b><small>Exclude your prompts from the PDF</small></span>
+          </button>
+          <button class="mi" data-act="blocks">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2.5" width="4" height="4" rx="1"/><path d="m2.9 4.5.9.9 1.4-1.6"/><path d="M8.5 4.5H16"/><rect x="2" y="11" width="4" height="4" rx="1"/><path d="M8.5 13H16"/></svg>
+            <span><b>Select to export</b><small>Pick blocks to export</small></span>
+          </button>
+        </div>
+      </div>
+      <div class="menu-foot"><span>Rate us</span><span class="stars">★★★★★</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="gpt-main">
+  <div class="thread">
+    <div class="u-msg"><span>Plan a 3-day trip to Lisbon for two, mid-range budget.</span></div>
+    <div class="a-msg">
+      <h3>Your 3-day Lisbon plan</h3>
+      <p>A relaxed pace: one big sight each morning, free evenings.</p>
+      <table><thead><tr><th>Day</th><th>Morning</th><th>Afternoon</th><th>Evening</th></tr></thead><tbody>
+      <tr><td>1</td><td>Alfama walk</td><td>São Jorge Castle</td><td>Fado dinner</td></tr>
+      <tr><td>2</td><td>Belém Tower</td><td>Jerónimos Monastery</td><td>Pastéis de Belém</td></tr>
+      <tr><td>3</td><td>Train to Sintra</td><td>Pena Palace</td><td>Sunset at a miradouro</td></tr></tbody></table>
+    </div>
+    <div class="u-msg"><span>Split a €900 budget across the three days in Python.</span></div>
+    <div class="a-msg"><p>Here is a small helper that splits the budget by weight…</p></div>
+  </div>
+  <div class="composer">Ask anything</div>
+</main>
+
+<div class="scrim" id="scrim">
+  <div class="win" role="dialog" aria-label="Settings">
+    <div class="win-head">
+      <h2>Settings</h2>
+      <button class="x" id="close" title="Close — your choices are already saved"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="win-body">
+      <div class="stage">
+        <div class="stage-sheet" id="stageSheet"></div>
+        <div class="stage-cap" id="stageCap"></div>
+      </div>
+      <div class="ctrl">
+        <div class="tabs">
+          <button class="tab on" data-tab="style" title="How the text looks">Style</button>
+          <button class="tab" data-tab="paper" title="Paper size, sheet colour, margins, pages">Paper</button>
+          <button class="tab" data-tab="header" title="What stands at the top of the PDF">Header</button>
+        </div>
+        <div class="panes">
+
+          <div class="pane on" data-pane="style">
+            <div class="sec">
+              <span class="sec-l">Style</span>
+              <button class="state" id="styleState"></button>
+            </div>
+            <div class="tiles" id="tiles">
+              <button class="tile" data-preset="chat" title="Sans-serif, questions in bubbles on the right — like the chat on your screen">
+                <div class="frame"></div><span class="nm">Chat</span><span class="ds">like on screen</span></button>
+              <button class="tile" data-preset="doc" title="Serif, questions as bold lines — reads like a report">
+                <div class="frame"></div><span class="nm">Document</span><span class="ds">to print or send</span></button>
+              <button class="tile" data-preset="compact" title="Narrow letters, smaller text, tighter lines — the same chat on fewer pages">
+                <div class="frame"></div><span class="nm">Compact</span><span class="ds">fewer pages</span></button>
+            </div>
+            <div class="row">
+              <span class="lb">Font</span>
+              <div class="seg fonts" id="font">
+                <button data-v="sans" title="Noto Sans — clean, like on screen"><span class="aa" style="font-family:'Noto Sans'">Aa</span>Sans</button>
+                <button data-v="serif" title="Noto Serif — bookish, good on paper"><span class="aa" style="font-family:'Noto Serif'">Aa</span>Serif</button>
+                <button data-v="narrow" title="Carlito (like Calibri) — narrow letters, more words per line"><span class="aa" style="font-family:'Carlito'">Aa</span>Narrow</button>
+              </div>
+            </div>
+            <div class="row">
+              <span class="lb">Size</span>
+              <div class="stepper" title="Text size in points. Headings, tables and code follow it">
+                <button id="sizeDn" aria-label="Smaller">−</button><output id="sizeVal">11 pt</output><button id="sizeUp" aria-label="Larger">+</button>
+              </div>
+            </div>
+            <div class="row">
+              <span class="lb">Spacing</span>
+              <div class="seg ico" id="spacing">
+                <button data-v="tight" title="Tight — lines close together (1.3)"><svg width="22" height="18" viewBox="0 0 22 18"><path d="M3 5h16M3 8h16M3 11h16M3 14h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+                <button data-v="normal" title="Normal — easy to read (1.55)"><svg width="22" height="18" viewBox="0 0 22 18"><path d="M3 3.5h16M3 7.5h16M3 11.5h16M3 15.5h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+                <button data-v="airy" title="Airy — room between lines (1.8)"><svg width="22" height="18" viewBox="0 0 22 18"><path d="M3 2.5h16M3 7.5h16M3 12.5h16M3 17h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+              </div>
+            </div>
+            <div class="row">
+              <span class="lb">Questions</span>
+              <div class="seg ico" id="qlook">
+                <button data-v="bubble" title="Bubble on the right — like in ChatGPT"><svg width="30" height="18" viewBox="0 0 30 18"><rect x="11" y="2" width="17" height="7" rx="3.5" fill="currentColor" opacity=".55"/><path d="M2 12.5h26M2 16h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".55"/></svg> Bubble</button>
+                <button data-v="heading" title="Bold line across the page — like a report"><svg width="30" height="18" viewBox="0 0 30 18"><path d="M2 4.5h20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M2 11h26M2 15h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".55"/></svg> Heading</button>
+              </div>
+            </div>
+            <div class="row">
+              <span class="lb">Question colour</span>
+              <div class="sw" id="qcolor"></div>
+            </div>
+          </div>
+
+          <div class="pane" data-pane="paper">
+            <div class="row">
+              <span class="lb">Size</span>
+              <div style="display:flex;gap:8px">
+                <div class="seg" id="paper"><button data-v="a4" title="210 × 297 mm">A4</button><button data-v="letter" title="8.5 × 11 in — USA, Canada, Mexico">Letter</button></div>
+                <div class="seg ico" id="orient">
+                  <button data-v="portrait" title="Portrait"><svg width="14" height="18" viewBox="0 0 14 18"><rect x="1.5" y="1.5" width="11" height="15" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+                  <button data-v="landscape" title="Landscape — wide tables fit better"><svg width="18" height="14" viewBox="0 0 18 14"><rect x="1.5" y="1.5" width="15" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <span class="lb">Sheet</span>
+              <div class="sheets2" id="sheet">
+                <button class="sheet-opt" data-v="light" title="White sheet, dark text. Prints well"><span class="mini light"><i></i><i></i><i style="width:70%"></i></span><span><b>Light</b><small>to print</small></span></button>
+                <button class="sheet-opt" data-v="dark" title="Dark sheet, light text — for reading on a phone or tablet. Prints badly"><span class="mini dark"><i></i><i></i><i style="width:70%"></i></span><span><b>Dark</b><small>to read on screen</small></span></button>
+              </div>
+            </div>
+            <div class="row">
+              <span class="lb">Margins</span>
+              <div class="seg" id="margins">
+                <button data-v="normal" title="20 mm at the sides, 18 mm top and bottom">Normal</button>
+                <button data-v="narrow" title="10 mm all round — more text per page">Narrow</button>
+                <button data-v="minimal" title="2.5 mm — almost to the edge; printers may cut it">Minimal</button>
+                <button data-v="custom" title="Set each margin yourself">Custom</button>
+              </div>
+            </div>
+            <div class="custom-m" id="customM">
+              <label>Top<input data-k="t" type="number" min="0" max="50"></label>
+              <label>Right<input data-k="r" type="number" min="0" max="50"></label>
+              <label>Bottom<input data-k="b" type="number" min="0" max="50"></label>
+              <label>Left<input data-k="l" type="number" min="0" max="50"></label>
+              <label style="justify-content:flex-end;padding-bottom:7px">mm</label>
+            </div>
+            <div class="row">
+              <span class="lb">Page breaks</span>
+              <div class="seg" id="breaks">
+                <button data-v="auto" title="Pages fill up as the text runs">Auto</button>
+                <button data-v="each" title="Every question starts on a new page">Each question</button>
+                <button data-v="long" title="The whole chat on one long page — for reading on screen; no page numbers">One long page</button>
+              </div>
+            </div>
+            <div class="row">
+              <span class="lb">Page numbers <small id="pnumHint"></small></span>
+              <button class="toggle" id="pnum" title="“1 / 2” at the bottom of each page"></button>
+            </div>
+          </div>
+
+          <div class="pane" data-pane="header">
+            <div class="row">
+              <span class="lb">Title</span>
+              <div class="seg" id="title">
+                <button data-v="chat" title="The chat's name, at the top and in the file name">Chat name</button>
+                <button data-v="ask" title="You type the title on each export">Ask me</button>
+                <button data-v="none" title="No title">None</button>
+              </div>
+            </div>
+            <div class="row">
+              <span class="lb">Export date</span>
+              <div class="seg" id="date">
+                <button data-v="none">None</button>
+                <button data-v="date" title="The day you export, not the day of the chat">Date</button>
+                <button data-v="datetime" title="Day and time of the export">Date &amp; time</button>
+              </div>
+            </div>
+            <div class="row">
+              <span class="lb">Contents</span>
+              <div class="seg" id="toc">
+                <button data-v="none">None</button>
+                <button data-v="list" title="Your questions as a clickable list; also shown as bookmarks in the PDF reader">List</button>
+                <button data-v="numbered" title="The same list with numbers 1, 2, 3">Numbered</button>
+              </div>
+            </div>
+            <div class="row">
+              <span class="lb">Link to the chat</span>
+              <button class="toggle" id="link" title="A link back to this chat under the title"></button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <div class="win-foot">
+      <span class="ver">ExportGPT 1.2.6</span>
+      <button class="btn" id="reset" title="Back to the Chat style and the standard paper and header">Reset to defaults</button>
+      <button class="btn primary" id="done">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="mockbar" id="mockbar">
+  <b>Макет настроек · v1</b>
+  ChatGPT:
+  <button data-th="light" class="on">светлая</button><button data-th="dark">тёмная</button>
+  <span class="sep"></span>
+  <button id="mbMenu">меню</button><button id="mbSettings">окно</button>
+</div>
+
+<script>
+'use strict';
+// ── data ───────────────────────────────────────────────────────────────────
+const CHAT = {
+  title: 'Lisbon trip: 3-day plan',
+  turns: [
+    { q: 'Plan a 3-day trip to Lisbon for two, mid-range budget.',
+      a: '<h3>Your 3-day Lisbon plan</h3><p>A relaxed pace: one big sight each morning, free evenings.</p>' +
+         '<table><thead><tr><th>Day</th><th>Morning</th><th>Afternoon</th><th>Evening</th></tr></thead><tbody>' +
+         '<tr><td>1</td><td>Alfama walk</td><td>São Jorge Castle</td><td>Fado dinner</td></tr>' +
+         '<tr><td>2</td><td>Belém Tower</td><td>Jerónimos Monastery</td><td>Pastéis de Belém</td></tr>' +
+         '<tr><td>3</td><td>Train to Sintra</td><td>Pena Palace</td><td>Sunset at a miradouro</td></tr>' +
+         '</tbody></table><ul><li>Get a Viva Viagem card for trams and the metro.</li>' +
+         '<li>Book Pena Palace tickets online a few days ahead.</li></ul>' },
+    { q: 'Split a €900 budget across the three days in Python.',
+      a: '<p>Here is a small helper that splits the budget by weight:</p>' +
+         '<pre>def split_budget(total, weights):\n    s = sum(weights)\n    return [round(total * w / s, 2) for w in weights]\n\n' +
+         'print(split_budget(900, [3, 3, 4]))  # [270.0, 270.0, 360.0]</pre>' +
+         '<p>Day 3 gets more because of the Sintra train and palace tickets.</p>' },
+    { q: 'What should we pack for early October?',
+      a: '<ul><li><strong>Layers:</strong> days around 22 °C, cooler evenings by the river.</li>' +
+         '<li><strong>Comfortable shoes:</strong> Lisbon is hilly and paved with slippery stone.</li>' +
+         '<li><strong>A light rain jacket:</strong> the first autumn showers are common.</li></ul>' },
+    { q: 'Summarize the plan in three bullet points.',
+      a: '<ul><li><strong>Day 1:</strong> old town, castle and fado.</li>' +
+         '<li><strong>Day 2:</strong> Belém monuments and pastries.</li>' +
+         '<li><strong>Day 3:</strong> Sintra palaces, sunset back in the city.</li></ul><p>Enjoy the trip!</p>' }
+  ]
+};
+// Question colours = today's nine (theme.js EXPORT_THEMES), plus a dark-sheet twin for each.
+const QCOLORS = [
+  ['default','Grey','#f4f4f4','#303030'], ['none','None','transparent','transparent'],
+  ['rose','Rose','#fce4ec','#4a2c36'], ['lavender','Lavender','#f3e5f5','#3f3048'], ['sky','Sky','#e3f2fd','#263a4d'],
+  ['mint','Mint','#e0f2f1','#21403d'], ['sage','Sage','#e8f5e9','#2a4030'], ['lemon','Lemon','#fffde7','#474322'],
+  ['peach','Peach','#fff3e0','#4a3825']
+];
+const FONTS = { sans:"'Noto Sans',sans-serif", serif:"'Noto Serif',serif", narrow:"'Carlito','Lato',sans-serif" };
+const LH = { tight:1.3, normal:1.55, airy:1.8 };
+const RHYTHM = { tight:.7, normal:1, airy:1.25 };
+const PRESETS = {
+  chat:    { name:'Chat',     font:'sans',   size:11, spacing:'normal', qlook:'bubble',  qcolor:'default' },
+  doc:     { name:'Document', font:'serif',  size:11, spacing:'normal', qlook:'heading', qcolor:'none' },
+  compact: { name:'Compact',  font:'narrow', size:10, spacing:'tight',  qlook:'heading', qcolor:'default' }
+};
+const STYLE_KEYS = ['font','size','spacing','qlook','qcolor'];
+const DEFAULTS = Object.assign({ base:'chat' }, PRESETS.chat, {
+  paper:'a4', orient:'portrait', sheet:'light', margins:'normal', custom:{t:18,r:20,b:18,l:20},
+  breaks:'auto', pnum:true, title:'chat', date:'none', toc:'list', link:false
+});
+delete DEFAULTS.name;
+let st = JSON.parse(JSON.stringify(DEFAULTS));
+
+// ── helpers ────────────────────────────────────────────────────────────────
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const MM = 96 / 25.4;
+function paperPx(s){
+  let w = s.paper === 'letter' ? 816 : 210 * MM, h = s.paper === 'letter' ? 1056 : 297 * MM;
+  if(s.orient === 'landscape') [w, h] = [h, w];
+  return { w, h };
+}
+function marginsMm(s){
+  if(s.margins === 'narrow') return {t:10,r:10,b:10,l:10};
+  if(s.margins === 'minimal') return {t:2.5,r:2.5,b:2.5,l:2.5};
+  if(s.margins === 'custom') return s.custom;
+  return {t:18,r:20,b:18,l:20};
+}
+function matchPreset(s){
+  for(const k in PRESETS) if(STYLE_KEYS.every(x => PRESETS[k][x] === s[x])) return k;
+  return null;
+}
+
+// ── the sheet ──────────────────────────────────────────────────────────────
+function sheetHTML(s){
+  let h = '';
+  if(s.title !== 'none') h += '<h1>' + (s.title === 'ask' ? '<span class="ask">Title you type on export</span>' : esc(CHAT.title)) + '</h1>';
+  const meta = [];
+  if(s.date === 'date') meta.push('16 Nov 2026');
+  if(s.date === 'datetime') meta.push('16 Nov 2026, 14:05');
+  if(s.link) meta.push('chatgpt.com/c/6915a2c4…');
+  if(meta.length) h += '<div class="meta">' + meta.join(' · ') + '</div>';
+  if(s.toc !== 'none') {
+    const tag = s.toc === 'numbered' ? 'ol' : 'ul';
+    h += '<div class="toc"><div class="toc-h">Contents</div><' + tag + '>' +
+         CHAT.turns.map(t => '<li>' + esc(t.q) + '</li>').join('') + '</' + tag + '></div>';
+  }
+  const n = s.breaks === 'each' ? 1 : CHAT.turns.length;
+  CHAT.turns.slice(0, n).forEach(t => {
+    h += '<div class="q ' + s.qlook + '"><span>' + esc(t.q) + '</span></div><div class="a">' + t.a + '</div>';
+  });
+  return h;
+}
+function sheetVars(s){
+  const dark = s.sheet === 'dark';
+  const c = QCOLORS.find(x => x[0] === s.qcolor) || QCOLORS[0];
+  const qbg = dark ? c[3] : c[2];
+  return {
+    '--s-bg': dark ? '#1e1e1e' : '#ffffff', '--s-fg': dark ? '#e8e8e8' : '#1f1f1f',
+    '--s-muted': dark ? '#9a9a9a' : '#6f6f6f', '--s-rule': dark ? '#3b3b3b' : '#e2e2e2',
+    '--s-th': dark ? '#2a2a2a' : '#f4f5f6', '--s-code': dark ? '#262626' : '#f6f7f9', '--s-codeline': dark ? '#3a3a3a' : '#e2e5e9',
+    '--s-font': FONTS[s.font], '--s-size': s.size + 'pt', '--s-lh': LH[s.spacing], '--s-r': RHYTHM[s.spacing],
+    '--q-bg': qbg, '--q-pad': s.qcolor === 'none' ? '0' : '4pt 8pt'
+  };
+}
+// Draws page 1 of the PDF into `frame`, `width` px wide (or fitted into maxW × maxH).
+function drawSheet(frame, s, opt){
+  const { w, h0 } = (() => { const p = paperPx(s); return { w: p.w, h0: p.h }; })();
+  const long = s.breaks === 'long';
+  const h = long ? h0 * 1.9 : h0;
+  let scale = opt.width / w;
+  if(opt.maxH && !long) scale = Math.min(scale, opt.maxH / h);
+  if(opt.maxH && long) scale = Math.min(scale, opt.maxH / h0 * 1.15);
+  const visH = long && opt.maxH ? Math.min(h * scale, opt.maxH) : h * scale;
+  frame.style.width = Math.round(w * scale) + 'px';
+  frame.style.height = Math.round(visH) + 'px';
+  const m = marginsMm(s);
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.style.width = w + 'px'; sheet.style.height = h + 'px';
+  sheet.style.transform = 'scale(' + scale + ')';
+  const v = sheetVars(s);
+  for(const k in v) sheet.style.setProperty(k, v[k]);
+  const content = document.createElement('div');
+  content.className = 'content';
+  content.style.left = (m.l * MM) + 'px'; content.style.right = (m.r * MM) + 'px';
+  content.style.top = (m.t * MM) + 'px'; content.style.bottom = (Math.max(m.b, 8) * MM) + 'px';
+  content.innerHTML = sheetHTML(s);
+  sheet.appendChild(content);
+  frame.innerHTML = '';
+  frame.appendChild(sheet);
+  frame.style.background = v['--s-bg'];
+  // Page 1 ends where a printed page would: a line that does not fit goes to page 2 whole,
+  // and the page count is the demo chat's real one (1 / N).
+  const pages = long ? 1 : fitPage(content, s);
+  if(s.pnum && !long) {
+    const pn = document.createElement('div');
+    pn.className = 'pnum'; pn.textContent = '1 / ' + pages;
+    pn.style.bottom = Math.max(m.b * MM * .35, 6) + 'px';
+    sheet.appendChild(pn);
+  }
+  if(long) {
+    const f = document.createElement('div');
+    f.className = 'longfade';
+    f.style.background = 'linear-gradient(to bottom, rgba(0,0,0,0), ' + (s.sheet === 'dark' ? '#1e1e1e' : '#ffffff') + ')';
+    frame.appendChild(f);
+  }
+}
+
+function fitPage(content, s){
+  const H = content.clientHeight;
+  const box = content.getBoundingClientRect();
+  const sc = box.height / H;
+  if(!H || !sc) return 1;
+  content.querySelectorAll('h1,.meta,.toc-h,.toc li,.q,.a h3,.a p,.a li,.a tr,.a pre').forEach(b => {
+    if((b.getBoundingClientRect().bottom - box.top) / sc > H + .5) b.style.visibility = 'hidden';
+  });
+  return s.breaks === 'each' ? CHAT.turns.length : Math.max(1, Math.ceil(content.scrollHeight / H));
+}
+
+// ── render everything from state ───────────────────────────────────────────
+function render(){
+  const preset = matchPreset(st);
+  if(preset) st.base = preset;
+  // menu thumbnail + caption
+  drawSheet($('#thumb'), st, { width: 96 });
+  $('#capStyle').textContent = preset ? PRESETS[preset].name : 'Custom';
+  $('#capPaper').textContent = (st.paper === 'letter' ? 'Letter' : 'A4') + (st.sheet === 'dark' ? ' · dark' : '');
+  // big preview
+  const stage = $('#stageSheet');
+  if($('#scrim').classList.contains('open')) {
+    const fr = stage.querySelector('.frame') || stage.appendChild(Object.assign(document.createElement('div'), { className:'frame' }));
+    fr.style.boxShadow = '0 1px 3px rgba(0,0,0,.12), 0 10px 30px rgba(0,0,0,.14)';
+    fr.style.borderRadius = '2px';
+    drawSheet(fr, st, { width: stage.clientWidth - 8, maxH: stage.clientHeight - 4 });
+  }
+  const m = marginsMm(st);
+  $('#stageCap').textContent = (st.paper === 'letter' ? 'Letter' : 'A4') + ' · ' + (st.orient === 'landscape' ? 'landscape' : 'portrait') +
+    ' · page 1 of this chat' + (st.breaks === 'long' ? ' — one long page' : '') +
+    (st.breaks === 'each' ? ' — next question on page 2' : '');
+  // tiles: each shows what you get if you click it (its style + your paper and header)
+  $$('.tile').forEach(t => {
+    const k = t.dataset.preset;
+    const s2 = Object.assign({}, st, PRESETS[k]);
+    drawSheet(t.querySelector('.frame'), s2, { width: 64 });
+    t.classList.toggle('on', preset === k);
+    t.classList.toggle('base', !preset && st.base === k);
+  });
+  const state = $('#styleState');
+  if(preset) {
+    state.className = 'state'; state.textContent = PRESETS[preset].name;
+    state.title = 'The style as it comes'; state.disabled = true;
+  } else {
+    state.className = 'state custom'; state.textContent = 'Custom · ↺ ' + PRESETS[st.base].name;
+    state.title = 'You changed the style. Click to return to ' + PRESETS[st.base].name + ' — or pick any style above.';
+    state.disabled = false;
+  }
+  // controls
+  const setSeg = (id, v) => $$('#' + id + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  ['font','spacing','qlook','paper','orient','margins','breaks','title','date','toc'].forEach(k => setSeg(k, st[k]));
+  $$('#sheet .sheet-opt').forEach(b => b.classList.toggle('on', b.dataset.v === st.sheet));
+  $('#sizeVal').textContent = (st.size % 1 ? st.size.toFixed(1) : st.size) + ' pt';
+  $('#sizeDn').disabled = st.size <= 9; $('#sizeUp').disabled = st.size >= 14;
+  $$('#qcolor button').forEach(b => b.classList.toggle('on', b.dataset.v === st.qcolor));
+  $('#customM').classList.toggle('on', st.margins === 'custom');
+  $$('#customM input').forEach(i => { if(document.activeElement !== i) i.value = st.custom[i.dataset.k]; });
+  const pn = $('#pnum');
+  pn.classList.toggle('on', st.pnum && st.breaks !== 'long');
+  pn.disabled = st.breaks === 'long';
+  $('#pnumHint').textContent = st.breaks === 'long' ? 'not on one long page' : '';
+  $('#link').classList.toggle('on', st.link);
+}
+
+// ── wiring ─────────────────────────────────────────────────────────────────
+QCOLORS.forEach(c => {
+  const b = document.createElement('button');
+  b.dataset.v = c[0]; b.title = c[1] + (c[0] === 'none' ? ' — no background behind questions' : '');
+  b.style.background = c[0] === 'none' ? '#ffffff' : c[2];
+  if(c[0] === 'none') b.className = 'none';
+  $('#qcolor').appendChild(b);
+});
+function bindSeg(id, key){
+  $$('#' + id + ' button').forEach(b => b.addEventListener('click', () => { st[key] = b.dataset.v; render(); }));
+}
+['font','spacing','qlook','paper','orient','margins','breaks','title','date','toc'].forEach(k => bindSeg(k, k));
+$$('#sheet .sheet-opt').forEach(b => b.addEventListener('click', () => { st.sheet = b.dataset.v; render(); }));
+$$('#qcolor button').forEach(b => b.addEventListener('click', () => { st.qcolor = b.dataset.v; render(); }));
+$('#sizeDn').addEventListener('click', () => { st.size = Math.max(9, st.size - .5); render(); });
+$('#sizeUp').addEventListener('click', () => { st.size = Math.min(14, st.size + .5); render(); });
+$$('#customM input').forEach(i => i.addEventListener('input', () => {
+  const v = parseFloat(i.value); if(!isNaN(v)) { st.custom[i.dataset.k] = Math.max(0, Math.min(50, v)); render(); }
+}));
+$('#pnum').addEventListener('click', () => { st.pnum = !st.pnum; render(); });
+$('#link').addEventListener('click', () => { st.link = !st.link; render(); });
+$$('.tile').forEach(t => t.addEventListener('click', () => {
+  Object.assign(st, PRESETS[t.dataset.preset]); delete st.name; st.base = t.dataset.preset; render();
+}));
+$('#styleState').addEventListener('click', () => {
+  if(matchPreset(st)) return;
+  Object.assign(st, PRESETS[st.base]); delete st.name; render();
+});
+$$('.tab').forEach(t => t.addEventListener('click', () => {
+  $$('.tab').forEach(x => x.classList.toggle('on', x === t));
+  $$('.pane').forEach(p => p.classList.toggle('on', p.dataset.pane === t.dataset.tab));
+}));
+function openMenu(on){ $('#menu').classList.toggle('open', on); $('#exportBtn').classList.toggle('open', on); if(on) render(); }
+function openSettings(on){
+  $('#scrim').classList.toggle('open', on);
+  if(on) { openMenu(false); requestAnimationFrame(render); }
+}
+$('#exportBtn').addEventListener('click', e => { e.stopPropagation(); openMenu(!$('#menu').classList.contains('open')); });
+$('#entry').addEventListener('click', e => { e.stopPropagation(); openSettings(true); });
+$$('.mi').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); toast('В макете экспорт не запускается'); }));
+document.addEventListener('click', e => { if(!$('#menu').contains(e.target)) openMenu(false); });
+$('#close').addEventListener('click', () => openSettings(false));
+$('#done').addEventListener('click', () => openSettings(false));
+$('#scrim').addEventListener('click', e => { if(e.target === $('#scrim')) openSettings(false); });
+$('#reset').addEventListener('click', () => { st = JSON.parse(JSON.stringify(DEFAULTS)); render(); });
+let tt;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 1600); }
+// mock bar
+$$('.mockbar [data-th]').forEach(b => b.addEventListener('click', e => {
+  e.stopPropagation(); document.documentElement.dataset.theme = b.dataset.th;
+  $$('.mockbar [data-th]').forEach(x => x.classList.toggle('on', x === b));
+}));
+$('#mbMenu').addEventListener('click', e => { e.stopPropagation(); openSettings(false); openMenu(true); });
+$('#mbSettings').addEventListener('click', e => { e.stopPropagation(); openSettings(true); });
+window.addEventListener('resize', render);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+
+// ── URL parameters (for frames) ────────────────────────────────────────────
+const P = new URLSearchParams(location.search);
+if(P.get('theme') === 'dark') { document.documentElement.dataset.theme = 'dark'; $$('.mockbar [data-th]').forEach(x => x.classList.toggle('on', x.dataset.th === 'dark')); }
+if(P.get('preset') && PRESETS[P.get('preset')]) { Object.assign(st, PRESETS[P.get('preset')]); delete st.name; st.base = P.get('preset'); }
+if(P.get('custom') === '1') st.size = Math.min(14, st.size + 1.5);
+if(P.get('sheet') === 'dark') st.sheet = 'dark';
+if(P.get('bar') === '0') $('#mockbar').style.display = 'none';
+render();
+if(P.get('open') === 'menu') openMenu(true);
+if(P.get('open') === 'settings') openSettings(true);
+if(P.get('tab')) { const t = $('.tab[data-tab="' + P.get('tab') + '"]'); if(t) t.click(); }
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+[
+ {
+  "keyword": "chatgpt html",
+  "limit": 200,
+  "include_seed_keyword": true,
+  "order_by": [
+   "keyword_info.search_volume,desc"
+  ],
+  "location_code": 2840,
+  "language_code": "en",
+  "filters": [
+   "keyword",
+   "regex",
+   "export|save|download|convert|copy|paste|transfer|move|import|backup|back up|archive|sync|send|to html|as html|html file|conversation|exporter"
+  ]
+ }
+]

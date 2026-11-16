@@ -1,0 +1,12 @@
+[
+ {
+  "keyword": "chatgpt screenshot",
+  "limit": 200,
+  "include_seed_keyword": true,
+  "order_by": [
+   "keyword_info.search_volume,desc"
+  ],
+  "location_code": 2840,
+  "language_code": "en"
+ }
+]
