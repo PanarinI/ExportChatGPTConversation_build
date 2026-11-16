@@ -166,7 +166,8 @@ function gptpdfDrawSheet(frame, o, opt) {
     const dark = o.theme === 'dark';
     const look = gptpdfShared.look(o);
     const theme = EXPORT_THEMES[look.qColor] || EXPORT_THEMES['default'];
-    const css = gptpdfScopeCss(buildExportCss(theme, dark, look));
+    let css = gptpdfScopeCss(buildExportCss(theme, dark, look));
+    if(gptpdfKatexCssCache && gptpdfNeedsKatexCss(src.clone)) css += gptpdfKatexCssCache;
     const m = gptpdfMarginsPx(o);
     const bg = dark ? '#212121' : '#ffffff';
 
@@ -233,14 +234,25 @@ function gptpdfEscapeHtml(s) {
 }
 
 // ── Fonts ───────────────────────────────────────────────────────────────────
-// The four families the print server uses, carried in fonts/ and added to the
-// page once. Missing files are skipped: the sheet then falls back to the
-// page's fonts, the PDF is not affected.
+// The four families the print server uses, carried in fonts/ (SIL OFL, licence
+// files beside them) and added to the page once: Latin and Cyrillic only (the
+// Latin-extended files alone weighed 856 KB). Noto Sans and Serif are variable
+// fonts — one file per alphabet covers both weights. Missing letters fall back
+// to the page's fonts on the sheet; the PDF has them all on the server.
+const GPTPDF_UR_LATIN = 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, ' +
+    'U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD';
+const GPTPDF_UR_CYRILLIC = 'U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116';
 const GPTPDF_SHEET_FONTS = [
-    ['Noto Sans', 'NotoSans-Regular.woff2', '400'], ['Noto Sans', 'NotoSans-Bold.woff2', '700'],
-    ['Noto Serif', 'NotoSerif-Regular.woff2', '400'], ['Noto Serif', 'NotoSerif-Bold.woff2', '700'],
-    ['Carlito', 'Carlito-Regular.woff2', '400'], ['Carlito', 'Carlito-Bold.woff2', '700'],
-    ['Noto Sans Mono', 'NotoSansMono-Regular.woff2', '400']
+    ['Noto Sans', 'NotoSans-latin.woff2', '400 700', GPTPDF_UR_LATIN],
+    ['Noto Sans', 'NotoSans-cyrillic.woff2', '400 700', GPTPDF_UR_CYRILLIC],
+    ['Noto Serif', 'NotoSerif-latin.woff2', '400 700', GPTPDF_UR_LATIN],
+    ['Noto Serif', 'NotoSerif-cyrillic.woff2', '400 700', GPTPDF_UR_CYRILLIC],
+    ['Noto Sans Mono', 'NotoSansMono-latin.woff2', '400', GPTPDF_UR_LATIN],
+    ['Noto Sans Mono', 'NotoSansMono-cyrillic.woff2', '400', GPTPDF_UR_CYRILLIC],
+    ['Carlito', 'Carlito-400-latin.woff2', '400', GPTPDF_UR_LATIN],
+    ['Carlito', 'Carlito-700-latin.woff2', '700', GPTPDF_UR_LATIN],
+    ['Carlito', 'Carlito-400-cyrillic.woff2', '400', GPTPDF_UR_CYRILLIC],
+    ['Carlito', 'Carlito-700-cyrillic.woff2', '700', GPTPDF_UR_CYRILLIC]
 ];
 let gptpdfSheetFontsLoading = null;
 
@@ -255,7 +267,7 @@ function gptpdfSheetFonts() {
                         const bin = atob(r.b64);
                         const bytes = new Uint8Array(bin.length);
                         for(let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-                        const face = new FontFace(f[0], bytes.buffer, { weight: f[2] });
+                        const face = new FontFace(f[0], bytes.buffer, { weight: f[2], unicodeRange: f[3] });
                         face.load().then(function() {
                             document.fonts.add(face);
                             resolve(true);
@@ -266,6 +278,37 @@ function gptpdfSheetFonts() {
         });
     }));
     return gptpdfSheetFontsLoading;
+}
+
+// KaTeX's stylesheet with its fonts inlined (background.js), for formulas
+// that new answers keep only as KaTeX's drawing. Loaded once, on the first
+// export or sheet that needs it; '' when it cannot be had.
+let gptpdfKatexCssCache = null;
+// Without this stylesheet a square root alone makes the page ~9 times wider
+// than the paper (KaTeX draws its line as a 400em picture and only its CSS
+// hides the tail), and the printer then shrinks the WHOLE PDF to half size.
+// Never rejects: no stylesheet means the export goes on without it.
+function gptpdfKatexCssLoad() {
+    if(gptpdfKatexCssCache) return Promise.resolve(gptpdfKatexCssCache);
+    return new Promise(function(resolve) {
+        const giveUp = setTimeout(function() { resolve(''); }, 5000);   // never hold the export
+        try {
+            chrome.runtime.sendMessage({ action: 'gptpdfKatexCss' }, function(r) {
+                clearTimeout(giveUp);
+                const css = (!chrome.runtime.lastError && r && r.css) ? r.css : '';
+                if(css) gptpdfKatexCssCache = css;   // a miss is tried again next export
+                resolve(css);
+            });
+        } catch(e) {
+            resolve('');
+        }
+    });
+}
+
+// Does this copy hold formulas drawn by KaTeX that were not turned into
+// MathML (gptpdfMathToMathML needs a TeX source the new answers do not keep)?
+function gptpdfNeedsKatexCss(root) {
+    return !!root.querySelector('.katex-html');
 }
 
 // ── The thumbnail in the Export menu ────────────────────────────────────────
@@ -287,4 +330,5 @@ function gptpdfRenderMenuSheet() {
             (o.theme === 'dark' ? ' · dark' : '');
     });
     gptpdfSheetFonts();
+    gptpdfKatexCssLoad();
 }

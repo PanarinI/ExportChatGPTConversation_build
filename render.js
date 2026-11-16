@@ -81,7 +81,9 @@ function buildExportCss(theme, isDarkMode, look) {
                         // on frames 16.11 (dizajn/obzor-2026-11-16 §7); the other
                         // styles scale them (font, size, spacing — settings window).
                         'body{font-size:' + pt(S) + ' !important;line-height:' + LH + ' !important}',
-                        'body,p,li,td,th,blockquote,div,span,a,strong,em,b,i{font-family:' + SANS + ' !important}',
+                        // KaTeX's drawing keeps its own fonts (its stylesheet goes
+                        // into the export when a formula needs it — common.js).
+                        'body,p,li,td,th,blockquote,div:not(.katex *),span:not(.katex):not(.katex *),a,strong,em,b,i{font-family:' + SANS + ' !important}',
                         'h1,h2,h3,h4,h5,h6{font-family:' + SANS + ' !important}',
                         '.markdown,.markdown p,.markdown li,.markdown blockquote{font-size:' + pt(S) + ' !important;line-height:' + LH + ' !important}',
                         '.markdown p{margin:0 0 ' + pt(7 * R) + ' !important}',
@@ -138,11 +140,29 @@ function buildExportCss(theme, isDarkMode, look) {
                             ';--color-text-tertiary:#8f8f8f;--color-text-success:' + (isDarkMode ? '#4caf73' : '#00692b') +
                             ';--color-text-danger:' + (isDarkMode ? '#ff6b6b' : '#b3261e') + ';--color-text-warning:' + (isDarkMode ? '#f5b74f' : '#8a5300') +
                             ';--color-text-info:' + (isDarkMode ? '#6ab0ff' : '#0b62c4') + ';--gray-400:' + (isDarkMode ? '#3a3a3a' : '#efefef') +
-                            ';--dil-radius-sm:6px;--dil-radius-md:10px;--dil-radius-lg:14px;--spacing:0.25rem}',
+                            ';--color-text-prose:' + (isDarkMode ? '#ececec' : '#0d0d0d') +
+                            ';--color-surface-secondary:' + (isDarkMode ? '#2a2a2a' : '#f9f9f9') + ';--color-surface-tertiary:' + (isDarkMode ? '#3a3a3a' : '#ececec') +
+                            ';--border-width-hairline:1px;--dil-radius-sm:6px;--dil-radius-md:10px;--dil-radius-lg:14px;--spacing:0.25rem}',
                         '[data-d-component="row"]{display:flex !important;flex-direction:row;align-items:center}',
+                        // A row spreads its parts as on the screen ("Progress" on
+                        // the left, "0/24" on the right; a lone label on the right),
+                        // and its parts keep no margins of their own — the page's
+                        // paragraph and heading margins pushed them out of line.
+                        '[data-d-justify="between"]{justify-content:space-between}',
+                        '[data-d-justify="end"]{justify-content:flex-end}',
+                        '[data-d-justify="center"]{justify-content:center}',
+                        '.markdown [data-d-component="row"]>*{margin-top:0 !important;margin-bottom:0 !important}',
+                        '[data-d-clip="true"]{overflow:hidden}',
+                        // Numbers in a table stand to the right, as ChatGPT sets them.
+                        '[data-d-component="table-cell"][data-d-align="end"]{text-align:right !important}',
+                        '[data-d-component="table-cell"][data-d-align="center"]{text-align:center !important}',
                         '[data-d-component="box"]:not([data-d-inline]){display:flex;flex-direction:column}',
                         '[data-d-component="box"][data-d-direction="row"]:not([data-d-inline]){flex-direction:row}',
-                        '[data-d-component="box"]{box-sizing:border-box;padding:var(--w-box-gutter-block-start,0) var(--w-box-gutter-inline-end,0) var(--w-box-gutter-block-end,0) var(--w-box-gutter-inline-start,0)}',
+                        // Gutters only on the box that sets them: the variables are
+                        // inherited, and a progress bar inside a card took the card's
+                        // 12 px — its empty fill printed as a black dot (test chat 16.11).
+                        '[data-d-component="box"]{box-sizing:border-box}',
+                        '[data-d-component="box"][style*="--w-box-gutter"]{padding:var(--w-box-gutter-block-start,0) var(--w-box-gutter-inline-end,0) var(--w-box-gutter-block-end,0) var(--w-box-gutter-inline-start,0)}',
                         '[data-d-component="box"][data-d-has-border]{margin:' + pt(4 * R) + ' 0 ' + pt(10 * R) + ';break-inside:avoid}',
                         '[data-d-component="grid"]{display:grid !important}',
                         '[data-d-component="grid-item"]{display:flex;flex-direction:column;min-width:0}',
@@ -182,6 +202,10 @@ function buildExportCss(theme, isDarkMode, look) {
                         // file, as on the page, instead of one glued line.
                         '[class*="[--resource-card-row-padding-x:"]{display:flex !important;flex-direction:column;border:1px solid var(--color-border);border-radius:14px;overflow:hidden;margin:' + pt(4 * R) + ' 0 ' + pt(8 * R) + ';max-width:120mm;background:transparent}',
                         '[class*="group/resource-row"]{display:block;padding:5pt 10pt}',
+                        // A single file attached to a question: its card holds one
+                        // "resource-card" row instead (test chat 16.11, an .svg) —
+                        // the name stuck to the frame without this padding.
+                        '[class*="group/resource-card"]{display:block;padding:5pt 10pt}',
                         '[class*="group/resource-row"]+[class*="group/resource-row"]{border-top:1px solid var(--color-border-subtle)}',
                         '[class*="[--resource-card-row-padding-x:"] span.flex-col{display:flex !important;flex-direction:column !important}',
                         '[class*="[--resource-card-row-padding-x:"] [title]{font-weight:600}',
@@ -199,7 +223,7 @@ function buildExportCss(theme, isDarkMode, look) {
                         // ── KaTeX ────────────────────────────────────────
                         '.katex-mathml{display:none !important}',
                         '.katex-display{display:block !important;text-align:center !important;margin:1em 0 !important}',
-                        '.katex-html .mathnormal,.katex-html .mathit{font-style:italic !important;font-family:"Times New Roman",Georgia,serif !important}',
+
                         // ── User prompt bubble ────────────────────────────
                         '[data-message-author-role="user"]{background:transparent !important;display:flex !important;justify-content:flex-end !important;padding:0 !important;margin:0 0 6pt !important}',
                         '[data-message-author-role="user"]>div{background:' + promptBg + ' !important;color:' + (isDarkMode ? '#e8e8e8' : theme.promptText) + ' !important;border-radius:16px !important;padding:8px 14px !important;max-width:70% !important;min-width:0 !important}',

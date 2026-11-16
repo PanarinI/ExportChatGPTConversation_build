@@ -1067,6 +1067,11 @@ function setupBlockMode() {
                 viewport_width: 1300,
                 custom_css: buildExportCss(theme, isDark, gptpdfShared.look(options))
             };
+            // Formulas kept only as KaTeX's drawing (see common.js); the
+            // stylesheet is loaded when the Export menu opens (preview.js).
+            if(gptpdfKatexCssCache && gptpdfNeedsKatexCss(main_clone)) {
+                data.custom_css += gptpdfKatexCssCache;
+            }
             applyMarginSettings(data, options);
             // Paper size, orientation and a single long page apply here as on
             // the full export. Until 1.1.11 this path sent none of them, and a

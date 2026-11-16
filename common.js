@@ -160,6 +160,8 @@ gptpdfChatGPT.init = function() {
         }
         // Only a selection inside the chat narrows the export (helpers.js).
         const chatRoot = gptpdfChatRoot();
+        // Dev builds: the page as it stood at the click (gptpdfDevDump).
+        const devLive = /-dev/.test(gptpdfShared.build) && chatRoot ? chatRoot.outerHTML : '';
         const hasSelection = !prefetched && gptpdfSelectionInChat(chatRoot);
         let turnCache = prefetched;
         // Отметки времени экспорта по фазам: сбор → сборка страницы с
@@ -324,6 +326,8 @@ gptpdfChatGPT.init = function() {
 
             // Pair layout: each question+answer turn becomes two classic
             // turns, so everything from here on reads one markup (render.js).
+            // Dev builds: the copy as gathered, before translation and cleanup.
+            const devCopy = /-dev/.test(gptpdfShared.build) ? main_clone.outerHTML : '';
             gptpdfNormalizeTurns(main_clone);
             gptpdfApplyCitationSources(main_clone, ready[1]);
 
@@ -378,6 +382,11 @@ gptpdfChatGPT.init = function() {
                     viewport_width: 1300,
                     custom_css: buildExportCss(theme, isDarkMode, gptpdfShared.look(options))
                 };
+                // Formulas kept only as KaTeX's drawing print right with
+                // KaTeX's own stylesheet and fonts (preview.js, background.js).
+                if(gptpdfKatexCssCache && gptpdfNeedsKatexCss(main_clone)) {
+                    data.custom_css += gptpdfKatexCssCache;
+                }
 
                 const trigger = getTriggerButton(event);
                 const singlePagePrint = applyConversionOptions(
@@ -430,7 +439,7 @@ gptpdfChatGPT.init = function() {
                 // reproduced outside it (16.11: question over answer on the
                 // author's chat, not on the stands).
                 if(/-dev/.test(gptpdfShared.build)) {
-                    gptpdfDevDump(htmlContent, data, filename);
+                    gptpdfDevDump(htmlContent, data, filename, devLive, devCopy);
                 }
 
                 gptpdfChatGPT.doRequest(
@@ -456,7 +465,7 @@ gptpdfChatGPT.init = function() {
                         if(title) {
                             filename = title;
                         }
-                        doConvert();
+                        gptpdfKatexCssLoad().then(doConvert);
                     };
                 const titleCancelBtns = dlgTitle.querySelectorAll(
                     '.gptpdf-close-btn');
@@ -467,7 +476,7 @@ gptpdfChatGPT.init = function() {
                     };
                 });
             } else {
-                doConvert();
+                gptpdfKatexCssLoad().then(doConvert);
             }
             }); // closes lateImgPromises Promise.all
             }); // closes imgPromises Promise.all
@@ -1024,24 +1033,39 @@ gptpdfChatGPT.saveBlob = function(url, filename) {
 
 // Dev builds only (see doConvert): the HTML the print server gets, with the
 // CSS background.js adds and the request parameters, saved as
-// "<title>.export.html" beside the PDF.
-function gptpdfDevDump(html, data, filename) {
-    try {
-        const params = Object.assign({}, data);
-        delete params.custom_css;
-        const page = html.replace('</head>',
-            '<style>' + (data.custom_css || '') + '</style>' +
-            '<style>img{max-width:100% !important}</style>' +
-            '<script type="application/json" id="gptpdf-dev-params">' +
-            JSON.stringify(params).replace(/</g, '\\u003c') + '</script></head>');
-        const url = URL.createObjectURL(new Blob([page], { type: 'text/html' }));
+// "<title>.export.html" beside the PDF. And "<title>.raw.html": ChatGPT's own
+// markup, as it stood at the click and as the copy held it before our
+// translation and cleanup — the export file shows only what survived them, so
+// a thing lost on the way (16.11: six generated pictures; checkboxes) left no
+// trace of how it was built. Both are inert <template>s: nothing loads or runs.
+function gptpdfDevDump(html, data, filename, live, copy) {
+    const base = String(filename || 'export').replace(/\.pdf$/i, '');
+    function save(text, suffix) {
+        const url = URL.createObjectURL(new Blob([text], { type: 'text/html' }));
         const a = document.createElement('a');
         a.href = url;
-        a.download = String(filename || 'export').replace(/\.pdf$/i, '') + '.export.html';
+        a.download = base + suffix;
         document.body.appendChild(a);
         a.click();
         a.remove();
         setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
+    }
+    try {
+        const params = Object.assign({}, data);
+        delete params.custom_css;
+        params.build = gptpdfShared.build;   // which build made this file
+        save(html.replace('</head>',
+            '<style>' + (data.custom_css || '') + '</style>' +
+            '<style>img{max-width:100% !important}</style>' +
+            '<script type="application/json" id="gptpdf-dev-params">' +
+            JSON.stringify(params).replace(/</g, '\\u003c') + '</script></head>'), '.export.html');
+        if(live || copy) {
+            save('<!doctype html><meta charset="utf-8"><title>raw</title>' +
+                '<p>Build ' + gptpdfShared.build + '</p>' +
+                '<h2>The page at the click</h2><template id="gptpdf-live">' + (live || '') + '</template>' +
+                '<h2>The copy before translation and cleanup</h2><template id="gptpdf-copy">' +
+                (copy || '') + '</template>', '.raw.html');
+        }
     } catch(e) {
         console.log('[gptpdf] dev dump failed', e);
     }

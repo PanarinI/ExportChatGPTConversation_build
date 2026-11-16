@@ -54,7 +54,7 @@ function gptpdfOpenSettings() {
         gptpdfSwOpts = o;
         try { gptpdfSheetSource(true); } catch(e) { console.log('[gptpdf] sheet source', e); }
         gptpdfSwRender();
-        gptpdfSheetFonts().then(gptpdfSwRender);
+        Promise.all([gptpdfSheetFonts(), gptpdfKatexCssLoad()]).then(gptpdfSwRender);
     });
 }
 

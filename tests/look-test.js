@@ -31,10 +31,13 @@ eq('тронутая ручка = Custom', style(Object.assign({}, run('gptpdfSh
 eq('цвет вопроса — тоже ручка стиля', style({ q_color: 'rose' }), '');
 
 out.push('', '— Стили PDF из вида —');
-const fam = c => (c.match(/body,p,li,td,th,blockquote,div,span,a,strong,em,b,i\{font-family:([^!]*)!/) || [])[1].trim();
+// The text font rule leaves KaTeX's formulas out (they keep KaTeX's own fonts).
+const fam = c => (c.match(/body,p,li,td,th,blockquote,div:not\(\.katex \*\),span:not\(\.katex\):not\(\.katex \*\),a,strong,em,b,i\{font-family:([^!]*)!/) || [])[1].trim();
 eq('Chat — Noto Sans', fam(css({})).split(',')[0], '"Noto Sans"');
 eq('Document — Noto Serif', fam(css(run('gptpdfShared.LOOK_STYLES.doc'))).split(',')[0], '"Noto Serif"');
 eq('Compact — Carlito', fam(css(run('gptpdfShared.LOOK_STYLES.compact'))).split(',')[0], 'Carlito');
+eq('формулы не получают шрифт текста', /div:not\(\.katex \*\)/.test(css({})), true);
+eq('у формул нет подмены на Times', /\.katex-html \.mathnormal/.test(css({})), false);
 eq('Chat — 11 pt, интервал 1.55', /body\{font-size:11pt !important;line-height:1.55/.test(css({})), true);
 eq('Compact — 10 pt, интервал 1.3', /body\{font-size:10pt !important;line-height:1.3/.test(css(run('gptpdfShared.LOOK_STYLES.compact'))), true);
 eq('Chat — вопрос пузырём справа', /justify-content:flex-start/.test(css({})), false);

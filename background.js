@@ -36,32 +36,61 @@ chrome.runtime.onMessage.addListener(function(message) {
     }
 });
 
-// Fonts for the sheet in the settings window (preview.js). The page asks for
-// one of the bundled files by name; the bytes come back as base64 and become a
-// FontFace there — no web_accessible_resources, so pages cannot probe for the
-// extension through them. Only the listed names are served.
-const GPTPDF_FONT_FILES = [
-    'NotoSans-Regular.woff2', 'NotoSans-Bold.woff2', 'NotoSerif-Regular.woff2',
-    'NotoSerif-Bold.woff2', 'Carlito-Regular.woff2', 'Carlito-Bold.woff2',
-    'NotoSansMono-Regular.woff2'
-];
+// Fonts for the sheet in the settings window (preview.js), and KaTeX's
+// stylesheet for formulas in the PDF (common.js). The page asks by name; the
+// bytes come back as base64 (fonts) or as one stylesheet with its fonts inlined
+// (KaTeX) — no web_accessible_resources, so pages cannot probe for the
+// extension through them. Only files of fonts/ are served.
+function gptpdfB64(buf) {
+    const bytes = new Uint8Array(buf);
+    let bin = '';
+    for(let i = 0; i < bytes.length; i += 0x8000) {
+        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(bin);
+}
+
+// New ChatGPT answers keep only KaTeX's drawing of a formula (no TeX source,
+// no MathML — test chat 16.11). It prints right only with KaTeX's own
+// stylesheet and fonts, and the print server cannot fetch fonts: so the fonts
+// go into the stylesheet as data: URLs (KaTeX 0.16.11, MIT, lib/katex/).
+let gptpdfKatexCssPromise = null;
+function gptpdfKatexCss() {
+    if(gptpdfKatexCssPromise) return gptpdfKatexCssPromise;
+    gptpdfKatexCssPromise = fetch(chrome.runtime.getURL('lib/katex/katex.min.css'))
+        .then(function(r) { return r.text(); })
+        .then(function(css) {
+            const names = Array.from(new Set(css.match(/KaTeX_[A-Za-z0-9_-]+(?=\.woff2)/g) || []));
+            return Promise.all(names.map(function(n) {
+                return fetch(chrome.runtime.getURL('lib/katex/fonts/' + n + '.woff2'))
+                    .then(function(r) { return r.arrayBuffer(); })
+                    .then(function(buf) { return [n, gptpdfB64(buf)]; });
+            })).then(function(pairs) {
+                const data = {};
+                pairs.forEach(function(p) { data[p[0]] = p[1]; });
+                // Each @font-face keeps only its woff2, inlined.
+                return css.replace(/src:url\(fonts\/(KaTeX_[A-Za-z0-9_-]+)\.woff2\)[^;}]*/g, function(m, n) {
+                    return data[n] ? 'src:url(data:font/woff2;base64,' + data[n] + ') format("woff2")' : m;
+                });
+            });
+        })
+        .catch(function() { gptpdfKatexCssPromise = null; return ''; });
+    return gptpdfKatexCssPromise;
+}
+
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+    if(message.action === 'gptpdfKatexCss') {
+        gptpdfKatexCss().then(function(css) { sendResponse({ css: css }); });
+        return true;
+    }
     if(message.action !== 'gptpdfFont') return;
-    if(GPTPDF_FONT_FILES.indexOf(message.file) === -1) {
+    if(!/^[A-Za-z0-9-]+\.woff2$/.test(message.file || '')) {
         sendResponse({});
         return;
     }
     fetch(chrome.runtime.getURL('fonts/' + message.file))
         .then(function(r) { return r.ok ? r.arrayBuffer() : null; })
-        .then(function(buf) {
-            if(!buf) { sendResponse({}); return; }
-            const bytes = new Uint8Array(buf);
-            let bin = '';
-            for(let i = 0; i < bytes.length; i += 0x8000) {
-                bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-            }
-            sendResponse({ b64: btoa(bin) });
-        })
+        .then(function(buf) { sendResponse(buf ? { b64: gptpdfB64(buf) } : {}); })
         .catch(function() { sendResponse({}); });
     return true;   // the answer comes later
 });

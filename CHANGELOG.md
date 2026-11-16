@@ -33,6 +33,12 @@ history and working notes.
   ChatGPT's theme, so everyone on dark ChatGPT got black pages without asking
   for them. The sheet is now light unless you pick Dark in Settings, and the
   Auto option is gone.
+- **The preview uses the PDF's own fonts.** The page in the settings window and
+  the thumbnail in the menu are drawn with the fonts the PDF uses (Noto Sans,
+  Noto Serif, Noto Sans Mono, Carlito), which now come with the extension for
+  Latin and Cyrillic. Other scripts use your computer's fonts in the preview.
+  The PDF itself is set by the print server, which has fonts for Arabic,
+  Hebrew, the Indian scripts, Chinese, Japanese, Korean, Thai and more.
 
 ### Fixed
 - **A long question no longer runs over its answer.** ChatGPT folds a long
@@ -57,6 +63,23 @@ history and working notes.
   name and its type ("…csv Spreadsheet") or the picture's label used to be
   glued to the front of the entry and the bookmark. Now only the question's
   own words go there.
+- **Formulas print as in ChatGPT.** Newer answers keep a formula only as it is
+  drawn on screen, without its source, and in the PDF it fell apart into loose
+  letters and lines. The PDF now carries the formula styles and fonts ChatGPT
+  draws with (KaTeX), so fractions, roots, sums and matrices look as on screen.
+- **A square root no longer shrinks the whole PDF.** Without those styles the
+  line over a root came out nine times wider than the page, and every page of
+  such a chat printed at half size.
+- **Code in newer answers keeps its indentation.** ChatGPT's new code box
+  printed as plain text, and Python lost its indents. It prints as boxed code
+  again.
+- **Line breaks inside a paragraph stay.** Lines that ChatGPT shows one under
+  another no longer run together.
+- **Numbers in tables stand to the right,** as ChatGPT sets them.
+- **Checklist cards keep their layout:** the title on the left and "0/24" on
+  the right, the progress bar, the button label in its corner.
+- **A file attached to a question** has its name inside its card again, not on
+  the card's edge.
 
 ## [1.2.5] — 2026-11-13
 ### Fixed

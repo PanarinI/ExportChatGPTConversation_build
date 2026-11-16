@@ -1,0 +1,88 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Перерисовка дев-выгрузки текущим кодом — стенд</title>
+<!--
+  Зачем: дев-сборка кладёт рядом с PDF «<имя>.export.html» — ровно то, что ушло на сервер
+  (common.js, gptpdfDevDump). Чинишь вид на живом чате автора — проверь правку на его же выгрузке,
+  не дожидаясь нового экспорта: стенд снимает со страницы старые стили, заново прогоняет
+  преобразования копии, которые работают и на готовой выгрузке (виджеты кода, галочки), и собирает
+  CSS текущего render.js плюс стили KaTeX со шрифтами — как background.js. Итог — <pre id="payload-dump">
+  для tests/e2e-render.js (тот шлёт на наш сервер настоящий запрос; поэтому руками, не в батарее).
+
+  Запуск (из корня репо; путь к выгрузке — в адресе, кириллица допустима):
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu \
+      --allow-file-access-from-files --virtual-time-budget=20000 --dump-dom \
+      "file://$PWD/tests/dump-rerender.html?look=doc&dump=$HOME/Downloads/<имя>.export.html" > /tmp/rr.html
+    node tests/e2e-render.js /tmp/rr.html /tmp/rr.pdf
+  look = chat | doc | compact (стиль листа, по умолчанию chat).
+  Выгрузки с чатами автора — его личное: в репо и в публичные папки не класть.
+-->
+<script src="../shared.js"></script>
+<script src="../theme.js"></script>
+<script src="../helpers.js"></script>
+<script src="../render.js"></script>
+<pre id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre-wrap"></pre>
+<script>
+function read(url, binary) {
+    return new Promise(function(resolve, reject) {
+        const x = new XMLHttpRequest();
+        x.open('GET', url);
+        if(binary) x.responseType = 'arraybuffer';
+        x.onload = function() { resolve(x.response); };
+        x.onerror = function() { reject(new Error('cannot read ' + url)); };
+        x.send();
+    });
+}
+function b64(buf) {
+    const bytes = new Uint8Array(buf);
+    let s = '';
+    for(let i = 0; i < bytes.length; i += 0x8000) {
+        s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(s);
+}
+// The same stylesheet background.js sends (gptpdfKatexCss): fonts inlined.
+async function katexCss() {
+    const css = await read('../lib/katex/katex.min.css');
+    const names = Array.from(new Set(css.match(/KaTeX_[A-Za-z0-9_-]+(?=\.woff2)/g) || []));
+    const data = {};
+    for(const n of names) data[n] = b64(await read('../lib/katex/fonts/' + n + '.woff2', true));
+    return css.replace(/src:url\(fonts\/(KaTeX_[A-Za-z0-9_-]+)\.woff2\)[^;}]*/g, function(m, n) {
+        return data[n] ? 'src:url(data:font/woff2;base64,' + data[n] + ') format("woff2")' : m;
+    });
+}
+(async function() {
+    const log = document.getElementById('log');
+    const q = new URLSearchParams(location.search);
+    try {
+        const dump = await read('file://' + encodeURI(q.get('dump')));
+        const doc = new DOMParser().parseFromString(dump, 'text/html');
+        const p = doc.getElementById('gptpdf-dev-params');
+        const params = p ? JSON.parse(p.textContent) : {};
+        doc.querySelectorAll('head style, #gptpdf-dev-params').forEach(function(el) { el.remove(); });
+        delete params.build;
+
+        gptpdfFlattenCodeWidgets(doc.body);
+        gptpdfCheckboxesToBoxes(doc.body);
+
+        const style = gptpdfShared.LOOK_STYLES[q.get('look')] || gptpdfShared.LOOK_STYLES.chat;
+        const theme = EXPORT_THEMES[style.q_color] || EXPORT_THEMES['default'];
+        // The sheet's colour as exported: Dark leaves its class on <body>.
+        const dark = doc.body.classList.contains('gptpdf-dark');
+        params.custom_css = buildExportCss(theme, dark, gptpdfShared.look(style));
+        if(gptpdfNeedsKatex(doc.body)) params.custom_css += await katexCss();
+
+        const html = '<!DOCTYPE html>' + doc.documentElement.outerHTML;
+        const out = document.createElement('pre');
+        out.id = 'payload-dump';
+        out.textContent = JSON.stringify({ html: html, params: params });
+        document.body.appendChild(out);
+        log.textContent = "ok · look " + (q.get("look") || "chat") + (dark ? " · dark" : "") + " · html " + html.length +
+            ' · css ' + params.custom_css.length;
+    } catch(e) {
+        log.textContent = 'FAIL ' + e.message;
+    }
+})();
+// preview.js is not loaded here (it needs the extension): the same test it uses.
+function gptpdfNeedsKatex(root) { return !!root.querySelector('.katex-html'); }
+</script>
