@@ -170,6 +170,13 @@ function buildExportCss(theme, isDarkMode, look) {
                         // What ChatGPT itself leaves out when the answer is copied
                         // ("Open file" under a file's name) is screen-only.
                         '[data-markdown-copy="exclude"]{display:none !important}',
+                        // A forced line break in new answers is a newline kept
+                        // by ChatGPT's stylesheet ("preserve"); without it the
+                        // lines ran together (test chat 16.11).
+                        '[data-d-whitespace="preserve"]{white-space:pre-wrap !important}',
+                        '[data-d-component="list"][data-d-marker="none"]{list-style:none !important;padding-left:0 !important}',
+                        '.gptpdf-check{display:inline-block;width:.85em;height:.85em;border:1.5px solid #9a9a9a;border-radius:3px;margin-right:.45em;vertical-align:-.08em;text-align:center;line-height:.85em;font-size:.95em}',
+                        '.gptpdf-check-on{background:var(--color-text-success);border-color:var(--color-text-success);color:#fff}',
                         // File cards — files attached to a question or made by an
                         // answer (name, type): a framed card with one row per
                         // file, as on the page, instead of one glued line.
@@ -872,7 +879,44 @@ function gptpdfRemoveDateSeparators(root) {
     });
 }
 
+// New answers draw code in a "code_block" widget: a toolbar, an editor-like
+// surface, no <pre>. Without ChatGPT's stylesheet the code printed as plain
+// text with its indentation collapsed (author's test chat 16.11, Python). The
+// widget keeps the exact code in data-chatgpt-copy-code (what its Copy button
+// copies), so it becomes a plain <pre><code> the export styles already box.
+function gptpdfFlattenCodeWidgets(root) {
+    let n = 0;
+    root.querySelectorAll('[data-chatgpt-copy-code]').forEach(function(el) {
+        if(!el.isConnected && !root.contains(el)) return;
+        const code = el.getAttribute('data-chatgpt-copy-code');
+        const host = el.closest('[data-client-defined-widget="code_block"]') || el;
+        const doc = host.ownerDocument;
+        const pre = doc.createElement('pre');
+        const c = doc.createElement('code');
+        c.textContent = code;
+        pre.appendChild(c);
+        host.replaceWith(pre);
+        n++;
+    });
+    return n;
+}
+
+// Checkboxes (task lists, checklists) are buttons on the new page, and the
+// export drops buttons. Their state is content: keep it as a box.
+function gptpdfCheckboxesToBoxes(root) {
+    root.querySelectorAll('[role="checkbox"]').forEach(function(el) {
+        const on = el.getAttribute('aria-checked') === 'true' ||
+            el.getAttribute('data-state') === 'checked';
+        const box = el.ownerDocument.createElement('span');
+        box.className = 'gptpdf-check' + (on ? ' gptpdf-check-on' : '');
+        box.textContent = on ? '✓' : '';
+        el.replaceWith(box);
+    });
+}
+
 function cleanupForPdf(clone) {
+    gptpdfFlattenCodeWidgets(clone);
+    gptpdfCheckboxesToBoxes(clone);
 
     // ── Метки для разрывов страниц и колонок ──────────────────────────
     // Ставятся всегда, включаются классом на body: правило одно, а решает

@@ -131,10 +131,17 @@ function gptpdfFitSheet(area, scale) {
     const H = area.clientHeight;
     const box = area.getBoundingClientRect();
     if(!H || !scale) return;
+    // Only small blocks (a few lines) are hidden whole. A block taller than
+    // that — a long question, a long code listing — stays and is cut by the
+    // page edge, as the PDF carries it on to page 2. Hiding it whole emptied
+    // the sheet on the author's chat 16.11 (a two-page question).
+    const SMALL = 80;   // px at full size ≈ 3–4 lines
     area.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li,tr,pre,img,hr,' +
-        '[data-message-author-role="user"],.katex-display,span[role="math"],' +
-        '.gptpdf-pv-meta,a[href^="#toc-"]').forEach(function(el) {
-        if((el.getBoundingClientRect().bottom - box.top) / scale > H + 0.5) {
+        '.katex-display,span[role="math"],.gptpdf-pv-meta,a[href^="#toc-"]').forEach(function(el) {
+        const r = el.getBoundingClientRect();
+        const top = (r.top - box.top) / scale;
+        const bottom = (r.bottom - box.top) / scale;
+        if(bottom > H + 0.5 && (top > H || (bottom - top) <= SMALL)) {
             el.style.visibility = 'hidden';
         }
     });
