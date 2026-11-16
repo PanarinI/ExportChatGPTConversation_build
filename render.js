@@ -153,6 +153,14 @@ function buildExportCss(theme, isDarkMode, look) {
                         '[data-d-justify="center"]{justify-content:center}',
                         '.markdown [data-d-component="row"]>*{margin-top:0 !important;margin-bottom:0 !important}',
                         '[data-d-clip="true"]{overflow:hidden}',
+                        // Each paragraph of an answer runs in its own language's
+                        // direction: Arabic, Hebrew, Urdu from the right edge, as on
+                        // the screen. The answer as a whole takes the direction of
+                        // its first word (dir="auto"), so in a Russian answer they
+                        // stood at the left (author 17.11). Not inside a list item:
+                        // its bullet keeps the list's side, and the text went off
+                        // to the other edge without it.
+                        '[data-message-author-role="assistant"] :is(p,h1,h2,h3,h4,h5,h6):not(li *){unicode-bidi:plaintext}',
                         // Numbers in a table stand to the right, as ChatGPT sets them.
                         '[data-d-component="table-cell"][data-d-align="end"]{text-align:right !important}',
                         '[data-d-component="table-cell"][data-d-align="center"]{text-align:center !important}',
@@ -858,6 +866,13 @@ function gptpdfPairAnswers(pair, questions) {
         .forEach(function(md) {
             found.push(md.closest('[data-chatgpt-search-message-ids]') || md);
         });
+    // Each message of the answer has a body, [data-response-body=<its id>].
+    // A picture made by ChatGPT comes as a message of its own, before the
+    // text, with only its body — no unit key, no "ChatGPT said:" marker
+    // (author's test chat 16.11: "six pictures in one tile", 1536 × 1024).
+    // The translation took the text alone and the picture was gone.
+    pair.querySelectorAll('[data-response-body]')
+        .forEach(function(b) { found.push(b); });
     return gptpdfOutermost(found).filter(function(a) {
         return !questions.some(function(q) {
             return q.contains(a) || a.contains(q);

@@ -164,7 +164,7 @@ gptpdfChatGPT.init = function() {
         // button's placement sees it (gptpdfDevDump).
         const devLive = /-dev/.test(gptpdfShared.build) && chatRoot ? chatRoot.outerHTML : '';
         const devHeader = /-dev/.test(gptpdfShared.build)
-            ? { atClick: gptpdfDevHeader('click'), atFallback: gptpdfDevHeaderAtFallback } : null;
+            ? { atClick: gptpdfDevHeader('click'), lasting: gptpdfDevHeaderOdd } : null;
         const hasSelection = !prefetched && gptpdfSelectionInChat(chatRoot);
         let turnCache = prefetched;
         // Отметки времени экспорта по фазам: сбор → сборка страницы с
@@ -673,7 +673,24 @@ gptpdfChatGPT.init = function() {
 
     // Dev builds: what the button's placement saw in the header — the window
     // width, the gap it found, every control with its box, the header's markup.
-    let gptpdfDevHeaderAtFallback = null;
+    // "Sometimes the button drops to a second row without its word" (author,
+    // 16.11, Chrome on a Mac, long-standing): the fallback place, or a cut-down
+    // size, when the gap is short. A state that lasts — the button on screen
+    // that way for 3 checks in a row (the check runs every second) — is noted
+    // with the header as it stood, for the next export's .raw.html. A first
+    // look while the page is still drawing its header is not the bug: the
+    // next second puts the button right (17.11, the author's dump).
+    let gptpdfDevHeaderOdd = null;
+    let gptpdfDevOddRuns = 0;
+    function gptpdfDevNoteOdd(reason) {
+        if(!/-dev/.test(gptpdfShared.build)) return;
+        if(!reason || gptpdf_block.classList.contains('gptpdf-hidden')) {
+            gptpdfDevOddRuns = 0;
+            return;
+        }
+        gptpdfDevOddRuns++;
+        if(gptpdfDevOddRuns === 3) gptpdfDevHeaderOdd = gptpdfDevHeader(reason);
+    }
     function gptpdfDevHeader(reason) {
         try {
             const surface = document.querySelector(
@@ -793,19 +810,14 @@ gptpdfChatGPT.init = function() {
                             gptpdf_block.classList.add(newClass);
                         }
                     }
+                    gptpdfDevNoteOdd(newClass ? 'narrow ' + newClass : '');
                     return;
                 }
             }
         }
 
         // Fallback position
-        // Dev builds: the header as it stood the first time the button was
-        // pushed here — "sometimes the button drops to a second row without
-        // its word" (author, 16.11, Chrome on a Mac, long-standing). Saved in
-        // the next export's .raw.html.
-        if(!gptpdfDevHeaderAtFallback && /-dev/.test(gptpdfShared.build)) {
-            gptpdfDevHeaderAtFallback = gptpdfDevHeader('fallback');
-        }
+        gptpdfDevNoteOdd('fallback');
         gptpdf_block.style.right = '18px';
         gptpdf_block.style.top = '44px';
         gptpdf_block.classList.remove(
@@ -1078,7 +1090,7 @@ gptpdfChatGPT.saveBlob = function(url, filename) {
 // a thing lost on the way (16.11: six generated pictures; checkboxes) left no
 // trace of how it was built. Both are inert <template>s: nothing loads or runs.
 // Plus the header as the Export button's placement saw it, at the click and
-// the first time the button fell back under the header (JSON).
+// when the button stood cut down or under the header for 3 s (JSON).
 function gptpdfDevDump(html, data, filename, live, copy, header) {
     const base = String(filename || 'export').replace(/\.pdf$/i, '');
     function save(text, suffix) {

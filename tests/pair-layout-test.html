@@ -296,6 +296,50 @@ function page() {
     check('кнопка по-прежнему видит старый чат', gptpdfHasConversation(classic));
     check('«Select to export» не прячется на старой вёрстке', !gptpdfIsPairLayout(classic));
 
+    // ── 8. картинка — отдельным сообщением перед текстом ответа ─────────
+    // Тестовый чат автора 16.11 («шесть картинок одной плиткой»): у сообщения с
+    // картинкой только тело [data-response-body] — ни ключа единицы, ни метки
+    // «ChatGPT said:»; текст ответа идёт за ним своей единицей. Перевод брал один текст.
+    out.push('');
+    out.push('— 8. Картинка отдельным сообщением перед текстом —');
+    // Как настоящая (1536 × 1024): чистка держит картинку в подписанной кнопке по
+    // длине её data:-адреса (> 2000 знаков) — крошечная 4 × 4 ушла бы с кнопкой.
+    const BIG = (function() {
+        const c = document.createElement('canvas'); c.width = c.height = 48;
+        const g = c.getContext('2d');
+        let x = 12345;   // шум без случайности: PNG его не ужмёт
+        const next = () => (x = (x * 1103515245 + 12345) % 2147483648) % 256;
+        for(let i = 0; i < 48; i++) for(let j = 0; j < 48; j++) {
+            g.fillStyle = 'rgb(' + next() + ',' + next() + ',' + next() + ')';
+            g.fillRect(i, j, 1, 1);
+        }
+        return c.toDataURL('image/png');
+    })();
+    check('(картинка сцены весит как настоящая: data: > 2000 знаков)', BIG.length > 2000, BIG.length);
+    const imgPair = document.createElement('div');
+    imgPair.innerHTML = pair(5, 'u6', question(5, 'u6', 'Сгенерируй картинки') +
+        '<div class="block-BQZwFn"><div class="browser:mb-3" data-response-body="a6img" ' +
+            'data-chatgpt-search-message-ids="a6img"><div>' +
+          '<div data-testid="generated-image-gallery" style="height: 320px;"><div class="flex gap-2">' +
+            '<div class="group/generated-image-preview relative shrink-0" data-web-image-tile="true">' +
+              '<button type="button" data-testid="generated-image-preview" aria-label="Сгенерированное изображение 1" ' +
+                'aria-hidden="false" style="height: 320px; width: 480px;">' +
+                '<img width="1536" height="1024" alt="Сгенерированное изображение 1" src="' + BIG + '">' +
+              '</button></div></div></div></div></div></div>' +
+        answer(5, ['a6'], mdBlock('a6', '<p>Готово. Получился набор из шести изображений.</p>')));
+    gptpdfNormalizeTurns(imgPair);
+    const imgAnswer = imgPair.querySelector('[data-message-author-role="assistant"]');
+    check('картинка дошла до ответа', !!(imgAnswer && imgAnswer.querySelector('img[alt="Сгенерированное изображение 1"]')));
+    check('и текст ответа тоже', !!imgAnswer && /Готово\. Получился набор/.test(imgAnswer.textContent));
+    const imgEl = imgAnswer && imgAnswer.querySelector('img');
+    const textEl = imgAnswer && imgAnswer.querySelector('p');
+    check('картинка стоит перед текстом, как на экране', !!(imgEl && textEl) &&
+        (imgEl.compareDocumentPosition(textEl) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0);
+    check('id ответа — первого сообщения (картинки)', !!imgAnswer && imgAnswer.getAttribute('data-message-id') === 'a6img',
+        imgAnswer && imgAnswer.getAttribute('data-message-id'));
+    cleanupForPdf(imgPair);
+    check('после чистки картинка на месте', !!imgPair.querySelector('img[alt="Сгенерированное изображение 1"]'));
+
     out.push('');
     out.push(failed === 0 ? '✅ все проверки пройдены' : '❌ провалено проверок: ' + failed);
     document.getElementById('log').textContent = out.join('\n');

@@ -76,8 +76,16 @@ history and working notes.
 - **Line breaks inside a paragraph stay.** Lines that ChatGPT shows one under
   another no longer run together.
 - **Numbers in tables stand to the right,** as ChatGPT sets them.
+- **Checkboxes print as boxes,** ticked or empty as on screen (task lists and
+  checklists in newer answers). Before, the items printed without them.
 - **Checklist cards keep their layout:** the title on the left and "0/24" on
   the right, the progress bar, the button label in its corner.
+- **Pictures made by ChatGPT print again on the new page.** Such a picture
+  now comes as a message of its own, just before the answer's text, and the
+  export kept only the text: a set of six pictures in one tile was simply
+  missing from the PDF.
+- **Arabic, Hebrew and Urdu paragraphs start at the right edge,** as on
+  screen, even inside an answer written in another language.
 - **A file attached to a question** has its name inside its card again, not on
   the card's edge.
 

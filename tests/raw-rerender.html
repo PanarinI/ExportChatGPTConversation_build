@@ -1,0 +1,114 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Экспорт из сырой копии текущим кодом — стенд</title>
+<!--
+  Зачем: дев-сборка кладёт рядом с PDF «<имя>.raw.html» — копию чата ДО перевода пары и чистки (common.js,
+  gptpdfDevDump). Стенд проводит её через тот же путь, что doConvert: перевод пары → чистка → стили вопроса →
+  оглавление и шапка → CSS текущего render.js (+ KaTeX со шрифтами, как background.js). Итог — <pre id="payload-dump">
+  для tests/e2e-render.js. Нужен, когда правка касается перевода или чистки: «.export.html» начинается уже после них
+  (16.11: плитка картинок терялась при переводе пары — в выгрузке от неё не было и следа).
+  Настройки автора в момент экспорта в сырой копии не лежат: берутся умолчания + стиль из адреса.
+
+  Запуск (из корня репо):
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu \
+      --allow-file-access-from-files --virtual-time-budget=30000 --dump-dom \
+      "file://$PWD/tests/raw-rerender.html?look=doc&raw=$HOME/Downloads/<имя>.raw.html" > /tmp/rw.html
+    node tests/e2e-render.js /tmp/rw.html /tmp/rw.pdf
+  look = chat | doc | compact; dark=1 — тёмный лист.
+  Сырые копии — чаты автора: в репо и в публичные папки не класть.
+-->
+<script src="../shared.js"></script>
+<script src="../theme.js"></script>
+<script src="../helpers.js"></script>
+<script src="../lib/katex.min.js"></script>
+<script src="../render.js"></script>
+<pre id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre-wrap"></pre>
+<script>
+function read(url, binary) {
+    return new Promise(function(resolve, reject) {
+        const x = new XMLHttpRequest();
+        x.open('GET', url);
+        if(binary) x.responseType = 'arraybuffer';
+        x.onload = function() { resolve(x.response); };
+        x.onerror = function() { reject(new Error('cannot read ' + url)); };
+        x.send();
+    });
+}
+function b64(buf) {
+    const bytes = new Uint8Array(buf);
+    let s = '';
+    for(let i = 0; i < bytes.length; i += 0x8000) {
+        s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(s);
+}
+async function katexCss() {
+    const css = await read('../lib/katex/katex.min.css');
+    const names = Array.from(new Set(css.match(/KaTeX_[A-Za-z0-9_-]+(?=\.woff2)/g) || []));
+    const data = {};
+    for(const n of names) data[n] = b64(await read('../lib/katex/fonts/' + n + '.woff2', true));
+    return css.replace(/src:url\(fonts\/(KaTeX_[A-Za-z0-9_-]+)\.woff2\)[^;}]*/g, function(m, n) {
+        return data[n] ? 'src:url(data:font/woff2;base64,' + data[n] + ') format("woff2")' : m;
+    });
+}
+(async function() {
+    const log = document.getElementById('log');
+    const q = new URLSearchParams(location.search);
+    try {
+        const raw = await read('file://' + encodeURI(q.get('raw')));
+        const src = new DOMParser().parseFromString(raw, 'text/html').getElementById('gptpdf-copy');
+        const clone = document.importNode(src.content, true).firstElementChild;
+        const lookName = gptpdfShared.LOOK_STYLES[q.get('look')] ? q.get('look') : 'chat';
+        const options = Object.assign({}, gptpdfShared.defaultOptions,
+            gptpdfShared.LOOK_STYLES[lookName], { look_base: lookName },
+            q.get('dark') ? { theme: 'dark' } : {});
+        const pairs = clone.querySelectorAll('div[data-turn-key]').length;
+
+        // ── the same steps as common.js after the harvest ──
+        gptpdfNormalizeTurns(clone);
+        gptpdfApplyCitationSources(clone, null);
+        cleanupForPdf(clone);
+        applyQuestionStyles(clone, options);
+        const title = getTitle(clone);
+        const theme = EXPORT_THEMES[options.q_color] || EXPORT_THEMES['default'];
+        const isDarkMode = options.theme === 'dark';
+        const data = {
+            jpeg_quality: 70, image_dpi: 150, convert_images_to_jpeg: 'all', title: title,
+            rendering_mode: 'viewport', smart_scaling_mode: 'viewport-fit', viewport_width: 1300,
+            custom_css: buildExportCss(theme, isDarkMode, gptpdfShared.look(options))
+        };
+        if(clone.querySelector('.katex-html')) data.custom_css += await katexCss();
+        const trigger = document.createElement('button');
+        trigger.dataset.convOptions = '{"page_size": "a4"}';
+        const single = applyConversionOptions(data, trigger, options);
+        applyMarginSettings(data, options);
+        data.page_numbers = !!options.page_numbers && !single;
+        data.outline = !!options.toc;
+        if(data.outline) gptpdfMarkOutline(clone, options.no_questions);
+        const classes = buildCssClasses(options, single);
+        if(isDarkMode) data.page_background_color = '212121';
+        const toc = buildTocHtml(options, clone);
+        const h1Hidden = options.title_mode === 'none' ? 'display:none;' : '';
+        const displayTitle = title.length > 80 ? title.slice(0, 79) + '...' : title;
+        const metaRow = buildNewspaperHeader(options);
+        const body = metaRow +
+            (metaRow ? '<hr style="border:none;border-top:2px solid #1a1a1a;margin:3px 0 5px">' : '') +
+            '<h1 class="main-title" style="' + h1Hidden + 'font-size:26px;font-weight:700;margin:6px 0;line-height:1.22">' +
+            displayTitle + '</h1>' + buildRuleLHtml() + toc + clone.outerHTML;
+        const html = '<!DOCTYPE html><html><head><meta charSet="utf-8"/></head>' +
+            '<body class="' + classes + '" dir="ltr">' + body + '</body>';
+
+        const out = document.createElement('pre');
+        out.id = 'payload-dump';
+        out.textContent = JSON.stringify({ html: html, params: data });
+        document.body.appendChild(out);
+        log.textContent = 'ok · look ' + lookName + (isDarkMode ? ' · dark' : '') + ' · pairs ' + pairs +
+            ' · turns ' + clone.querySelectorAll('[data-testid^="conversation-turn"]').length +
+            ' · img ' + clone.querySelectorAll('img').length +
+            ' · checks ' + clone.querySelectorAll('.gptpdf-check').length +
+            ' · html ' + html.length;
+    } catch(e) {
+        log.textContent = 'FAIL ' + e.message + '\n' + e.stack;
+    }
+})();
+</script>

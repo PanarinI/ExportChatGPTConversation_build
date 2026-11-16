@@ -38,6 +38,7 @@ eq('Document — Noto Serif', fam(css(run('gptpdfShared.LOOK_STYLES.doc'))).spli
 eq('Compact — Carlito', fam(css(run('gptpdfShared.LOOK_STYLES.compact'))).split(',')[0], 'Carlito');
 eq('формулы не получают шрифт текста', /div:not\(\.katex \*\)/.test(css({})), true);
 eq('у формул нет подмены на Times', /\.katex-html \.mathnormal/.test(css({})), false);
+eq('абзац ответа идёт в направлении своего языка (арабский, иврит — от правого края)', /\[data-message-author-role="assistant"\] :is\(p,h1,h2,h3,h4,h5,h6\):not\(li \*\)\{unicode-bidi:plaintext\}/.test(css({})), true);
 eq('Chat — 11 pt, интервал 1.55', /body\{font-size:11pt !important;line-height:1.55/.test(css({})), true);
 eq('Compact — 10 pt, интервал 1.3', /body\{font-size:10pt !important;line-height:1.3/.test(css(run('gptpdfShared.LOOK_STYLES.compact'))), true);
 eq('Chat — вопрос пузырём справа', /justify-content:flex-start/.test(css({})), false);
