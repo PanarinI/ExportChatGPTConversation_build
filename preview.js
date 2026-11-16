@@ -64,12 +64,15 @@ function gptpdfSheetSource(force) {
         return gptpdfSheetSourceCache;
     }
     const pair = gptpdfIsPairLayout(root);
-    // On screen order: the new page lays its feed out bottom-up, so DOM order
-    // is not reading order — sort by position (capture.js does the same).
-    const turns = Array.from(root.querySelectorAll(GPTPDF_TURN)).filter(function(t) {
-        return !t.closest('[hidden]') && t.getBoundingClientRect().height > 0;
-    }).sort(function(a, b) {
-        return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
+    // DOM order is reading order (capture.js relies on it the same way). Not
+    // the turns' own boxes: on the author's page 16.11 the sheet came out empty
+    // — a turn wrapper there can have no box of its own, and filtering by box
+    // size dropped them all. Skip only hidden ones and turns inside turns.
+    const all = Array.from(root.querySelectorAll(GPTPDF_TURN));
+    const turns = all.filter(function(t) {
+        if(t.closest('[hidden]')) return false;
+        const outer = t.parentElement && t.parentElement.closest(GPTPDF_TURN);
+        return !outer || all.indexOf(outer) === -1;
     });
     const take = pair ? Math.ceil(GPTPDF_SHEET_MESSAGES / 2) : GPTPDF_SHEET_MESSAGES;
     const clone = document.createElement('main');
@@ -98,8 +101,13 @@ function gptpdfSheetSource(force) {
 
     gptpdfSheetSourceCache = {
         key: key, clone: clone, title: title, startLoaded: startLoaded,
-        empty: !turns.length
+        empty: !turns.length,
+        // What the sheet found, for dev builds (shown under the sheet).
+        debug: 'turns ' + turns.length + ' of ' + all.length + (pair ? ' (pair)' : ' (classic)') +
+            ' · questions ' + clone.querySelectorAll('[data-message-author-role="user"]').length +
+            ' · answers ' + clone.querySelectorAll('[data-message-author-role="assistant"]').length
     };
+    if(/-dev/.test(gptpdfShared.build)) console.log('[gptpdf] sheet: ' + gptpdfSheetSourceCache.debug);
     return gptpdfSheetSourceCache;
 }
 

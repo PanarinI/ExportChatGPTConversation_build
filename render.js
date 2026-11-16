@@ -51,6 +51,12 @@ function buildExportCss(theme, isDarkMode, look) {
                         // выше страницы браузер разорвёт всё равно — это подсказка,
                         // а не запрет.
                         '[data-testid^="conversation-turn"].gptpdf-user-turn{break-inside:avoid !important;page-break-inside:avoid !important}',
+                        // …but a long question (cleanupForPdf marks it) may break:
+                        // kept whole, a two-page question jumped to the next page
+                        // and left the first one blank (author's chat 16.11). It
+                        // also takes the full width rather than a 70 % bubble.
+                        '[data-testid^="conversation-turn"].gptpdf-user-turn.gptpdf-long-q{break-inside:auto !important;page-break-inside:auto !important}',
+                        '.gptpdf-long-q [data-message-author-role="user"]>div{max-width:100% !important}',
                         // ── Альбомный лист: две колонки ─────────────────
                         '.gptpdf-landscape .gptpdf-conversation{column-count:2 !important;column-gap:26px !important;column-fill:auto !important}',
                         '.gptpdf-landscape .gptpdf-conversation pre,.gptpdf-landscape .gptpdf-conversation table{break-inside:avoid-column !important}',
@@ -114,6 +120,65 @@ function buildExportCss(theme, isDarkMode, look) {
                         '.markdown pre *{background:transparent !important}',
                         '.markdown pre,.markdown pre *{font-family:' + MONO + ' !important;font-size:' + pt(S * 0.82) + ' !important;line-height:1.5 !important}',
                         '.markdown :not(pre)>code{font-family:' + MONO + ' !important;font-size:.88em !important}',
+                        // Paragraph margins belong between paragraphs, not inside
+                        // a table cell or a list item (new answers wrap both in <p>).
+                        '.markdown td p,.markdown th p,.markdown li p{margin:0 !important}',
+                        '.markdown p:empty{display:none !important}',
+                        // ── ChatGPT's new answer blocks (16.11) ──────────────
+                        // Newer answers are built from named blocks — card, row,
+                        // badge, divider, grid, icon — styled on the page by
+                        // ChatGPT's stylesheet through its colour variables. The
+                        // stylesheet does not reach the PDF: cards lost their
+                        // frame, icons their colour, rows fell into a column.
+                        // The variables and the blocks are set here, by their
+                        // data-d-component names, so they print as on the page
+                        // (colours sampled from the author's screen 16.11).
+                        'body{--color-border:' + (isDarkMode ? '#3a3a3a' : '#e3e3e3') + ';--color-border-subtle:' + (isDarkMode ? '#333' : '#ececec') +
+                            ';--color-text-primary:' + (isDarkMode ? '#ececec' : '#0d0d0d') + ';--color-text-secondary:' + (isDarkMode ? '#b4b4b4' : '#5d5d5d') +
+                            ';--color-text-tertiary:#8f8f8f;--color-text-success:' + (isDarkMode ? '#4caf73' : '#00692b') +
+                            ';--color-text-danger:' + (isDarkMode ? '#ff6b6b' : '#b3261e') + ';--color-text-warning:' + (isDarkMode ? '#f5b74f' : '#8a5300') +
+                            ';--color-text-info:' + (isDarkMode ? '#6ab0ff' : '#0b62c4') + ';--gray-400:' + (isDarkMode ? '#3a3a3a' : '#efefef') +
+                            ';--dil-radius-sm:6px;--dil-radius-md:10px;--dil-radius-lg:14px;--spacing:0.25rem}',
+                        '[data-d-component="row"]{display:flex !important;flex-direction:row;align-items:center}',
+                        '[data-d-component="box"]:not([data-d-inline]){display:flex;flex-direction:column}',
+                        '[data-d-component="box"][data-d-direction="row"]:not([data-d-inline]){flex-direction:row}',
+                        '[data-d-component="box"]{box-sizing:border-box;padding:var(--w-box-gutter-block-start,0) var(--w-box-gutter-inline-end,0) var(--w-box-gutter-block-end,0) var(--w-box-gutter-inline-start,0)}',
+                        '[data-d-component="box"][data-d-has-border]{margin:' + pt(4 * R) + ' 0 ' + pt(10 * R) + ';break-inside:avoid}',
+                        '[data-d-component="grid"]{display:grid !important}',
+                        '[data-d-component="grid-item"]{display:flex;flex-direction:column;min-width:0}',
+                        '[data-d-component="caption"]{display:block;font-size:.9em;line-height:1.4;color:var(--color-text-secondary)}',
+                        '[data-d-component="divider"]{display:block;height:0;border:0;border-top:var(--divider-size,1px) solid var(--divider-color,var(--color-border-subtle));margin:' + pt(6 * R) + ' 0}',
+                        '[data-d-component="icon"]{flex-shrink:0}',
+                        '[data-d-component="pressable"]{text-decoration:underline dotted;text-underline-offset:2px}',
+                        '[data-d-component="badge"]{display:inline-flex;align-items:center;gap:4px;width:max-content;max-width:100%;padding:1pt 7pt;margin:2pt 0;border-radius:999px;font-size:.8em;font-weight:500;line-height:1.5;white-space:nowrap;' +
+                            'background:' + (isDarkMode ? '#333' : '#efefef') + ';color:' + (isDarkMode ? '#d0d0d0' : '#3b3b3b') + '}',
+                        '[data-d-component="badge"][data-color="success"]{background:' + (isDarkMode ? '#1d3a28' : '#e3f1e8') + ';color:var(--color-text-success)}',
+                        '[data-d-component="badge"][data-color="info"],[data-d-component="badge"][data-color="primary"]{background:' + (isDarkMode ? '#1c2f47' : '#e6effc') + ';color:var(--color-text-info)}',
+                        '[data-d-component="badge"][data-color="warning"]{background:' + (isDarkMode ? '#3d3018' : '#fdf1dc') + ';color:var(--color-text-warning)}',
+                        '[data-d-component="badge"][data-color="danger"]{background:' + (isDarkMode ? '#402020' : '#fde7e7') + ';color:var(--color-text-danger)}',
+                        // Source pills ("site.com +1") sum up a paragraph's
+                        // sources in a pop-up that is not on the page: only the
+                        // first site's name is there, no address, and the "+1"
+                        // are unknown. The links themselves are in the text, so
+                        // the pill goes (author 16.11: clickable and separate,
+                        // or not at all).
+                        '[data-d-component="badge"]:has([data-d-component="favicon"]){display:none !important}',
+                        // Empty decorative blocks — the "edges" ChatGPT lays over a
+                        // wide table carry a fixed size (1732 × 292 px on the
+                        // author's chat) and printed as a blank gap after every table.
+                        '[aria-hidden="true"]:empty{display:none !important}',
+                        // What ChatGPT itself leaves out when the answer is copied
+                        // ("Open file" under a file's name) is screen-only.
+                        '[data-markdown-copy="exclude"]{display:none !important}',
+                        // File cards — files attached to a question or made by an
+                        // answer (name, type): a framed card with one row per
+                        // file, as on the page, instead of one glued line.
+                        '[class*="[--resource-card-row-padding-x:"]{display:flex !important;flex-direction:column;border:1px solid var(--color-border);border-radius:14px;overflow:hidden;margin:' + pt(4 * R) + ' 0 ' + pt(8 * R) + ';max-width:120mm;background:transparent}',
+                        '[class*="group/resource-row"]{display:block;padding:5pt 10pt}',
+                        '[class*="group/resource-row"]+[class*="group/resource-row"]{border-top:1px solid var(--color-border-subtle)}',
+                        '[class*="[--resource-card-row-padding-x:"] span.flex-col{display:flex !important;flex-direction:column !important}',
+                        '[class*="[--resource-card-row-padding-x:"] [title]{font-weight:600}',
+                        '[class*="[--resource-card-row-padding-x:"] .text-secondary{color:var(--color-text-secondary);font-size:.88em}',
                         '.markdown .katex-display,.markdown>span[role="math"]{display:block !important;margin:' + pt(8 * R) + ' 0 ' + pt(10 * R) + ' !important}',
                         // ── Tables ──────────────────────────────────────
                         'table{border-collapse:collapse !important;width:100% !important;border:1px solid #e5e7eb !important}',
@@ -819,6 +884,12 @@ function cleanupForPdf(clone) {
         const turn = _users[i].closest('[data-testid^="conversation-turn"]')
             || _users[i];
         turn.classList.add('gptpdf-user-turn');
+        // A question longer than about half a page may break across pages
+        // and takes the full width (buildExportCss, .gptpdf-long-q).
+        const qText = (gptpdfQuestionTextEl(_users[i]) || _users[i]).textContent || '';
+        if(qText.length > 900 || (qText.match(/\n/g) || []).length > 14) {
+            turn.classList.add('gptpdf-long-q');
+        }
         if(i > 0) {
             turn.classList.add('gptpdf-newpage');
             // Тот же разрыв, но для режима «только ответы»: там вопрос скрыт,

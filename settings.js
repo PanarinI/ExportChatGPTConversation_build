@@ -184,6 +184,9 @@ function gptpdfSwRender() {
             if(o.single_page) t += ', one long page';
             else if(o.page_break === 'after') t += ' — the next question starts page 2';
         }
+        // Dev builds: what the sheet found on this page, so a blank sheet on
+        // a real chat says why without opening the console.
+        if(src && /-dev/.test(gptpdfShared.build)) t += '  [dev: ' + src.debug + ']';
         cap.textContent = t;
     }
 

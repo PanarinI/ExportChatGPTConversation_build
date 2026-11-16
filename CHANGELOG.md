@@ -39,6 +39,20 @@ history and working notes.
   question on screen ("Show more"). In the PDF the fold kept its height while
   the text spilled out of it and covered the first lines of the answer. The PDF
   now shows the whole question, with its own line breaks.
+- **No more blank gaps after tables, and the page is no longer shrunk.**
+  ChatGPT lays an invisible strip over each wide table. In the PDF it became a
+  blank gap of a dozen lines after every table. Being wider than the page, it
+  also made the whole PDF print smaller than set.
+- **ChatGPT's new answer blocks print as on screen.** File cards with their
+  coloured icon, labels like "1 603 rows", coloured badges, dividers and
+  side-by-side grids keep their frame and colours, instead of turning into
+  plain black-and-white lines.
+- **No more "site.com +1" lines after paragraphs.** These source pills open a
+  pop-up on the page; only the first site's name is in the page, without an
+  address. The sources are already links in the text, so the pills are left out.
+- **A very long question starts right after the contents** and may run across
+  pages at full width, instead of jumping to the next page and leaving the
+  first one blank.
 - **Questions with a file or picture have clean contents entries.** The file
   name and its type ("…csv Spreadsheet") or the picture's label used to be
   glued to the front of the entry and the bookmark. Now only the question's
