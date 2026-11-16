@@ -92,6 +92,22 @@ function buildExportCss(theme, isDarkMode, look) {
                         // sits with its own answer, not with the one above.
                         '.gptpdf-user-turn{margin-top:' + pt(20 * R) + ' !important}',
                         '[data-message-author-role="user"] .whitespace-pre-wrap{font-size:' + pt(heading ? S : S * 0.95) + ' !important;line-height:' + (heading ? Math.min(LH, 1.45) : 1.45) + ' !important}',
+                        // A long question is folded on the page ("Show more"):
+                        // ChatGPT sets max-height: 19lh on it inline and hides
+                        // the rest with its own stylesheet. The stylesheet does
+                        // not reach the PDF, so the folded height stayed and the
+                        // text ran out over the answer (author's chat 16.11;
+                        // uninstall reason 11.10 «first question and answer have
+                        // collapse with each other»). The PDF shows it whole.
+                        '[data-message-author-role="user"] [style*="max-height"]{max-height:none !important}',
+                        // …and the "…" ChatGPT shows under a folded question goes.
+                        '[data-message-author-role="user"] [style*="max-height"] ~ span[aria-hidden="true"]{display:none !important}',
+                        // A question keeps its own line breaks, as on the page
+                        // (the class is ChatGPT's; its stylesheet is not here).
+                        '[data-message-author-role="user"] .whitespace-pre-wrap{white-space:pre-wrap !important}',
+                        // A file card on a question: its name above its type,
+                        // not glued into one word («…csvЭлектронная таблица»).
+                        '[data-message-author-role="user"] span.flex-col{display:flex !important;flex-direction:column !important}',
                         '.markdown table{margin:' + pt(4 * R) + ' 0 ' + pt(10 * R) + ' !important}',
                         '.markdown td,.markdown th{font-size:' + pt(S * 0.9) + ' !important;line-height:1.4 !important;padding:' + pt(5 * R) + ' 8pt !important}',
                         '.markdown pre:not([data-gptpdf-code-pre]){background:' + codeBg + ' !important;border:1px solid ' + codeLine + ' !important;border-radius:6px !important;padding:8pt 10pt !important;margin:' + pt(4 * R) + ' 0 ' + pt(10 * R) + ' !important;white-space:pre-wrap !important}',
@@ -1235,8 +1251,11 @@ function gptpdfMarkOutline(mainClone, noQuestions) {
         mainClone.querySelectorAll('[data-message-author-role="user"]').forEach(
             function(msg) {
                 if(!msg.textContent.trim()) return;
-                msg.setAttribute('role', 'heading');
-                msg.setAttribute('aria-level', '2');
+                // The bookmark is the question's own words: the bubble text,
+                // not the file or picture cards above it.
+                const el = gptpdfQuestionTextEl(msg) || msg;
+                el.setAttribute('role', 'heading');
+                el.setAttribute('aria-level', '2');
             });
     }
     mainClone.querySelectorAll('[data-message-author-role="assistant"]').forEach(
@@ -1294,6 +1313,21 @@ function gptpdfAnswerEntries(mainClone) {
     return entries;
 }
 
+// The words of a question, without what is attached to it. A question with a
+// file or a picture carries cards above its bubble («file.csv · Spreadsheet»,
+// «Исходное изображение»); taken whole, they were glued to the front of the
+// contents entry and the bookmark (16.11: «…csvЭлектронная таблицаЯ делаю…»).
+function gptpdfQuestionTextEl(msg) {
+    return msg.querySelector('[data-user-message-bubble] .whitespace-pre-wrap') ||
+        msg.querySelector('.whitespace-pre-wrap');
+}
+
+function gptpdfQuestionText(msg) {
+    const el = gptpdfQuestionTextEl(msg);
+    const own = el ? el.textContent.trim() : '';
+    return (own || msg.textContent.trim()).replace(/\s+/g, ' ');
+}
+
 function buildTocHtml(options, mainClone) {
     if(!options.toc) return '';
     if(!mainClone) return '';
@@ -1302,7 +1336,7 @@ function buildTocHtml(options, mainClone) {
     const items = options.no_questions ?
         gptpdfAnswerEntries(mainClone).map(e => ({ msg: e.msg, text: e.text })) :
         Array.from(mainClone.querySelectorAll('[data-message-author-role="user"]'))
-            .map(m => ({ msg: m, text: m.textContent.trim().replace(/\s+/g, ' ') }));
+            .map(m => ({ msg: m, text: gptpdfQuestionText(m) }));
     const prefix = options.no_questions ? 'toc-a-' : 'toc-q-';
     const entries = [];
     let counter = 0;

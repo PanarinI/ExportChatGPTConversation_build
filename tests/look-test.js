@@ -45,6 +45,11 @@ eq('светлый лист: текст #1f1f1f', /body\{color:#1f1f1f/.test(css
 eq('тёмный лист: светлого цвета текста нет', /body\{color:#1f1f1f/.test(css({}, true)), false);
 eq('тёмный лист: фон #212121', css({}, true).indexOf('#212121') !== -1, true);
 
+out.push('', '— Длинный вопрос (16.11: вопрос наезжал на ответ) —');
+eq('свёрнутый вопрос (max-height: 19lh) раскрыт целиком', /\[data-message-author-role="user"\] \[style\*="max-height"\]\{max-height:none !important\}/.test(css({})), true);
+eq('многоточие под свёрнутым вопросом спрятано', /\[style\*="max-height"\] ~ span\[aria-hidden="true"\]\{display:none/.test(css({})), true);
+eq('вопрос держит свои переносы строк', /\[data-message-author-role="user"\] \.whitespace-pre-wrap\{white-space:pre-wrap/.test(css({})), true);
+
 out.push('', failed ? '❌ провалено проверок: ' + failed : '✅ все проверки пройдены');
 console.log(out.join('\n'));
 process.exit(failed ? 1 : 0);

@@ -34,6 +34,16 @@ history and working notes.
   for them. The sheet is now light unless you pick Dark in Settings, and the
   Auto option is gone.
 
+### Fixed
+- **A long question no longer runs over its answer.** ChatGPT folds a long
+  question on screen ("Show more"). In the PDF the fold kept its height while
+  the text spilled out of it and covered the first lines of the answer. The PDF
+  now shows the whole question, with its own line breaks.
+- **Questions with a file or picture have clean contents entries.** The file
+  name and its type ("…csv Spreadsheet") or the picture's label used to be
+  glued to the front of the entry and the bookmark. Now only the question's
+  own words go there.
+
 ## [1.2.5] — 2026-11-13
 ### Fixed
 - **The right chat after switching chats.** Open one chat, click another in the
