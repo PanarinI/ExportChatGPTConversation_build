@@ -160,8 +160,11 @@ gptpdfChatGPT.init = function() {
         }
         // Only a selection inside the chat narrows the export (helpers.js).
         const chatRoot = gptpdfChatRoot();
-        // Dev builds: the page as it stood at the click (gptpdfDevDump).
+        // Dev builds: the page as it stood at the click, and the header as the
+        // button's placement sees it (gptpdfDevDump).
         const devLive = /-dev/.test(gptpdfShared.build) && chatRoot ? chatRoot.outerHTML : '';
+        const devHeader = /-dev/.test(gptpdfShared.build)
+            ? { atClick: gptpdfDevHeader('click'), atFallback: gptpdfDevHeaderAtFallback } : null;
         const hasSelection = !prefetched && gptpdfSelectionInChat(chatRoot);
         let turnCache = prefetched;
         // Отметки времени экспорта по фазам: сбор → сборка страницы с
@@ -439,7 +442,7 @@ gptpdfChatGPT.init = function() {
                 // reproduced outside it (16.11: question over answer on the
                 // author's chat, not on the stands).
                 if(/-dev/.test(gptpdfShared.build)) {
-                    gptpdfDevDump(htmlContent, data, filename, devLive, devCopy);
+                    gptpdfDevDump(htmlContent, data, filename, devLive, devCopy, devHeader);
                 }
 
                 gptpdfChatGPT.doRequest(
@@ -668,6 +671,35 @@ gptpdfChatGPT.init = function() {
 
     let prevClass = null;
 
+    // Dev builds: what the button's placement saw in the header — the window
+    // width, the gap it found, every control with its box, the header's markup.
+    let gptpdfDevHeaderAtFallback = null;
+    function gptpdfDevHeader(reason) {
+        try {
+            const surface = document.querySelector(
+                '[data-testid="app-shell-header-context-menu-surface"]');
+            const bar = surface ? (surface.closest('header') || surface)
+                : document.getElementById('page-header');
+            const controls = bar ? Array.from(bar.querySelectorAll('button, a, [role="button"]'))
+                .map(function(el) {
+                    const r = el.getBoundingClientRect();
+                    return [el.tagName.toLowerCase(), el.getAttribute('data-testid') || '',
+                        (el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 30),
+                        Math.round(r.left), Math.round(r.right), Math.round(r.top), Math.round(r.height)];
+                }) : [];
+            return {
+                reason: reason, at: new Date().toISOString(), url: location.pathname,
+                innerWidth: window.innerWidth, surface: !!surface,
+                pageHeader: !!document.getElementById('page-header'),
+                gap: headerGap(), blockClass: gptpdf_block.className,
+                blockStyle: gptpdf_block.getAttribute('style'),
+                controls: controls, html: bar ? bar.outerHTML.slice(0, 300000) : ''
+            };
+        } catch(e) {
+            return { reason: reason, error: String(e) };
+        }
+    }
+
     // The free gap in ChatGPT's header, left of its right-hand actions:
     // { start, end, top } in viewport px, or null when no header is known.
     function headerGap() {
@@ -767,6 +799,13 @@ gptpdfChatGPT.init = function() {
         }
 
         // Fallback position
+        // Dev builds: the header as it stood the first time the button was
+        // pushed here — "sometimes the button drops to a second row without
+        // its word" (author, 16.11, Chrome on a Mac, long-standing). Saved in
+        // the next export's .raw.html.
+        if(!gptpdfDevHeaderAtFallback && /-dev/.test(gptpdfShared.build)) {
+            gptpdfDevHeaderAtFallback = gptpdfDevHeader('fallback');
+        }
         gptpdf_block.style.right = '18px';
         gptpdf_block.style.top = '44px';
         gptpdf_block.classList.remove(
@@ -1038,7 +1077,9 @@ gptpdfChatGPT.saveBlob = function(url, filename) {
 // translation and cleanup — the export file shows only what survived them, so
 // a thing lost on the way (16.11: six generated pictures; checkboxes) left no
 // trace of how it was built. Both are inert <template>s: nothing loads or runs.
-function gptpdfDevDump(html, data, filename, live, copy) {
+// Plus the header as the Export button's placement saw it, at the click and
+// the first time the button fell back under the header (JSON).
+function gptpdfDevDump(html, data, filename, live, copy, header) {
     const base = String(filename || 'export').replace(/\.pdf$/i, '');
     function save(text, suffix) {
         const url = URL.createObjectURL(new Blob([text], { type: 'text/html' }));
@@ -1064,7 +1105,9 @@ function gptpdfDevDump(html, data, filename, live, copy) {
                 '<p>Build ' + gptpdfShared.build + '</p>' +
                 '<h2>The page at the click</h2><template id="gptpdf-live">' + (live || '') + '</template>' +
                 '<h2>The copy before translation and cleanup</h2><template id="gptpdf-copy">' +
-                (copy || '') + '</template>', '.raw.html');
+                (copy || '') + '</template>' +
+                '<script type="application/json" id="gptpdf-header">' +
+                JSON.stringify(header || null).replace(/</g, '\\u003c') + '</script>', '.raw.html');
         }
     } catch(e) {
         console.log('[gptpdf] dev dump failed', e);
