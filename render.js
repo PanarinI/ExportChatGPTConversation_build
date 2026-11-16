@@ -8,6 +8,16 @@
 // (single source of truth -> no dark-theme / stripe divergence between paths).
 // theme = an EXPORT_THEMES entry; isDarkMode = bool.
 function buildExportCss(theme, isDarkMode) {
+    // ChatGPT's own <pre> gets a light box. This is what prints: the rebuild in
+    // applyDarkCodeBlockStyles skips nodes that are not in the document
+    // (isConnected), and the export clone never is (prepareSelection clones
+    // into a detached <main>) — checked 16.11. The box colour is the theme's
+    // code colour, the same one that loop paints on each <code>, so the lines
+    // show no bands.
+    const codeBg   = isDarkMode ? '#1e1e1e' : ((theme && theme.codeBg) || '#f4f4f4');
+    const codeLine = isDarkMode ? '#3a3a3a' : '#e2e5e9';
+    const SANS = '"Noto Sans","Liberation Sans",Arial,sans-serif';
+    const MONO = '"Noto Sans Mono","DejaVu Sans Mono",monospace';
     return [
                         // ── Hide sr-only elements (accessibility labels) ──
                         '.sr-only{display:none !important}',
@@ -36,9 +46,39 @@ function buildExportCss(theme, isDarkMode) {
                         // Без вопросов «новый лист перед каждым вопросом» разрывать
                         // нечего — переносим разрыв на ответ, который за ним шёл.
                         '.gptpdf-no-questions.gptpdf-break-after .gptpdf-newpage-ai{break-before:page !important;page-break-before:always !important}',
-                        // ── Base font ────────────────────────────────────
-                        'body,p,li,td,th,blockquote,div{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif !important}',
-                        'h1,h2,h3,h4,h5,h6{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif !important}',
+                        // ── Base type (1.2.6) ─────────────────────────────
+                        // The print server has no Mac or Windows fonts: the old
+                        // stack (-apple-system, Segoe UI, Roboto, Helvetica,
+                        // Arial) fell through to Liberation Sans, an Arial copy
+                        // nobody chose, at the browser's 16px and ~1.15 line
+                        // height. Noto Sans / Noto Sans Mono are on the server
+                        // (measured 16.11); sizes and rhythm are the base the
+                        // author approved on frames 16.11 (dizajn/obzor-2026-11-16 §7).
+                        'body{font-size:11pt !important;line-height:1.55 !important}',
+                        'body,p,li,td,th,blockquote,div,span,a,strong,em,b,i{font-family:' + SANS + ' !important}',
+                        'h1,h2,h3,h4,h5,h6{font-family:' + SANS + ' !important}',
+                        '.markdown,.markdown p,.markdown li,.markdown blockquote{font-size:11pt !important;line-height:1.55 !important}',
+                        '.markdown p{margin:0 0 7pt !important}',
+                        '.markdown ul,.markdown ol{margin:2pt 0 8pt !important;padding-left:16pt !important}',
+                        '.markdown li{margin:2pt 0 !important}',
+                        '.markdown h1{font-size:16pt !important}',
+                        '.markdown h2{font-size:14pt !important}',
+                        '.markdown h3{font-size:13pt !important}',
+                        '.markdown h4,.markdown h5,.markdown h6{font-size:11pt !important}',
+                        '.markdown h1,.markdown h2,.markdown h3,.markdown h4,.markdown h5,.markdown h6{line-height:1.3 !important;margin:10pt 0 5pt !important;font-weight:700 !important}',
+                        // Contents is a list of the chat's own questions, not web links.
+                        'a[href^="#toc-"]{text-decoration:none !important}',
+                        // More air before a question than after it: each question
+                        // sits with its own answer, not with the one above.
+                        '.gptpdf-user-turn{margin-top:20pt !important}',
+                        '[data-message-author-role="user"] .whitespace-pre-wrap{font-size:10.5pt !important;line-height:1.45 !important}',
+                        '.markdown table{margin:4pt 0 10pt !important}',
+                        '.markdown td,.markdown th{font-size:10pt !important;line-height:1.4 !important;padding:5pt 8pt !important}',
+                        '.markdown pre:not([data-gptpdf-code-pre]){background:' + codeBg + ' !important;border:1px solid ' + codeLine + ' !important;border-radius:6px !important;padding:8pt 10pt !important;margin:4pt 0 10pt !important;white-space:pre-wrap !important}',
+                        '.markdown pre *{background:transparent !important}',
+                        '.markdown pre,.markdown pre *{font-family:' + MONO + ' !important;font-size:9pt !important;line-height:1.5 !important}',
+                        '.markdown :not(pre)>code{font-family:' + MONO + ' !important;font-size:.88em !important}',
+                        '.markdown .katex-display,.markdown>span[role="math"]{display:block !important;margin:8pt 0 10pt !important}',
                         // ── Tables ──────────────────────────────────────
                         'table{border-collapse:collapse !important;width:100% !important;border:1px solid #e5e7eb !important}',
                         'td{border:none !important;border-bottom:1px solid #e5e7eb !important;border-right:1px solid #e5e7eb !important;padding:8px 12px !important}',
@@ -53,7 +93,7 @@ function buildExportCss(theme, isDarkMode) {
                         '.katex-display{display:block !important;text-align:center !important;margin:1em 0 !important}',
                         '.katex-html .mathnormal,.katex-html .mathit{font-style:italic !important;font-family:"Times New Roman",Georgia,serif !important}',
                         // ── User prompt bubble ────────────────────────────
-                        '[data-message-author-role="user"]{background:transparent !important;display:flex !important;justify-content:flex-end !important;padding:0 !important;margin:4px 0 12px !important}',
+                        '[data-message-author-role="user"]{background:transparent !important;display:flex !important;justify-content:flex-end !important;padding:0 !important;margin:0 0 6pt !important}',
                         '[data-message-author-role="user"]>div{background:' + (isDarkMode ? theme.darkPromptBg : theme.promptBg) + ' !important;color:' + (isDarkMode ? '#e8e8e8' : theme.promptText) + ' !important;border-radius:16px !important;padding:8px 14px !important;max-width:70% !important;min-width:0 !important}',
                         'th{background-color:' + theme.tableHeader + ' !important;font-weight:600 !important;border:none !important;border-bottom:2px solid #d1d5db !important;border-right:1px solid #e5e7eb !important;padding:8px 12px !important}',
                         'blockquote{border-left:4px solid ' + theme.blockquote + ' !important;margin:8px 0 !important;padding:4px 0 4px 16px !important;background:none !important;font-style:normal !important}',
@@ -73,7 +113,9 @@ function buildExportCss(theme, isDarkMode) {
                         'a{color:inherit !important;text-decoration:underline !important;pointer-events:auto !important}',
                         // ── Favicon/citation images inside links — limit size ──
                         'a img:not([src^="data:"]){max-width:20px !important;max-height:20px !important;width:auto !important;height:auto !important;display:inline !important;vertical-align:middle !important}'
-                    ].concat(isDarkMode ? [
+                    ].concat(isDarkMode ? [] : [
+                        'body{color:#1f1f1f !important}'
+                    ]).concat(isDarkMode ? [
                         // ── Dark mode overrides ───────────────────────────
                         'body,html{background:#212121 !important;color:#e8e8e8 !important;border:none !important;margin:0 !important;padding:0 !important}',
                         '*{box-sizing:border-box}',
@@ -99,6 +141,10 @@ function applyDarkCodeBlockStyles(main_clone, isDarkMode, theme) {
     const CODE_HEADER_BG = isDarkMode ? '#252525' : (t.codeHeader || '#ebebeb');
     const CODE_DARK_FG   = isDarkMode ? '#e8e8e8' : '#1a1a1a';
     const CODE_MUTED_FG  = isDarkMode ? '#c6c6c6' : '#6b7280';
+    // A light box on a light sheet (1.2.6): the dark #3a3a3a frame and
+    // Courier New read as a pasted screenshot, not as part of the document.
+    const CODE_LINE      = isDarkMode ? '#3a3a3a' : '#e2e5e9';
+    const CODE_MONO      = '"Noto Sans Mono","DejaVu Sans Mono",monospace';
 
     function setBg(el, color) {
         if(!el || el.nodeType !== 1) {
@@ -152,12 +198,12 @@ function applyDarkCodeBlockStyles(main_clone, isDarkMode, theme) {
             `background-color:${CODE_DARK_BG} !important`,
             'background-image:none !important',
             `color:${CODE_DARK_FG} !important`,
-            'border:1px solid #3a3a3a !important',
-            'border-radius:8px !important',
+            `border:1px solid ${CODE_LINE} !important`,
+            'border-radius:6px !important',
             'overflow:hidden !important',
-            'margin:1em 0 !important',
+            'margin:4pt 0 10pt !important',
             'padding:0 !important',
-            'font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace !important'
+            `font-family:${CODE_MONO} !important`
         ].join(';');
 
         if(language) {
@@ -167,8 +213,9 @@ function applyDarkCodeBlockStyles(main_clone, isDarkMode, theme) {
                 `background:${CODE_HEADER_BG} !important`,
                 `background-color:${CODE_HEADER_BG} !important`,
                 `color:${CODE_MUTED_FG} !important`,
-                'font:600 12px/1.4 Arial,sans-serif !important',
-                'padding:8px 12px !important'
+                'font:600 8.5pt/1.4 "Noto Sans","Liberation Sans",Arial,sans-serif !important',
+                'padding:5pt 10pt !important',
+                `border-bottom:1px solid ${CODE_LINE} !important`
             ].join(';');
             block.appendChild(header);
         }
@@ -177,6 +224,9 @@ function applyDarkCodeBlockStyles(main_clone, isDarkMode, theme) {
         // Use plain text only — codeHtml preserves CodeMirror
         // internal line-highlight artifacts without the CSS colors.
         pre.textContent = codeText;
+        // Marks the rebuilt <pre> so the plain-<pre> box rule in
+        // buildExportCss does not draw a second frame inside this one.
+        pre.setAttribute('data-gptpdf-code-pre', '');
         pre.style.cssText = [
             'background:transparent !important',
             'background-color:transparent !important',
@@ -186,8 +236,10 @@ function applyDarkCodeBlockStyles(main_clone, isDarkMode, theme) {
             'word-break:break-word !important',
             'overflow-wrap:anywhere !important',
             'margin:0 !important',
-            'padding:12px !important',
-            'font:400 13px/1.5 "Courier New",ui-monospace,Menlo,Monaco,Consolas,monospace !important'
+            'border:0 !important',
+            'border-radius:0 !important',
+            'padding:8pt 10pt !important',
+            `font:400 9pt/1.5 ${CODE_MONO} !important`
         ].join(';');
         block.appendChild(pre);
 
@@ -345,8 +397,10 @@ function applyDarkCodeBlockStyles(main_clone, isDarkMode, theme) {
 }
 
 function applyQuestionStyles(main_clone, options) {
-    const isDark = options.theme === 'dark' ||
-          (options.theme === '' && !isLight(document.body));
+    // A dark sheet only when chosen (1.2.6). Before, '' meant "as ChatGPT
+    // looks now", and a dark ChatGPT gave a black PDF to everyone who never
+    // opened the settings (author 16.11: «нельзя давать тёмный лист»).
+    const isDark = options.theme === 'dark';
     const questions = main_clone.querySelectorAll(
         '[data-message-author-role="user"]');
 
@@ -486,8 +540,7 @@ function applyMarginSettings(data, options) {
 function buildCssClasses(options, singlePagePrint) {
     let classes = singlePagePrint ? 'gptpdf-single-page ' : '';
 
-    if(options.theme === 'dark' ||
-       (options.theme === '' && !isLight(document.body))) {
+    if(options.theme === 'dark') {
         classes += 'gptpdf-dark ';
     }
 

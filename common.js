@@ -343,8 +343,8 @@ gptpdfChatGPT.init = function() {
             function doConvert() {
                 // Resolve theme and dark mode before building data object
                 const theme = EXPORT_THEMES[options.q_color] || EXPORT_THEMES['default'];
-                const isDarkMode = options.theme === 'dark' ||
-                    (options.theme === '' && !isLight(document.body));
+                // Dark sheet only when chosen — never from ChatGPT's own theme (1.2.6).
+                const isDarkMode = options.theme === 'dark';
 
                 // Replace <input type="checkbox"> with themed styled spans
                 // (accent-color CSS not supported by PDFCrowd renderer)

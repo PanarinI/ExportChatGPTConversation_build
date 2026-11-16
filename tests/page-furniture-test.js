@@ -71,8 +71,9 @@ out.push('— Номера страниц —');
 let r = send({ page_numbers: true });
 eq('footer.html уходит вторым файлом рядом с index.html', r.files, ['index.html', 'footer.html']);
 eq('в нём номер и общее число страниц', /class="pageNumber"/.test(r.footer) && /class="totalPages"/.test(r.footer), true);
-eq('обычное поле 0.4in — места хватает, не трогаем', r.field('marginBottom'), '0.4');
-eq('номер опущен на высоту поля без 0.21in', r.drop, '0.19');
+eq('поле по умолчанию 18 мм (1.2.6) — места хватает, не трогаем', r.field('marginBottom'), '0.7087');
+eq('по бокам по умолчанию 20 мм', [r.field('marginLeft'), r.field('marginRight')], ['0.7874', '0.7874']);
+eq('номер опущен на высоту поля без 0.21in', r.drop, '0.50');
 eq('каждое поле отправлено ровно один раз', ['marginTop', 'marginBottom', 'marginLeft', 'marginRight'].map(r.count), [1, 1, 1, 1]);
 r = send({ page_numbers: true, no_margins: true });
 eq('минимальные поля: нижнее поднято под номер', r.field('marginBottom'), '0.35');
@@ -84,7 +85,7 @@ r = send({ page_numbers: true, margin_left: '1in', margin_right: '1in', margin_t
 eq('свои поля: нижнее 1in не уменьшается', r.field('marginBottom'), '1');
 eq('…номер опущен глубже — к краю листа', r.drop, '0.79');
 r = send({ page_numbers: true, page_background_color: '212121' });
-eq('тёмная тема: поля как у светлой', [r.field('marginTop'), r.field('marginBottom'), r.field('marginLeft')], ['0.4', '0.4', '0.4']);
+eq('тёмная тема: поля как у светлой', [r.field('marginTop'), r.field('marginBottom'), r.field('marginLeft')], ['0.7087', '0.7087', '0.7874']);
 eq('тёмная тема: лист вместе с полями красит @page', r.index.indexOf('@page{background:#212121}') !== -1, true);
 eq('тёмная тема: у шаблона номера фона нет', /background/.test(r.footer), false);
 r = send({ page_numbers: true });
@@ -95,7 +96,7 @@ eq('один длинный лист — номеров нет', r.files, ['inde
 r = send({ page_numbers: false });
 eq('номера выключены — footer.html нет', r.files, ['index.html']);
 r = send({ page_numbers: false, page_background_color: '212121' });
-eq('без номеров на тёмной — поля те же, что у светлой', [r.field('marginTop'), r.field('marginBottom')], ['0.4', '0.4']);
+eq('без номеров на тёмной — поля те же, что у светлой', [r.field('marginTop'), r.field('marginBottom')], ['0.7087', '0.7087']);
 
 out.push('');
 out.push('— Закладки —');

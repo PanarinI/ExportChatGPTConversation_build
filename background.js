@@ -60,7 +60,7 @@ function pageNumberFooter(bottomIn) {
     return '<html><head><style>' +
         'html,body{margin:0;padding:0}' +
         '.n{box-sizing:border-box;width:100%;padding-top:' + drop + 'in;text-align:center;' +
-        'font:9px/1 Helvetica,Arial,sans-serif;color:#999}' +
+        'font:9px/1 "Noto Sans",Helvetica,Arial,sans-serif;color:#999}' +
         '</style></head><body><div class="n"><span class="pageNumber"></span>' +
         '&nbsp;/&nbsp;<span class="totalPages"></span></div></body></html>';
 }
@@ -136,7 +136,10 @@ function sendToGotenberg(htmlContent, params, sendResponse) {
         margins = [toInches(params.margin_top), toInches(params.margin_bottom),
                    toInches(params.margin_left), toInches(params.margin_right)];
     } else {
-        margins = ['0.4', '0.4', '0.4', '0.4'];
+        // Default margins (1.2.6): 18 mm top and bottom, 20 mm at the sides.
+        // 0.4in (~10 mm) gave lines of ~100 characters, a printed web page;
+        // Word and Google Docs use 25 mm. Base approved by the author 16.11.
+        margins = ['0.7087', '0.7087', '0.7874', '0.7874'];
     }
 
     // Page numbers: Chromium prints footer.html into the bottom margin of every

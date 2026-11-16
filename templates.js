@@ -1061,7 +1061,6 @@ ${GPTPDF_DARK} .gptpdf-theme-card.active { color: #ff9b8f !important; }
 }
 .gptpdf-theme-mini-doc.light { background: #fff; }
 .gptpdf-theme-mini-doc.dark { background: #333; border-color: rgba(255,255,255,0.1); }
-.gptpdf-theme-mini-doc.auto-doc { background: linear-gradient(135deg, #fff 50%, #333 50%); }
 .gptpdf-mini-line { height: 3px; border-radius: 2px; background: rgba(0,0,0,0.18); }
 .gptpdf-mini-line.on-dark { background: rgba(255,255,255,0.3); }
 .gptpdf-mini-line.w100 { width: 100%; }
@@ -1368,12 +1367,7 @@ const EXPORT_BUTTON_HTML = `
               <div class="gptpdf-row" style="align-items:flex-start;flex-direction:column;gap:7px;">
                 <span class="gptpdf-label">Color theme</span>
                 <div class="gptpdf-theme-cards" id="gptpdf-theme">
-                  <button class="gptpdf-theme-card active" data-value="">
-                    <div class="gptpdf-theme-mini-doc auto-doc">
-                      <div class="gptpdf-mini-line w100"></div><div class="gptpdf-mini-line w75"></div><div class="gptpdf-mini-line w50"></div>
-                    </div>Auto
-                  </button>
-                  <button class="gptpdf-theme-card" data-value="light">
+                  <button class="gptpdf-theme-card active" data-value="light">
                     <div class="gptpdf-theme-mini-doc light">
                       <div class="gptpdf-mini-line w100"></div><div class="gptpdf-mini-line w75"></div><div class="gptpdf-mini-line w50"></div>
                     </div>Light

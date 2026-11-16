@@ -49,17 +49,20 @@ function gptpdfNormalizeColor(color, fallback) {
     return color.replace(/^#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])$/, '#$1$1$2$2$3$3');
 }
 
+// Two sheets since 1.2.6: Light and Dark. "Auto" (follow ChatGPT's theme) is
+// gone, and a stored '' from older versions now shows — and prints — as Light.
 function gptpdfSetTheme(value) {
     const el = document.getElementById('gptpdf-theme');
     if(!el) return;
-    el.querySelectorAll('.gptpdf-theme-card').forEach(c => c.classList.toggle('active', c.dataset.value === value));
+    const v = value === 'dark' ? 'dark' : 'light';
+    el.querySelectorAll('.gptpdf-theme-card').forEach(c => c.classList.toggle('active', c.dataset.value === v));
 }
 
 function gptpdfGetTheme() {
     const el = document.getElementById('gptpdf-theme');
-    if(!el) return '';
+    if(!el) return 'light';
     const a = el.querySelector('.gptpdf-theme-card.active');
-    return a ? a.dataset.value : '';
+    return a && a.dataset.value === 'dark' ? 'dark' : 'light';
 }
 
 // Rows that only mean something on a paginated PDF.
@@ -138,7 +141,7 @@ function gptpdfUpdatePreview(opts) {
     const o = opts || gptpdfGetSettings();
 
     // Theme: light / dark
-    const isDark = o.theme === 'dark' || (o.theme === '' && !isLight(document.body));
+    const isDark = o.theme === 'dark';
     doc.className = isDark ? 'preview-dark' : 'preview-light';
 
     // Page size: change aspect ratio of the mock document

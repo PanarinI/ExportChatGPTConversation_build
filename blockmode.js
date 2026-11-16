@@ -1052,8 +1052,8 @@ function setupBlockMode() {
                 }
             });
 
-            const isDark = options.theme === 'dark' ||
-                (options.theme === '' && !isLight(document.body));
+            // Dark sheet only when chosen — never from ChatGPT's own theme (1.2.6).
+            const isDark = options.theme === 'dark';
             const theme = EXPORT_THEMES[options.q_color] || EXPORT_THEMES['default'];
 
             const title    = getTitle();

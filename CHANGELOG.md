@@ -5,6 +5,20 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [Unreleased] — 1.2.6
+### Changed
+- **A cleaner page.** The PDF is now set in Noto Sans at 11 pt with more room
+  between lines. Until now the print server fell back to an Arial look-alike
+  that nobody chose. Margins are 20 mm at the sides and 18 mm at the top and
+  bottom, up from about 10 mm, so lines are shorter and easier to read. Each
+  question has more space above it than below, so it stays with its own
+  answer. Code sits in a light box in Noto Sans Mono, and the contents list no
+  longer looks like a list of web links. Long chats now take more pages.
+- **The PDF is light even when ChatGPT is dark.** "Auto" used to follow
+  ChatGPT's theme, so everyone on dark ChatGPT got black pages without asking
+  for them. The sheet is now light unless you pick Dark in Settings, and the
+  Auto option is gone.
+
 ## [1.2.5] — 2026-11-13
 ### Fixed
 - **The right chat after switching chats.** Open one chat, click another in the
