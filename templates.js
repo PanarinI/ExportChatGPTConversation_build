@@ -1136,6 +1136,119 @@ ${GPTPDF_DARK} #gptpdf-preview-label { color: rgba(255,255,255,0.28); }
 .gptpdf-prev-ai { display: flex; flex-direction: column; gap: 3px; padding: 2px 0; }
 .gptpdf-prev-break { height: 0; border-top: 1.5px dashed rgba(0,0,0,0.18); margin: 2px 0; }
 .preview-dark .gptpdf-prev-break { border-top-color: rgba(255,255,255,0.2); }
+
+/* ═══ 1.2.6 — the way into Settings: page 1 of this chat in the Export menu ═══ */
+#gptpdf-extra-btns { min-width: 0; width: 440px; }
+.gptpdf-menu-main { display: flex; gap: 4px; align-items: stretch; }
+.gptpdf-menu-actions { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gptpdf-sheet-entry {
+    flex: 0 0 120px; display: flex; flex-direction: column; align-items: center; gap: 7px;
+    padding: 10px 6px 8px; border-radius: 10px; text-decoration: none !important; color: inherit;
+    cursor: pointer;
+}
+.gptpdf-sheet-entry:hover { background: rgba(0,0,0,0.05); }
+${GPTPDF_DARK} .gptpdf-sheet-entry:hover { background: rgba(255,255,255,0.08); }
+.gptpdf-sheet-wrap { position: relative; display: block; }
+.gptpdf-sheet-frame {
+    display: block; width: 92px; height: 130px; border-radius: 2px; background: #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.12);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+${GPTPDF_DARK} .gptpdf-sheet-frame { box-shadow: 0 0 0 1px rgba(255,255,255,0.14), 0 2px 8px rgba(0,0,0,0.5); }
+.gptpdf-sheet-entry:hover .gptpdf-sheet-frame { transform: translateY(-2px); box-shadow: 0 0 0 1px rgba(0,0,0,0.12), 0 8px 18px rgba(0,0,0,0.18); }
+.gptpdf-sheet-pill {
+    position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+    background: rgba(20,20,20,0.82); color: #fff; font-size: 11px; font-weight: 600;
+    padding: 3px 9px; border-radius: 999px; opacity: 0; transition: opacity .15s;
+    pointer-events: none; white-space: nowrap;
+}
+.gptpdf-sheet-entry:hover .gptpdf-sheet-pill { opacity: 1; }
+.gptpdf-sheet-cap { font-size: 12px; line-height: 1.3; text-align: center; color: rgba(0,0,0,0.5); }
+.gptpdf-sheet-cap b { color: rgba(0,0,0,0.85); font-weight: 600; }
+${GPTPDF_DARK} .gptpdf-sheet-cap { color: rgba(255,255,255,0.5); }
+${GPTPDF_DARK} .gptpdf-sheet-cap b { color: rgba(255,255,255,0.9); }
+
+/* ═══ 1.2.6 — Settings window: the sheet on the left, Style · Paper · Header ═══ */
+#gptpdf-settings-modal.gptpdf-sw { width: 980px; height: 700px; max-height: calc(100vh - 40px); background: #fff; }
+${GPTPDF_DARK} #gptpdf-settings-modal.gptpdf-sw { background: #2a2a2a; }
+.gptpdf-sw-body { display: flex; flex: 1; min-height: 0; }
+.gptpdf-sw-stage {
+    flex: 0 0 44%; min-width: 0; background: #efeff1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 18px 18px 12px;
+}
+${GPTPDF_DARK} .gptpdf-sw-stage { background: #1b1b1b; }
+.gptpdf-sw-sheetbox { flex: 1; width: 100%; min-height: 0; display: flex; align-items: center; justify-content: center; }
+#gptpdf-sw-sheet { display: block; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 10px 30px rgba(0,0,0,.14); }
+.gptpdf-sw-cap { margin-top: 10px; font-size: 12px; line-height: 1.35; color: rgba(0,0,0,0.5); text-align: center; min-height: 16px; max-width: 380px; }
+${GPTPDF_DARK} .gptpdf-sw-cap { color: rgba(255,255,255,0.5); }
+.gptpdf-sw-ctrl { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gptpdf-sw-tabs { display: flex; gap: 4px; padding: 12px 20px 0; background: #f7f7f8; border-bottom: 1px solid rgba(0,0,0,0.08); }
+${GPTPDF_DARK} .gptpdf-sw-tabs { background: #242424; border-bottom-color: rgba(255,255,255,0.08); }
+.gptpdf-sw-tab {
+    border: 1px solid transparent; border-bottom: 0; background: transparent; border-radius: 10px 10px 0 0;
+    padding: 7px 16px 8px; cursor: pointer; color: rgba(0,0,0,0.5); font: inherit; font-size: 13px; font-weight: 500;
+    position: relative; top: 1px;
+}
+.gptpdf-sw-tab:hover { color: rgba(0,0,0,0.85); }
+.gptpdf-sw-tab.on { background: #fff; border-color: rgba(0,0,0,0.08); color: rgba(0,0,0,0.88); }
+${GPTPDF_DARK} .gptpdf-sw-tab { color: rgba(255,255,255,0.5); }
+${GPTPDF_DARK} .gptpdf-sw-tab:hover { color: rgba(255,255,255,0.85); }
+${GPTPDF_DARK} .gptpdf-sw-tab.on { background: #2a2a2a; border-color: rgba(255,255,255,0.08); color: rgba(255,255,255,0.92); }
+.gptpdf-sw-panes { flex: 1; overflow-y: auto; padding: 16px 20px 20px; }
+.gptpdf-sw-pane { display: none; }
+.gptpdf-sw-pane.on { display: block; }
+.gptpdf-sw-sec { display: flex; align-items: center; justify-content: space-between; margin: 0 0 10px; }
+.gptpdf-sw-sec-l { font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: rgba(0,0,0,0.4); }
+${GPTPDF_DARK} .gptpdf-sw-sec-l { color: rgba(255,255,255,0.35); }
+.gptpdf-sw-state { border: 0; background: transparent; padding: 3px 0; font: inherit; font-size: 12px; color: rgba(0,0,0,0.45); cursor: default; }
+${GPTPDF_DARK} .gptpdf-sw-state { color: rgba(255,255,255,0.45); }
+.gptpdf-sw-state.custom { background: rgba(234,76,58,0.10); color: #c93a2a; font-weight: 600; padding: 3px 10px; border-radius: 999px; cursor: pointer; }
+${GPTPDF_DARK} .gptpdf-sw-state.custom { background: rgba(234,76,58,0.22); color: #ff9b8f; }
+.gptpdf-sw-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.gptpdf-sw-tile {
+    border: 1.5px solid rgba(0,0,0,0.12); background: #fff; border-radius: 14px; padding: 12px 8px 10px;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; color: inherit; font: inherit;
+}
+.gptpdf-sw-tile:hover { background: rgba(0,0,0,0.03); }
+.gptpdf-sw-tile.on { border-color: #EA4C3A; background: rgba(234,76,58,0.07); }
+.gptpdf-sw-tile.base { border-style: dashed; border-color: #EA4C3A; }
+${GPTPDF_DARK} .gptpdf-sw-tile { background: #2f2f2f; border-color: rgba(255,255,255,0.12); }
+${GPTPDF_DARK} .gptpdf-sw-tile.on { background: rgba(234,76,58,0.16); border-color: #EA4C3A; }
+.gptpdf-sw-mini { display: block; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.10); }
+.gptpdf-sw-tile .nm { font-weight: 600; font-size: 13.5px; line-height: 1.1; }
+.gptpdf-sw-tile .ds { font-size: 11.5px; line-height: 1.2; text-align: center; color: rgba(0,0,0,0.5); }
+${GPTPDF_DARK} .gptpdf-sw-tile .ds { color: rgba(255,255,255,0.5); }
+.gptpdf-sw-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; padding: 3px 0; }
+.gptpdf-sw-row + .gptpdf-sw-row { border-top: 1px solid rgba(0,0,0,0.07); }
+${GPTPDF_DARK} .gptpdf-sw-row + .gptpdf-sw-row { border-top-color: rgba(255,255,255,0.07); }
+.gptpdf-sw-lb { font-size: 13px; font-weight: 500; white-space: nowrap; }
+.gptpdf-sw-lb small { display: block; font-weight: 400; font-size: 11.5px; opacity: .55; white-space: normal; }
+.gptpdf-sw .gptpdf-segment { flex: 0 0 auto; }
+.gptpdf-sw .gptpdf-seg-btn { flex: 0 0 auto; font-size: 12.5px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 5px; }
+.gptpdf-sw-aa { font-size: 16px; line-height: 1; color: rgba(0,0,0,0.85); }
+${GPTPDF_DARK} .gptpdf-sw-aa { color: rgba(255,255,255,0.9); }
+.gptpdf-sw-step { display: inline-flex; align-items: center; background: rgba(0,0,0,0.06); border-radius: 9px; padding: 2px; }
+${GPTPDF_DARK} .gptpdf-sw-step { background: rgba(255,255,255,0.08); }
+.gptpdf-sw-step button { width: 28px; height: 26px; border: 0; border-radius: 7px; background: transparent; cursor: pointer; font-size: 16px; color: inherit; }
+.gptpdf-sw-step button:hover { background: rgba(0,0,0,0.07); }
+${GPTPDF_DARK} .gptpdf-sw-step button:hover { background: rgba(255,255,255,0.1); }
+.gptpdf-sw-step button:disabled { opacity: .3; cursor: default; background: transparent; }
+.gptpdf-sw-step output { min-width: 54px; text-align: center; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.gptpdf-sw-colors { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 270px; }
+.gptpdf-sw-colors button { width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.14); cursor: pointer; padding: 0; position: relative; }
+${GPTPDF_DARK} .gptpdf-sw-colors button { border-color: rgba(255,255,255,0.2); }
+.gptpdf-sw-colors button.on { outline: 2px solid #EA4C3A; outline-offset: 2px; }
+.gptpdf-sw-colors button.none::after { content: ""; position: absolute; left: 3px; right: 3px; top: 50%; height: 1.5px; background: #c9c9c9; transform: rotate(-45deg); }
+.gptpdf-sw-sheets { width: auto; }
+.gptpdf-sw-sheets .gptpdf-theme-card { flex-direction: row; gap: 9px; padding: 6px 12px 6px 8px; width: auto; text-align: left; }
+.gptpdf-sw-sheets .gptpdf-theme-card span { display: flex; flex-direction: column; font-weight: 600; font-size: 12.5px; line-height: 1.25; }
+.gptpdf-sw-sheets .gptpdf-theme-card small { font-weight: 400; font-size: 11px; opacity: .7; }
+.gptpdf-sw-custom { display: none; gap: 8px; justify-content: flex-end; padding: 0 0 8px; }
+.gptpdf-sw-custom.on { display: flex; }
+.gptpdf-sw-custom label { font-size: 11px; opacity: .65; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.gptpdf-sw-custom input { width: 54px; height: 28px; border-radius: 7px; border: 1px solid rgba(0,0,0,0.15); background: transparent; color: inherit; text-align: center; font: inherit; font-size: 12.5px; }
+${GPTPDF_DARK} .gptpdf-sw-custom input { border-color: rgba(255,255,255,0.2); }
+.gptpdf-sw-ver { margin-right: auto; font-size: 11.5px; opacity: .45; }
 `;
 
 // Floating Export button + dropdown markup. Interpolates gptpdfShared.version
@@ -1193,7 +1306,15 @@ const EXPORT_BUTTON_HTML = `
         style="display:none;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(0,0,0,0.2);background:white;cursor:pointer;font-size:13px;line-height:1;color:#555;margin-left:4px;flex-shrink:0">&#x2715;</button>
 
     <div id="gptpdf-extra-btns" class="gptpdf-hidden gptpdf-text-left">
-
+      <div class="gptpdf-menu-main">
+        <!-- 1.2.6: the way into Settings is page 1 of this chat, drawn by preview.js.
+             Keeps the id common.js wires (gptpdf-options). -->
+        <a id="gptpdf-options" href="#" class="gptpdf-sheet-entry"
+           title="How your PDF will look — page 1 of this chat. Click to change the style, paper and header.">
+            <span class="gptpdf-sheet-wrap"><span class="gptpdf-sheet-frame" id="gptpdf-menu-sheet"></span><span class="gptpdf-sheet-pill">Settings</span></span>
+            <span class="gptpdf-sheet-cap"><b id="gptpdf-menu-style">Chat</b><br><span id="gptpdf-menu-paper">A4</span> · Settings&nbsp;›</span>
+        </a>
+        <div class="gptpdf-menu-actions">
         <button
             id="gptpdf-everything"
             type="button"
@@ -1242,24 +1363,10 @@ const EXPORT_BUTTON_HTML = `
                 <span class="gptpdf-menu-desc">Pick blocks to export</span>
             </span>
         </button>
+        </div>
+      </div>
 
         <div class="gptpdf-divider"></div>
-
-        <a
-            id="gptpdf-options"
-            href="#"
-            class="gptpdf-extra-btn">
-            <span class="gptpdf-menu-icon">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="9" cy="9" r="2.2"/>
-                    <path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.4 3.4l1.4 1.4M13.2 13.2l1.4 1.4M3.4 14.6l1.4-1.4M13.2 4.8l1.4-1.4"/>
-                </svg>
-            </span>
-            <span class="gptpdf-menu-text">
-                <span class="gptpdf-menu-title">Settings</span>
-            </span>
-            <span class="gptpdf-menu-arrow">›</span>
-        </a>
 
         <div class="gptpdf-rate-row">
             <span>Rate us</span>
@@ -1341,186 +1448,176 @@ const EXPORT_BUTTON_HTML = `
     </div>
 
     <div id="gptpdf-settings-overlay" style="display:none">
-      <div id="gptpdf-settings-modal">
+      <!-- Settings window 1.2.6 (mock: dizajn/obzor-2026-11-16/maket/nastrojki.html, README §8).
+           Left: page 1 of this chat as it will print (preview.js). Right: Style · Paper · Header.
+           Every change is saved at once; Done just closes. -->
+      <div id="gptpdf-settings-modal" class="gptpdf-sw" role="dialog" aria-label="Settings">
         <div id="gptpdf-settings-header">
           <h2>Settings</h2>
-          <button id="gptpdf-settings-close">✕</button>
+          <button id="gptpdf-settings-close" title="Close — your choices are already saved">&#x2715;</button>
         </div>
-        <div id="gptpdf-settings-body">
-          <div id="gptpdf-settings-form">
-
-            <div class="gptpdf-section">
-              <div class="gptpdf-section-title">Output Format</div>
-              <div class="gptpdf-row">
-                <span class="gptpdf-label">Page size</span>
-                <div style="display:flex;gap:8px;align-items:center;">
-                  <div class="gptpdf-segment" id="gptpdf-page-size">
-                    <button class="gptpdf-seg-btn active" data-value="a4">A4</button>
-                    <button class="gptpdf-seg-btn" data-value="letter">Letter</button>
-                  </div>
-                  <div class="gptpdf-segment" id="gptpdf-orientation">
-                    <button class="gptpdf-seg-btn active" data-value="">↕</button>
-                    <button class="gptpdf-seg-btn" data-value="landscape">↔</button>
-                  </div>
-                </div>
-              </div>
-              <div class="gptpdf-row" style="align-items:flex-start;flex-direction:column;gap:7px;">
-                <span class="gptpdf-label">Color theme</span>
-                <div class="gptpdf-theme-cards" id="gptpdf-theme">
-                  <button class="gptpdf-theme-card active" data-value="light">
-                    <div class="gptpdf-theme-mini-doc light">
-                      <div class="gptpdf-mini-line w100"></div><div class="gptpdf-mini-line w75"></div><div class="gptpdf-mini-line w50"></div>
-                    </div>Light
-                  </button>
-                  <button class="gptpdf-theme-card" data-value="dark">
-                    <div class="gptpdf-theme-mini-doc dark">
-                      <div class="gptpdf-mini-line w100 on-dark"></div><div class="gptpdf-mini-line w75 on-dark"></div><div class="gptpdf-mini-line w50 on-dark"></div>
-                    </div>Dark
-                  </button>
-                </div>
-              </div>
-              <div class="gptpdf-row">
-                <span class="gptpdf-label">Question color</span>
-                <input type="hidden" id="gptpdf-q-color-value" value="default">
-                <div id="gptpdf-q-palette" style="display:flex;flex-wrap:wrap;gap:5px;max-width:240px;">
-                </div>
-              </div>
-              <div class="gptpdf-row">
-                <span class="gptpdf-label">Font size</span>
-                <div class="gptpdf-slider-row">
-                  <input type="range" class="gptpdf-slider" id="gptpdf-zoom" min="70" max="200" step="5" value="100">
-                  <span class="gptpdf-slider-value" id="gptpdf-zoom-value">100%</span>
-                </div>
-              </div>
-              <div class="gptpdf-row">
-                <span class="gptpdf-label">Margins</span>
-                <div class="gptpdf-segment" id="gptpdf-margins">
-                  <button class="gptpdf-seg-btn active" data-value="">Default</button>
-                  <button class="gptpdf-seg-btn" data-value="minimal">Minimal</button>
-                  <button class="gptpdf-seg-btn" data-value="custom">Custom</button>
-                </div>
-              </div>
-              <div class="gptpdf-sub-section" id="gptpdf-margins-custom" style="display:none;">
-                <div class="gptpdf-margins-grid">
-                  <div class="gptpdf-margin-field"><label>Top</label><input type="text" class="gptpdf-margin-input" id="gptpdf-margin-top" value="0.4in"></div>
-                  <div class="gptpdf-margin-field"><label>Bottom</label><input type="text" class="gptpdf-margin-input" id="gptpdf-margin-bottom" value="0.4in"></div>
-                  <div class="gptpdf-margin-field"><label>Left</label><input type="text" class="gptpdf-margin-input" id="gptpdf-margin-left" value="0.4in"></div>
-                  <div class="gptpdf-margin-field"><label>Right</label><input type="text" class="gptpdf-margin-input" id="gptpdf-margin-right" value="0.4in"></div>
-                </div>
-              </div>
-              <div class="gptpdf-row">
-                <span class="gptpdf-label">Page breaks</span>
-                <div class="gptpdf-segment" id="gptpdf-page-break">
-                  <button class="gptpdf-seg-btn active" data-value="">Auto</button>
-                  <button class="gptpdf-seg-btn" data-value="after">After each answer</button>
-                </div>
-              </div>
-              <div class="gptpdf-row">
-                <span class="gptpdf-label">Page numbers</span>
-                <label class="gptpdf-toggle"><input type="checkbox" id="gptpdf-page-numbers"><span class="gptpdf-toggle-track"></span></label>
-              </div>
-              <div class="gptpdf-row">
-                <span class="gptpdf-label">Single page</span>
-                <label class="gptpdf-toggle"><input type="checkbox" id="gptpdf-singlepage-toggle"><span class="gptpdf-toggle-track"></span></label>
-              </div>
-            </div>
-
-            <div class="gptpdf-section">
-              <div class="gptpdf-section-title">Document Info</div>
-              <div class="gptpdf-row">
-                <span class="gptpdf-label">PDF Title</span>
-                <div class="gptpdf-segment" id="gptpdf-title-mode">
-                  <button class="gptpdf-seg-btn active" data-value="">Chat name</button>
-                  <button class="gptpdf-seg-btn" data-value="ask">Ask me</button>
-                  <button class="gptpdf-seg-btn" data-value="none">None</button>
-                </div>
-              </div>
-              <div class="gptpdf-row">
-                <span class="gptpdf-label">Export date</span>
-                <div class="gptpdf-segment" id="gptpdf-datetime">
-                  <button class="gptpdf-seg-btn active" data-value="none">None</button>
-                  <button class="gptpdf-seg-btn" data-value="date_only">Date</button>
-                  <button class="gptpdf-seg-btn" data-value="full">Date & time</button>
-                </div>
-              </div>
-              <div class="gptpdf-row">
-                <span class="gptpdf-label">Table of contents</span>
-                <div class="gptpdf-segment" id="gptpdf-toc">
-                  <button class="gptpdf-seg-btn" data-value="">None</button>
-                  <button class="gptpdf-seg-btn active" data-value="basic">Standard</button>
-                  <button class="gptpdf-seg-btn" data-value="numbering">Numbered</button>
-                </div>
-              </div>
-              <div class="gptpdf-row">
-                <span class="gptpdf-label">Source link</span>
-                <label class="gptpdf-toggle"><input type="checkbox" id="gptpdf-source-link"><span class="gptpdf-toggle-track"></span></label>
-              </div>
-            </div>
-
+        <div class="gptpdf-sw-body">
+          <div class="gptpdf-sw-stage">
+            <div class="gptpdf-sw-sheetbox" id="gptpdf-sw-sheetbox"><span id="gptpdf-sw-sheet"></span></div>
+            <div class="gptpdf-sw-cap" id="gptpdf-sw-cap"></div>
           </div>
-          <div id="gptpdf-settings-preview-col">
-            <div id="gptpdf-preview-label">Preview</div>
-            <div id="gptpdf-preview-doc" class="preview-light">
-              <div class="gptpdf-prev-title"></div>
-              <div class="gptpdf-prev-date" style="display:none;height:2px;width:50%;border-radius:2px;margin-bottom:2px;"></div>
-              <!-- source link: absolutely positioned top-right corner -->
-              <div id="gptpdf-prev-meta" style="position:absolute;top:8px;right:8px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-                <div class="gptpdf-prev-source" style="display:none;height:2px;width:30px;border-radius:1px;opacity:0.6;"></div>
-              </div>
-              <!-- page number: bottom centre, as in the PDF -->
-              <div class="gptpdf-prev-pagenum" style="display:none;position:absolute;bottom:6px;left:50%;transform:translateX(-50%);height:2px;width:8px;border-radius:1px;"></div>
-              <div class="gptpdf-prev-toc" style="display:none;flex-direction:column;gap:3px;padding:4px 0 5px;">
-                <div style="display:flex;align-items:center;gap:2px;">
-                  <div class="gptpdf-toc-dot" style="width:3px;height:3px;border-radius:50%;background:rgba(74,144,217,0.9);flex-shrink:0;"></div>
-                  <div class="gptpdf-toc-line" style="height:2px;width:78%;background:rgba(74,144,217,0.6);border-radius:1px;"></div>
+          <div class="gptpdf-sw-ctrl">
+            <div class="gptpdf-sw-tabs">
+              <button class="gptpdf-sw-tab on" data-tab="style" title="How the text looks">Style</button>
+              <button class="gptpdf-sw-tab" data-tab="paper" title="Paper size, sheet colour, margins, pages">Paper</button>
+              <button class="gptpdf-sw-tab" data-tab="header" title="What stands at the top of the PDF">Header</button>
+            </div>
+            <div class="gptpdf-sw-panes">
+
+              <div class="gptpdf-sw-pane on" data-pane="style">
+                <div class="gptpdf-sw-sec">
+                  <span class="gptpdf-sw-sec-l">Style</span>
+                  <button class="gptpdf-sw-state" id="gptpdf-sw-state"></button>
                 </div>
-                <div style="display:flex;align-items:center;gap:2px;padding-left:6px;">
-                  <div class="gptpdf-toc-dot" style="width:2px;height:2px;border-radius:50%;background:rgba(74,144,217,0.65);flex-shrink:0;"></div>
-                  <div class="gptpdf-toc-line" style="height:2px;width:60%;background:rgba(74,144,217,0.42);border-radius:1px;"></div>
+                <div class="gptpdf-sw-tiles" id="gptpdf-sw-tiles">
+                  <button class="gptpdf-sw-tile" data-style="chat" title="Sans-serif, questions in bubbles on the right — like the chat on your screen">
+                    <span class="gptpdf-sw-mini"></span><span class="nm">Chat</span><span class="ds">like on screen</span></button>
+                  <button class="gptpdf-sw-tile" data-style="doc" title="Serif, questions as bold lines — reads like a report">
+                    <span class="gptpdf-sw-mini"></span><span class="nm">Document</span><span class="ds">to print or send</span></button>
+                  <button class="gptpdf-sw-tile" data-style="compact" title="Narrow letters, smaller text, tighter lines — the same chat on fewer pages">
+                    <span class="gptpdf-sw-mini"></span><span class="nm">Compact</span><span class="ds">fewer pages</span></button>
                 </div>
-                <div style="display:flex;align-items:center;gap:2px;padding-left:6px;">
-                  <div class="gptpdf-toc-dot" style="width:2px;height:2px;border-radius:50%;background:rgba(74,144,217,0.65);flex-shrink:0;"></div>
-                  <div class="gptpdf-toc-line" style="height:2px;width:50%;background:rgba(74,144,217,0.42);border-radius:1px;"></div>
+                <div class="gptpdf-sw-row">
+                  <span class="gptpdf-sw-lb">Font</span>
+                  <div class="gptpdf-segment" id="gptpdf-look-font">
+                    <button class="gptpdf-seg-btn" data-value="sans" title="Noto Sans — clean, like on screen"><span class="gptpdf-sw-aa" style="font-family:'Noto Sans',sans-serif">Aa</span>Sans</button>
+                    <button class="gptpdf-seg-btn" data-value="serif" title="Noto Serif — bookish, good on paper"><span class="gptpdf-sw-aa" style="font-family:'Noto Serif',serif">Aa</span>Serif</button>
+                    <button class="gptpdf-seg-btn" data-value="narrow" title="Carlito (like Calibri) — narrow letters, more words per line"><span class="gptpdf-sw-aa" style="font-family:Carlito,Calibri,sans-serif">Aa</span>Narrow</button>
+                  </div>
+                </div>
+                <div class="gptpdf-sw-row">
+                  <span class="gptpdf-sw-lb">Size</span>
+                  <div class="gptpdf-sw-step" title="Text size in points. Headings, tables and code follow it">
+                    <button id="gptpdf-look-size-dn" aria-label="Smaller">&minus;</button><output id="gptpdf-look-size">11 pt</output><button id="gptpdf-look-size-up" aria-label="Larger">+</button>
+                  </div>
+                </div>
+                <div class="gptpdf-sw-row">
+                  <span class="gptpdf-sw-lb">Spacing</span>
+                  <div class="gptpdf-segment" id="gptpdf-look-spacing">
+                    <button class="gptpdf-seg-btn" data-value="tight" title="Tight — lines close together"><svg width="22" height="18" viewBox="0 0 22 18"><path d="M3 5h16M3 8h16M3 11h16M3 14h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+                    <button class="gptpdf-seg-btn" data-value="normal" title="Normal — easy to read"><svg width="22" height="18" viewBox="0 0 22 18"><path d="M3 3.5h16M3 7.5h16M3 11.5h16M3 15.5h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+                    <button class="gptpdf-seg-btn" data-value="airy" title="Airy — room between lines"><svg width="22" height="18" viewBox="0 0 22 18"><path d="M3 2.5h16M3 7.5h16M3 12.5h16M3 17h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+                  </div>
+                </div>
+                <div class="gptpdf-sw-row">
+                  <span class="gptpdf-sw-lb">Questions</span>
+                  <div class="gptpdf-segment" id="gptpdf-q-look">
+                    <button class="gptpdf-seg-btn" data-value="bubble" title="A bubble on the right — like in ChatGPT"><svg width="30" height="18" viewBox="0 0 30 18"><rect x="11" y="2" width="17" height="7" rx="3.5" fill="currentColor" opacity=".55"/><path d="M2 12.5h26M2 16h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".55"/></svg>Bubble</button>
+                    <button class="gptpdf-seg-btn" data-value="heading" title="A bold line across the page — like a report"><svg width="30" height="18" viewBox="0 0 30 18"><path d="M2 4.5h20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M2 11h26M2 15h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".55"/></svg>Heading</button>
+                  </div>
+                </div>
+                <div class="gptpdf-sw-row">
+                  <span class="gptpdf-sw-lb">Question colour</span>
+                  <div class="gptpdf-sw-colors" id="gptpdf-q-colors"></div>
                 </div>
               </div>
-              <div style="display:flex;align-items:flex-start;gap:4px;">
-                <div class="gptpdf-prev-avatar" style="width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,0.22);flex-shrink:0;margin-top:4px;"></div>
-                <div class="gptpdf-prev-user" id="gptpdf-prev-user-1" style="flex:1;">
-                  <div class="gptpdf-prev-line w80"></div>
-                  <div class="gptpdf-prev-line w60"></div>
+
+              <div class="gptpdf-sw-pane" data-pane="paper">
+                <div class="gptpdf-sw-row">
+                  <span class="gptpdf-sw-lb">Size</span>
+                  <div style="display:flex;gap:8px">
+                    <div class="gptpdf-segment" id="gptpdf-page-size">
+                      <button class="gptpdf-seg-btn" data-value="a4" title="210 × 297 mm">A4</button>
+                      <button class="gptpdf-seg-btn" data-value="letter" title="8.5 × 11 in — USA, Canada, Mexico">Letter</button>
+                    </div>
+                    <div class="gptpdf-segment" id="gptpdf-orientation">
+                      <button class="gptpdf-seg-btn" data-value="" title="Portrait">&#x2195;</button>
+                      <button class="gptpdf-seg-btn" data-value="landscape" title="Landscape — two columns, wide tables fit better">&#x2194;</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="gptpdf-sw-row">
+                  <span class="gptpdf-sw-lb">Sheet</span>
+                  <div class="gptpdf-theme-cards gptpdf-sw-sheets" id="gptpdf-theme">
+                    <button class="gptpdf-theme-card active" data-value="light" title="White sheet, dark text. Prints well">
+                      <div class="gptpdf-theme-mini-doc light">
+                        <div class="gptpdf-mini-line w100"></div><div class="gptpdf-mini-line w75"></div><div class="gptpdf-mini-line w50"></div>
+                      </div><span>Light<small>to print</small></span>
+                    </button>
+                    <button class="gptpdf-theme-card" data-value="dark" title="Dark sheet, light text — for reading on a phone or tablet. Prints badly">
+                      <div class="gptpdf-theme-mini-doc dark">
+                        <div class="gptpdf-mini-line w100 on-dark"></div><div class="gptpdf-mini-line w75 on-dark"></div><div class="gptpdf-mini-line w50 on-dark"></div>
+                      </div><span>Dark<small>to read on screen</small></span>
+                    </button>
+                  </div>
+                </div>
+                <div class="gptpdf-sw-row">
+                  <span class="gptpdf-sw-lb">Margins</span>
+                  <div class="gptpdf-segment" id="gptpdf-margins">
+                    <button class="gptpdf-seg-btn" data-value="" title="20 mm at the sides, 18 mm top and bottom">Normal</button>
+                    <button class="gptpdf-seg-btn" data-value="narrow" title="10 mm all round — more text per page">Narrow</button>
+                    <button class="gptpdf-seg-btn" data-value="minimal" title="2.5 mm — almost to the edge; printers may cut it">Minimal</button>
+                    <button class="gptpdf-seg-btn" data-value="custom" title="Set each margin yourself">Custom</button>
+                  </div>
+                </div>
+                <div class="gptpdf-sw-custom" id="gptpdf-margins-custom">
+                  <label>Top<input id="gptpdf-margin-top" data-k="margin_top" type="number" min="0" max="60" step="1"></label>
+                  <label>Right<input id="gptpdf-margin-right" data-k="margin_right" type="number" min="0" max="60" step="1"></label>
+                  <label>Bottom<input id="gptpdf-margin-bottom" data-k="margin_bottom" type="number" min="0" max="60" step="1"></label>
+                  <label>Left<input id="gptpdf-margin-left" data-k="margin_left" type="number" min="0" max="60" step="1"></label>
+                  <label style="justify-content:flex-end;padding-bottom:7px">mm</label>
+                </div>
+                <div class="gptpdf-sw-row">
+                  <span class="gptpdf-sw-lb">Page breaks</span>
+                  <div class="gptpdf-segment" id="gptpdf-page-break">
+                    <button class="gptpdf-seg-btn" data-value="" title="Pages fill up as the text runs">Auto</button>
+                    <button class="gptpdf-seg-btn" data-value="after" title="Every question starts on a new page">Each question</button>
+                    <button class="gptpdf-seg-btn" data-value="long" title="The whole chat on one long page — for reading on screen; no page numbers">One long page</button>
+                  </div>
+                </div>
+                <div class="gptpdf-sw-row">
+                  <span class="gptpdf-sw-lb">Page numbers <small id="gptpdf-page-numbers-hint"></small></span>
+                  <label class="gptpdf-toggle" title="&#8220;1 / 2&#8221; at the bottom of each page">
+                    <input type="checkbox" id="gptpdf-page-numbers"><span class="gptpdf-toggle-track"></span>
+                  </label>
                 </div>
               </div>
-              <div class="gptpdf-prev-ai">
-                <div class="gptpdf-prev-line w90"></div>
-                <div class="gptpdf-prev-line w80"></div>
-                <div class="gptpdf-prev-line w60"></div>
-              </div>
-              <div style="display:flex;align-items:stretch;gap:3px;padding:1px 0;">
-                <div class="gptpdf-prev-bq-bar" style="width:2px;background:#d0d0d0;border-radius:1px;flex-shrink:0;"></div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;">
-                  <div class="gptpdf-prev-line w80"></div>
-                  <div class="gptpdf-prev-line w55"></div>
+
+              <div class="gptpdf-sw-pane" data-pane="header">
+                <div class="gptpdf-sw-row">
+                  <span class="gptpdf-sw-lb">Title</span>
+                  <div class="gptpdf-segment" id="gptpdf-title-mode">
+                    <button class="gptpdf-seg-btn" data-value="" title="The chat's name, at the top and in the file name">Chat name</button>
+                    <button class="gptpdf-seg-btn" data-value="ask" title="You type the title on each export">Ask me</button>
+                    <button class="gptpdf-seg-btn" data-value="none" title="No title">None</button>
+                  </div>
                 </div>
-              </div>
-              <div class="gptpdf-prev-break" id="gptpdf-prev-break" style="display:none;"></div>
-              <div style="display:flex;align-items:flex-start;gap:4px;">
-                <div class="gptpdf-prev-avatar" style="width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,0.22);flex-shrink:0;margin-top:4px;"></div>
-                <div class="gptpdf-prev-user" id="gptpdf-prev-user-2" style="flex:1;">
-                  <div class="gptpdf-prev-line w60"></div>
+                <div class="gptpdf-sw-row">
+                  <span class="gptpdf-sw-lb">Export date</span>
+                  <div class="gptpdf-segment" id="gptpdf-datetime">
+                    <button class="gptpdf-seg-btn" data-value="none">None</button>
+                    <button class="gptpdf-seg-btn" data-value="date_only" title="The day you export, not the day of the chat">Date</button>
+                    <button class="gptpdf-seg-btn" data-value="full" title="Day and time of the export">Date &amp; time</button>
+                  </div>
                 </div>
-              </div>
-              <div class="gptpdf-prev-ai">
-                <div class="gptpdf-prev-line w90"></div>
-                <div class="gptpdf-prev-line w40"></div>
+                <div class="gptpdf-sw-row">
+                  <span class="gptpdf-sw-lb">Contents</span>
+                  <div class="gptpdf-segment" id="gptpdf-toc">
+                    <button class="gptpdf-seg-btn" data-value="">None</button>
+                    <button class="gptpdf-seg-btn" data-value="basic" title="Your questions as a clickable list; also bookmarks in the PDF reader">List</button>
+                    <button class="gptpdf-seg-btn" data-value="numbering" title="The same list with numbers 1, 2, 3">Numbered</button>
+                  </div>
+                </div>
+                <div class="gptpdf-sw-row">
+                  <span class="gptpdf-sw-lb">Link to the chat</span>
+                  <label class="gptpdf-toggle" title="A link back to this chat under the title">
+                    <input type="checkbox" id="gptpdf-source-link"><span class="gptpdf-toggle-track"></span>
+                  </label>
+                </div>
               </div>
 
             </div>
           </div>
         </div>
         <div id="gptpdf-settings-footer">
-          <span class="gptpdf-saved-note" id="gptpdf-saved-note">✓ Saved</span>
-          <button class="gptpdf-btn-reset" id="gptpdf-settings-reset">Reset to defaults</button>
-          <button class="gptpdf-btn-apply" id="gptpdf-settings-apply">Apply Changes</button>
+          <span class="gptpdf-sw-ver" id="gptpdf-sw-ver"></span>
+          <button class="gptpdf-btn-reset" id="gptpdf-settings-reset" title="Back to the Chat style and the standard paper and header">Reset to defaults</button>
+          <button class="gptpdf-btn-apply" id="gptpdf-settings-done">Done</button>
         </div>
       </div>
     </div>

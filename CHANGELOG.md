@@ -14,6 +14,21 @@ history and working notes.
   question has more space above it than below, so it stays with its own
   answer. Code sits in a light box in Noto Sans Mono, and the contents list no
   longer looks like a list of web links. Long chats now take more pages.
+- **New settings window.** Open it from the Export menu, where a small picture
+  of your PDF's first page now replaces the "Settings" line. On the left is
+  page 1 of your chat as it will print. It changes as you click. On the right
+  are three tabs:
+  - **Style** has three ready looks: Chat (like on screen), Document (serif,
+    questions as bold lines) and Compact (narrow letters, fewer pages). Under
+    them you set the font (Sans, Serif or Narrow), the size in points, line
+    spacing, how questions look, and their colour. Change any of these and the
+    style becomes "Custom"; one click takes you back.
+  - **Paper** has the size, a light or dark sheet, margins (new: Narrow, 10 mm)
+    and page breaks. "One long page" is now a page-break choice.
+  - **Header** has the title, export date, contents and the link to the chat.
+
+  Changes are saved as you make them. The old "Font size" percentage becomes a
+  text size in points: if you had set 150 %, you get 14 pt.
 - **The PDF is light even when ChatGPT is dark.** "Auto" used to follow
   ChatGPT's theme, so everyone on dark ChatGPT got black pages without asking
   for them. The sheet is now light unless you pick Dark in Settings, and the

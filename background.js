@@ -36,6 +36,36 @@ chrome.runtime.onMessage.addListener(function(message) {
     }
 });
 
+// Fonts for the sheet in the settings window (preview.js). The page asks for
+// one of the bundled files by name; the bytes come back as base64 and become a
+// FontFace there — no web_accessible_resources, so pages cannot probe for the
+// extension through them. Only the listed names are served.
+const GPTPDF_FONT_FILES = [
+    'NotoSans-Regular.woff2', 'NotoSans-Bold.woff2', 'NotoSerif-Regular.woff2',
+    'NotoSerif-Bold.woff2', 'Carlito-Regular.woff2', 'Carlito-Bold.woff2',
+    'NotoSansMono-Regular.woff2'
+];
+chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+    if(message.action !== 'gptpdfFont') return;
+    if(GPTPDF_FONT_FILES.indexOf(message.file) === -1) {
+        sendResponse({});
+        return;
+    }
+    fetch(chrome.runtime.getURL('fonts/' + message.file))
+        .then(function(r) { return r.ok ? r.arrayBuffer() : null; })
+        .then(function(buf) {
+            if(!buf) { sendResponse({}); return; }
+            const bytes = new Uint8Array(buf);
+            let bin = '';
+            for(let i = 0; i < bytes.length; i += 0x8000) {
+                bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+            }
+            sendResponse({ b64: btoa(bin) });
+        })
+        .catch(function() { sendResponse({}); });
+    return true;   // the answer comes later
+});
+
 const GOTENBERG_URL = 'https://export-gpt.duckdns.org/forms/chromium/convert/html';
 const sessions = {};
 

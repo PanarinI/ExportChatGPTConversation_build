@@ -6,8 +6,26 @@
 
 // Shared PDF custom CSS for BOTH the full export and the block-selection export
 // (single source of truth -> no dark-theme / stripe divergence between paths).
-// theme = an EXPORT_THEMES entry; isDarkMode = bool.
-function buildExportCss(theme, isDarkMode) {
+// theme = an EXPORT_THEMES entry; isDarkMode = bool; look = gptpdfShared.look()
+// (font, size, spacing, question look); missing → the Chat style.
+const GPTPDF_LOOK_FONTS = {
+    sans:   '"Noto Sans","Liberation Sans",Arial,sans-serif',
+    serif:  '"Noto Serif","Liberation Serif","Times New Roman",serif',
+    narrow: 'Carlito,"Liberation Sans Narrow",Calibri,sans-serif'
+};
+const GPTPDF_LOOK_LH = { tight: 1.3, normal: 1.55, airy: 1.8 };
+// Vertical rhythm (space between paragraphs, before questions) follows spacing.
+const GPTPDF_LOOK_RHYTHM = { tight: 0.7, normal: 1, airy: 1.25 };
+
+function buildExportCss(theme, isDarkMode, look) {
+    look = look || { font: 'sans', size: 11, spacing: 'normal', qLook: 'bubble' };
+    const S = look.size;
+    const LH = GPTPDF_LOOK_LH[look.spacing] || 1.55;
+    const R = GPTPDF_LOOK_RHYTHM[look.spacing] || 1;
+    const pt = function(x) { return (Math.round(x * 100) / 100) + 'pt'; };
+    const heading = look.qLook === 'heading';
+    const promptBg = isDarkMode ? theme.darkPromptBg : theme.promptBg;
+    const band = promptBg && promptBg !== 'transparent';
     // ChatGPT's own <pre> gets a light box. This is what prints: the rebuild in
     // applyDarkCodeBlockStyles skips nodes that are not in the document
     // (isConnected), and the export clone never is (prepareSelection clones
@@ -16,7 +34,7 @@ function buildExportCss(theme, isDarkMode) {
     // show no bands.
     const codeBg   = isDarkMode ? '#1e1e1e' : ((theme && theme.codeBg) || '#f4f4f4');
     const codeLine = isDarkMode ? '#3a3a3a' : '#e2e5e9';
-    const SANS = '"Noto Sans","Liberation Sans",Arial,sans-serif';
+    const SANS = GPTPDF_LOOK_FONTS[look.font] || GPTPDF_LOOK_FONTS.sans;
     const MONO = '"Noto Sans Mono","DejaVu Sans Mono",monospace';
     return [
                         // ── Hide sr-only elements (accessibility labels) ──
@@ -52,33 +70,35 @@ function buildExportCss(theme, isDarkMode) {
                         // Arial) fell through to Liberation Sans, an Arial copy
                         // nobody chose, at the browser's 16px and ~1.15 line
                         // height. Noto Sans / Noto Sans Mono are on the server
-                        // (measured 16.11); sizes and rhythm are the base the
-                        // author approved on frames 16.11 (dizajn/obzor-2026-11-16 §7).
-                        'body{font-size:11pt !important;line-height:1.55 !important}',
+                        // (measured 16.11); Noto Serif and Carlito too. Sizes and
+                        // rhythm at the Chat style are the base the author approved
+                        // on frames 16.11 (dizajn/obzor-2026-11-16 §7); the other
+                        // styles scale them (font, size, spacing — settings window).
+                        'body{font-size:' + pt(S) + ' !important;line-height:' + LH + ' !important}',
                         'body,p,li,td,th,blockquote,div,span,a,strong,em,b,i{font-family:' + SANS + ' !important}',
                         'h1,h2,h3,h4,h5,h6{font-family:' + SANS + ' !important}',
-                        '.markdown,.markdown p,.markdown li,.markdown blockquote{font-size:11pt !important;line-height:1.55 !important}',
-                        '.markdown p{margin:0 0 7pt !important}',
-                        '.markdown ul,.markdown ol{margin:2pt 0 8pt !important;padding-left:16pt !important}',
-                        '.markdown li{margin:2pt 0 !important}',
-                        '.markdown h1{font-size:16pt !important}',
-                        '.markdown h2{font-size:14pt !important}',
-                        '.markdown h3{font-size:13pt !important}',
-                        '.markdown h4,.markdown h5,.markdown h6{font-size:11pt !important}',
-                        '.markdown h1,.markdown h2,.markdown h3,.markdown h4,.markdown h5,.markdown h6{line-height:1.3 !important;margin:10pt 0 5pt !important;font-weight:700 !important}',
+                        '.markdown,.markdown p,.markdown li,.markdown blockquote{font-size:' + pt(S) + ' !important;line-height:' + LH + ' !important}',
+                        '.markdown p{margin:0 0 ' + pt(7 * R) + ' !important}',
+                        '.markdown ul,.markdown ol{margin:' + pt(2 * R) + ' 0 ' + pt(8 * R) + ' !important;padding-left:16pt !important}',
+                        '.markdown li{margin:' + pt(2 * R) + ' 0 !important}',
+                        '.markdown h1{font-size:' + pt(S * 1.45) + ' !important}',
+                        '.markdown h2{font-size:' + pt(S * 1.27) + ' !important}',
+                        '.markdown h3{font-size:' + pt(S * 1.18) + ' !important}',
+                        '.markdown h4,.markdown h5,.markdown h6{font-size:' + pt(S) + ' !important}',
+                        '.markdown h1,.markdown h2,.markdown h3,.markdown h4,.markdown h5,.markdown h6{line-height:1.3 !important;margin:' + pt(10 * R) + ' 0 ' + pt(5 * R) + ' !important;font-weight:700 !important}',
                         // Contents is a list of the chat's own questions, not web links.
                         'a[href^="#toc-"]{text-decoration:none !important}',
                         // More air before a question than after it: each question
                         // sits with its own answer, not with the one above.
-                        '.gptpdf-user-turn{margin-top:20pt !important}',
-                        '[data-message-author-role="user"] .whitespace-pre-wrap{font-size:10.5pt !important;line-height:1.45 !important}',
-                        '.markdown table{margin:4pt 0 10pt !important}',
-                        '.markdown td,.markdown th{font-size:10pt !important;line-height:1.4 !important;padding:5pt 8pt !important}',
-                        '.markdown pre:not([data-gptpdf-code-pre]){background:' + codeBg + ' !important;border:1px solid ' + codeLine + ' !important;border-radius:6px !important;padding:8pt 10pt !important;margin:4pt 0 10pt !important;white-space:pre-wrap !important}',
+                        '.gptpdf-user-turn{margin-top:' + pt(20 * R) + ' !important}',
+                        '[data-message-author-role="user"] .whitespace-pre-wrap{font-size:' + pt(heading ? S : S * 0.95) + ' !important;line-height:' + (heading ? Math.min(LH, 1.45) : 1.45) + ' !important}',
+                        '.markdown table{margin:' + pt(4 * R) + ' 0 ' + pt(10 * R) + ' !important}',
+                        '.markdown td,.markdown th{font-size:' + pt(S * 0.9) + ' !important;line-height:1.4 !important;padding:' + pt(5 * R) + ' 8pt !important}',
+                        '.markdown pre:not([data-gptpdf-code-pre]){background:' + codeBg + ' !important;border:1px solid ' + codeLine + ' !important;border-radius:6px !important;padding:8pt 10pt !important;margin:' + pt(4 * R) + ' 0 ' + pt(10 * R) + ' !important;white-space:pre-wrap !important}',
                         '.markdown pre *{background:transparent !important}',
-                        '.markdown pre,.markdown pre *{font-family:' + MONO + ' !important;font-size:9pt !important;line-height:1.5 !important}',
+                        '.markdown pre,.markdown pre *{font-family:' + MONO + ' !important;font-size:' + pt(S * 0.82) + ' !important;line-height:1.5 !important}',
                         '.markdown :not(pre)>code{font-family:' + MONO + ' !important;font-size:.88em !important}',
-                        '.markdown .katex-display,.markdown>span[role="math"]{display:block !important;margin:8pt 0 10pt !important}',
+                        '.markdown .katex-display,.markdown>span[role="math"]{display:block !important;margin:' + pt(8 * R) + ' 0 ' + pt(10 * R) + ' !important}',
                         // ── Tables ──────────────────────────────────────
                         'table{border-collapse:collapse !important;width:100% !important;border:1px solid #e5e7eb !important}',
                         'td{border:none !important;border-bottom:1px solid #e5e7eb !important;border-right:1px solid #e5e7eb !important;padding:8px 12px !important}',
@@ -94,7 +114,15 @@ function buildExportCss(theme, isDarkMode) {
                         '.katex-html .mathnormal,.katex-html .mathit{font-style:italic !important;font-family:"Times New Roman",Georgia,serif !important}',
                         // ── User prompt bubble ────────────────────────────
                         '[data-message-author-role="user"]{background:transparent !important;display:flex !important;justify-content:flex-end !important;padding:0 !important;margin:0 0 6pt !important}',
-                        '[data-message-author-role="user"]>div{background:' + (isDarkMode ? theme.darkPromptBg : theme.promptBg) + ' !important;color:' + (isDarkMode ? '#e8e8e8' : theme.promptText) + ' !important;border-radius:16px !important;padding:8px 14px !important;max-width:70% !important;min-width:0 !important}',
+                        '[data-message-author-role="user"]>div{background:' + promptBg + ' !important;color:' + (isDarkMode ? '#e8e8e8' : theme.promptText) + ' !important;border-radius:16px !important;padding:8px 14px !important;max-width:70% !important;min-width:0 !important}',
+                    ].concat(heading ? [
+                        // ── Question as a heading (Document, Compact) ─────
+                        // A bold line across the page, on a soft band of the
+                        // question colour — or bare, when the colour is None.
+                        '[data-message-author-role="user"]{justify-content:flex-start !important}',
+                        '[data-message-author-role="user"]>div{width:100% !important;max-width:100% !important;border-radius:3pt !important;padding:' + (band ? '4pt 8pt' : '0') + ' !important}',
+                        '[data-message-author-role="user"] .whitespace-pre-wrap{font-weight:700 !important}'
+                    ] : []).concat([
                         'th{background-color:' + theme.tableHeader + ' !important;font-weight:600 !important;border:none !important;border-bottom:2px solid #d1d5db !important;border-right:1px solid #e5e7eb !important;padding:8px 12px !important}',
                         'blockquote{border-left:4px solid ' + theme.blockquote + ' !important;margin:8px 0 !important;padding:4px 0 4px 16px !important;background:none !important;font-style:normal !important}',
                         // ── Remove labels ─────────────────────────────────
@@ -113,7 +141,7 @@ function buildExportCss(theme, isDarkMode) {
                         'a{color:inherit !important;text-decoration:underline !important;pointer-events:auto !important}',
                         // ── Favicon/citation images inside links — limit size ──
                         'a img:not([src^="data:"]){max-width:20px !important;max-height:20px !important;width:auto !important;height:auto !important;display:inline !important;vertical-align:middle !important}'
-                    ].concat(isDarkMode ? [] : [
+                    ]).concat(isDarkMode ? [] : [
                         'body{color:#1f1f1f !important}'
                     ]).concat(isDarkMode ? [
                         // ── Dark mode overrides ───────────────────────────
@@ -525,6 +553,11 @@ function applyMarginSettings(data, options) {
     switch(options.margins) {
     case 'minimal':
         data.no_margins = true;
+        break;
+    case 'narrow':
+        // 1.2.6: the old default, 10 mm all round — for fitting more on a page.
+        data.margin_left = data.margin_right = '10mm';
+        data.margin_top = data.margin_bottom = '10mm';
         break;
     case 'custom':
         data.margin_left = options.margin_left || 0;

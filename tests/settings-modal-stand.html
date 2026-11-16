@@ -38,6 +38,9 @@ document.head.insertAdjacentHTML('beforeend',
     '<style>*,::before,::after{box-sizing:border-box}button{color:inherit;font:inherit;margin:0}</style>');
 document.getElementById('gptpdf-host').innerHTML = EXPORT_BUTTON_HTML;
 </script>
+<script src="../render.js"></script>
+<script src="../capture.js"></script>
+<script src="../preview.js"></script>
 <script src="../settings.js"></script>
 <script>
 // Feed the modal a chosen page size without touching chrome.storage.
@@ -45,9 +48,14 @@ const size = params.get('size') || gptpdfShared.defaultPageSize();
 const orient = params.get('orient') || '';
 const opts = Object.assign({}, gptpdfShared.defaultOptions,
     { page_size: size, orientation: orient });
-document.getElementById('gptpdf-settings-overlay').style.display = 'flex';
-gptpdfLoadSettings(opts);
-gptpdfUpdatePreview(opts);
+// 1.2.6: the new window (settings.js) — fed directly, no chrome.storage. On this stand there
+// is no chat, so the sheet shows only the title; the live stand (blockmode-live-stand.html?show=style)
+// shows it with a chat.
+window.chrome = window.chrome || {};
+chrome.storage = chrome.storage || { sync: { get: function(k, cb) { cb && cb({ options: opts }); }, set: function() {} } };
+chrome.runtime = chrome.runtime || { sendMessage: function(m, cb) { cb && cb({}); } };
+wireSettings();
+gptpdfOpenSettings();
 // Report what the code actually resolved, for the person looking at the screen.
 const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 document.body.insertAdjacentHTML('beforeend',

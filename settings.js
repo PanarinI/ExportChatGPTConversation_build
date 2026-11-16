@@ -1,21 +1,15 @@
 'use strict';
 
-// In-page settings modal: schema-backed controls (segments, swatches, theme
-// cards, live preview) + persistence. Uses EXPORT_THEMES, isLight, gptpdfShared.
+// Settings window (1.2.6). Left: page 1 of this chat as it will print
+// (preview.js). Right: Style · Paper · Header. Every change is saved at once
+// and redrawn; Done only closes. Mock and the "what moved where" table:
+// dizajn/obzor-2026-11-16 (maket/nastrojki.html, README §8).
+// Style: three tiles set font, size, spacing, question look and colour at
+// once; touching any of those knobs makes the look the person's own
+// ("Custom · ↺ <style>") until a tile is picked again — Fill in the Blank.
+// Uses gptpdfShared (options, look), EXPORT_THEMES, preview.js.
 
-// ===== Settings Modal Logic =====
-function gptpdfOpenSettings() {
-    const overlay = document.getElementById('gptpdf-settings-overlay');
-    overlay.style.display = 'flex';
-    gptpdfShared.getOptions(function(opts) {
-        gptpdfLoadSettings(opts);
-        gptpdfUpdatePreview(opts);
-    });
-}
-
-function gptpdfCloseSettings() {
-    document.getElementById('gptpdf-settings-overlay').style.display = 'none';
-}
+let gptpdfSwOpts = null;   // what the window shows; saved on every change
 
 function gptpdfSetSegment(id, value) {
     const el = document.getElementById(id);
@@ -30,383 +24,295 @@ function gptpdfGetSegment(id) {
     return a ? a.dataset.value : '';
 }
 
-function gptpdfSetSwatch(id, value) {
-    const el = document.getElementById(id);
-    if(!el) return;
-    el.querySelectorAll('.gptpdf-swatch').forEach(b => b.classList.toggle('active', b.dataset.value === value));
+// A stored margin ('0.4in', '20mm', '1.5cm', '12px', bare inches) in mm.
+function gptpdfMarginMm(v) {
+    const s = String(v == null ? '' : v).trim();
+    const n = parseFloat(s);
+    if(!(n >= 0)) return '';
+    let mm = n * 25.4;
+    if(/mm$/.test(s)) mm = n;
+    else if(/cm$/.test(s)) mm = n * 10;
+    else if(/px$/.test(s)) mm = n * 25.4 / 96;
+    return Math.round(mm * 10) / 10;
 }
 
-function gptpdfGetSwatch(id) {
-    const el = document.getElementById(id);
-    if(!el) return 'default';
-    const a = el.querySelector('.gptpdf-swatch.active');
-    return a ? a.dataset.value : 'default';
-}
-
-// Expand 3-digit hex (#rgb) to 6-digit (#rrggbb) required by <input type="color">
-function gptpdfNormalizeColor(color, fallback) {
-    if(!color) return fallback || '#000000';
-    return color.replace(/^#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])$/, '#$1$1$2$2$3$3');
-}
-
-// Two sheets since 1.2.6: Light and Dark. "Auto" (follow ChatGPT's theme) is
-// gone, and a stored '' from older versions now shows — and prints — as Light.
-function gptpdfSetTheme(value) {
-    const el = document.getElementById('gptpdf-theme');
-    if(!el) return;
-    const v = value === 'dark' ? 'dark' : 'light';
-    el.querySelectorAll('.gptpdf-theme-card').forEach(c => c.classList.toggle('active', c.dataset.value === v));
-}
-
-function gptpdfGetTheme() {
-    const el = document.getElementById('gptpdf-theme');
-    if(!el) return 'light';
-    const a = el.querySelector('.gptpdf-theme-card.active');
-    return a && a.dataset.value === 'dark' ? 'dark' : 'light';
-}
-
-// Rows that only mean something on a paginated PDF.
-function gptpdfShowPagedRows(paged) {
-    ['gptpdf-page-break', 'gptpdf-page-numbers'].forEach(function(id) {
-        const el = document.getElementById(id);
-        const row = el && el.closest('.gptpdf-row');
-        if(row) row.style.display = paged ? '' : 'none';
+function gptpdfOpenSettings() {
+    const overlay = document.getElementById('gptpdf-settings-overlay');
+    overlay.style.display = 'flex';
+    gptpdfShared.getOptions(function(opts) {
+        const o = Object.assign({}, opts);
+        // The knobs show the look an export uses now — an old 150 % zoom
+        // shows as 14 pt, not as the Chat default.
+        const L = gptpdfShared.look(o);
+        o.look_font = L.font;
+        o.look_size = L.size;
+        o.look_spacing = L.spacing;
+        o.q_look = L.qLook;
+        o.q_color = L.qColor;
+        if(o.theme !== 'dark') o.theme = 'light';
+        if(!gptpdfShared.LOOK_STYLES[o.look_base]) o.look_base = 'chat';
+        gptpdfSwOpts = o;
+        try { gptpdfSheetSource(true); } catch(e) { console.log('[gptpdf] sheet source', e); }
+        gptpdfSwRender();
+        gptpdfSheetFonts().then(gptpdfSwRender);
     });
 }
 
-function gptpdfLoadSettings(opts) {
-    gptpdfSetSegment('gptpdf-page-size', opts.page_size || 'a4');
-    gptpdfSetSegment('gptpdf-orientation', opts.orientation || '');
-    gptpdfSetTheme(opts.theme !== undefined ? opts.theme : '');
-    const zoom = opts.zoom || 100;
-    document.getElementById('gptpdf-zoom').value = zoom;
-    document.getElementById('gptpdf-zoom-value').textContent = zoom + '%';
-    gptpdfSetSegment('gptpdf-margins', opts.margins || '');
-    document.getElementById('gptpdf-margin-top').value = opts.margin_top || '0.4in';
-    document.getElementById('gptpdf-margin-bottom').value = opts.margin_bottom || '0.4in';
-    document.getElementById('gptpdf-margin-left').value = opts.margin_left || '0.4in';
-    document.getElementById('gptpdf-margin-right').value = opts.margin_right || '0.4in';
-    const customMargins = document.getElementById('gptpdf-margins-custom');
-    if(customMargins) customMargins.style.display = opts.margins === 'custom' ? 'flex' : 'none';
-    gptpdfSetSegment('gptpdf-page-break', opts.page_break || '');
-    const pn = document.getElementById('gptpdf-page-numbers'); if(pn) pn.checked = opts.page_numbers !== false;
-    gptpdfShowPagedRows(!opts.single_page);
-    // Theme palette
-    const savedTheme = opts.q_color || 'default';
-    const qColorInput = document.getElementById('gptpdf-q-color-value');
-    if(qColorInput) qColorInput.value = savedTheme;
-    document.querySelectorAll('#gptpdf-q-palette .gptpdf-palette-btn').forEach(function(btn) {
-        const isActive = btn.getAttribute('data-color') === savedTheme;
-        btn.style.outline = isActive ? '2px solid #EA4C3A' : 'none';
-        btn.style.outlineOffset = isActive ? '2px' : '';
-    });
-    const sp = document.getElementById('gptpdf-singlepage-toggle'); if(sp) sp.checked = !!opts.single_page;
-    gptpdfSetSegment('gptpdf-title-mode', opts.title_mode || '');
-    gptpdfSetSegment('gptpdf-datetime', opts.datetime_format || 'none');
-    gptpdfSetSegment('gptpdf-toc', opts.toc || '');
-    const sl = document.getElementById('gptpdf-source-link'); if(sl) sl.checked = !!opts.source_link;
+function gptpdfCloseSettings() {
+    document.getElementById('gptpdf-settings-overlay').style.display = 'none';
+    if(typeof gptpdfRenderMenuSheet === 'function') gptpdfRenderMenuSheet();
 }
 
-function gptpdfGetSettings() {
-    return {
-        page_size: gptpdfGetSegment('gptpdf-page-size') || 'a4',
-        orientation: gptpdfGetSegment('gptpdf-orientation'),
-        theme: gptpdfGetTheme(),
-        zoom: parseInt(document.getElementById('gptpdf-zoom').value) || 100,
-        margins: gptpdfGetSegment('gptpdf-margins'),
-        margin_top: document.getElementById('gptpdf-margin-top').value,
-        margin_bottom: document.getElementById('gptpdf-margin-bottom').value,
-        margin_left: document.getElementById('gptpdf-margin-left').value,
-        margin_right: document.getElementById('gptpdf-margin-right').value,
-        page_break: gptpdfGetSegment('gptpdf-page-break'),
-        q_color: (document.getElementById('gptpdf-q-color-value') || {value: 'default'}).value || 'default',
-        q_color_picker: '#f4f4f4',
-        q_fg_color: 'default',
-        q_fg_color_picker: '#333333',
-        q_align: 'right',
-        q_rounded: true,
-        no_icons: true,
-        title_mode: gptpdfGetSegment('gptpdf-title-mode'),
-        datetime_format: gptpdfGetSegment('gptpdf-datetime'),
-        single_page: !!(document.getElementById('gptpdf-singlepage-toggle') || {}).checked,
-        toc: gptpdfGetSegment('gptpdf-toc'),
-        page_numbers: !!(document.getElementById('gptpdf-page-numbers') || {}).checked,
-        source_link: !!(document.getElementById('gptpdf-source-link') || {}).checked,
-    };
-}
-
-function gptpdfUpdatePreview(opts) {
-    const doc = document.getElementById('gptpdf-preview-doc');
-    if(!doc) return;
-    const o = opts || gptpdfGetSettings();
-
-    // Theme: light / dark
-    const isDark = o.theme === 'dark';
-    doc.className = isDark ? 'preview-dark' : 'preview-light';
-
-    // Page size: change aspect ratio of the mock document
-    const isLandscape = o.orientation === 'landscape';
-    // A4 is the √2 ratio (1.414); Letter is squatter — 11/8.5 = 1.294 — and a
-    // touch wider than A4 (8.5in vs 8.27in), so it gets its own numbers.
-    const isLetter = o.page_size === 'letter';
-    const aspectRatio = isLetter ? 1.294 : 1.414;
-    const docW = isLetter ? 156 : 152;
-    doc.style.width = docW + 'px';
-    doc.style.height = isLandscape
-        ? Math.round(docW / aspectRatio) + 'px'
-        : Math.round(docW * aspectRatio) + 'px';
-
-    // Две колонки — ровно там же, где их даёт печать: альбомный лист и не
-    // одностраничный режим (у одностраничного лист один и длинный, делить
-    // нечего). Класс ставится ПОСЛЕ присвоения className выше — то присвоение
-    // затирает список классов целиком.
-    doc.classList.toggle('gptpdf-prev-columns', isLandscape && !o.single_page);
-
-    // Margins: adjust preview doc padding to give a visual sense of margin size
-    if(o.margins === 'minimal') {
-        doc.style.padding = '4px 3px';
-    } else if(o.margins === 'custom') {
-        // rough proportional estimate from custom values
-        const parseIn = v => { const n = parseFloat(v); return isNaN(n) ? 0.4 : n; };
-        const vPad = Math.round(Math.max(2, parseIn(o.margin_top) * 16));
-        const hPad = Math.round(Math.max(2, parseIn(o.margin_left) * 14));
-        doc.style.padding = vPad + 'px ' + hPad + 'px';
-    } else {
-        doc.style.padding = '12px 10px';
-    }
-
-    // Font size: scale line heights and gaps — not the doc frame itself
-    const zoom = o.zoom || 100;
-    const scale = zoom / 100;
-    const lineH = Math.max(2, Math.round(3 * (0.6 + scale * 0.4))) + 'px';
-    const gap   = Math.max(2, Math.round(2 + scale * 2)) + 'px';
-    doc.querySelectorAll('.gptpdf-prev-line').forEach(l => { l.style.height = lineH; });
-    doc.querySelectorAll('.gptpdf-prev-ai, .gptpdf-prev-user').forEach(b => { b.style.gap = gap; });
-
-    // User prompt background (theme-aware)
-    const users = doc.querySelectorAll('.gptpdf-prev-user');
-    let userBg;
-    const themeData = EXPORT_THEMES[o.q_color];
-    if(o.q_color === 'none') userBg = 'transparent';
-    else if(o.q_color === 'custom') userBg = o.q_color_picker || '#ecf9f2';
-    else userBg = themeData
-        ? (isDark ? themeData.darkPromptBg : themeData.promptBg)
-        : (isDark ? 'rgba(255,255,255,0.08)' : '#f0f4f8');
-
-    // Blockquote stripe color
-    const bqBar = doc.querySelector('.gptpdf-prev-bq-bar');
-    if(bqBar) {
-        bqBar.style.background = themeData ? themeData.blockquote : '#d0d0d0';
-    }
-    users.forEach(u => {
-        u.style.background = userBg;
-        u.style.borderRadius = o.q_rounded ? '6px' : '2px';
-    });
-
-    // Text color: tint user-block lines with custom colour
-    users.forEach(u => {
-        u.querySelectorAll('.gptpdf-prev-line').forEach(l => {
-            if(o.q_fg_color === 'custom' && o.q_fg_color_picker) {
-                l.style.background = o.q_fg_color_picker + 'bb';
-            } else {
-                l.style.background = '';
-            }
-        });
-    });
-
-    // Alignment: shift user-block lines
-    const align = o.q_align || 'justified';
-    users.forEach(u => {
-        u.querySelectorAll('.gptpdf-prev-line').forEach(l => {
-            if(align === 'center') {
-                l.style.marginLeft = 'auto';
-                l.style.marginRight = 'auto';
-            } else if(align === 'right') {
-                l.style.marginLeft = 'auto';
-                l.style.marginRight = '0';
-            } else {
-                l.style.marginLeft = '0';
-                l.style.marginRight = 'auto';
-            }
-        });
-    });
-
-    // Page break
-    const breakEl = document.getElementById('gptpdf-prev-break');
-    if(breakEl) breakEl.style.display = o.page_break === 'after' ? 'block' : 'none';
-
-    // Title
-    const titleEl = doc.querySelector('.gptpdf-prev-title');
-    if(titleEl) titleEl.style.display = o.title_mode === 'none' ? 'none' : 'block';
-
-    // Creation date indicator
-    const dateEl = doc.querySelector('.gptpdf-prev-date');
-    if(dateEl) {
-        dateEl.style.display = (o.datetime_format && o.datetime_format !== 'none') ? 'block' : 'none';
-        dateEl.style.background = isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.15)';
-    }
-
-    // Page number indicator — bottom centre; a single long page has none
-    const pageNumEl = doc.querySelector('.gptpdf-prev-pagenum');
-    if(pageNumEl) {
-        pageNumEl.style.display = (o.page_numbers && !o.single_page) ? 'block' : 'none';
-        pageNumEl.style.background = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)';
-    }
-
-    // Source link indicator
-    const sourceEl = doc.querySelector('.gptpdf-prev-source');
-    if(sourceEl) {
-        sourceEl.style.display = o.source_link ? 'block' : 'none';
-        sourceEl.style.background = isDark ? 'rgba(120,180,255,0.25)' : 'rgba(74,144,217,0.22)';
-    }
-
-    // TOC indicator
-    const tocEl = doc.querySelector('.gptpdf-prev-toc');
-    if(tocEl) {
-        tocEl.style.display = o.toc ? 'flex' : 'none';
-        const tocBlue = isDark ? '99,175,255' : '74,144,217';
-        const isNumbered = o.toc === 'numbering';
-        tocEl.querySelectorAll('.gptpdf-toc-dot').forEach((el, i) => {
-            const color = `rgba(${tocBlue},${i === 0 ? '0.9' : '0.65'})`;
-            if(isNumbered) {
-                // Replace dot with tiny number — keep same fixed size so rows don't shift
-                el.textContent = (i + 1) + '.';
-                el.style.background = 'transparent';
-                el.style.borderRadius = '0';
-                el.style.width = '6px';
-                el.style.height = '5px';
-                el.style.overflow = 'visible';
-                el.style.fontSize = '4.5px';
-                el.style.color = color;
-                el.style.lineHeight = '1';
-                el.style.flexShrink = '0';
-            } else {
-                // Restore round dot
-                el.textContent = '';
-                el.style.fontSize = '';
-                el.style.color = '';
-                el.style.lineHeight = '';
-                el.style.overflow = '';
-                el.style.borderRadius = '50%';
-                el.style.width = i === 0 ? '3px' : '2px';
-                el.style.height = i === 0 ? '3px' : '2px';
-                el.style.background = color;
-            }
-        });
-        tocEl.querySelectorAll('.gptpdf-toc-line').forEach((el, i) => {
-            el.style.background = i === 0 ? `rgba(${tocBlue},0.6)` : `rgba(${tocBlue},0.42)`;
-        });
-    }
-
-    // User avatar dots
-    doc.querySelectorAll('.gptpdf-prev-avatar').forEach(av => {
-        av.style.display = o.no_icons ? 'none' : 'block';
-        av.style.background = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.22)';
-    });
-
-}
-
-// Wire up modal controls. Called from common.js init() AFTER the modal markup is
-// injected into the page, so the event targets exist.
-function wireSettings() {
-    // Close on backdrop click or X
-    document.getElementById('gptpdf-settings-overlay').addEventListener('click', function(e) {
-        if(e.target === this) gptpdfCloseSettings();
-    });
-    document.getElementById('gptpdf-settings-close').addEventListener('click', gptpdfCloseSettings);
-
-    // Segment buttons
-    document.querySelectorAll('#gptpdf-settings-modal .gptpdf-segment').forEach(function(container) {
-        container.querySelectorAll('.gptpdf-seg-btn').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                container.querySelectorAll('.gptpdf-seg-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                if(container.id === 'gptpdf-margins') {
-                    const customMargins = document.getElementById('gptpdf-margins-custom');
-                    if(customMargins) customMargins.style.display = this.dataset.value === 'custom' ? 'flex' : 'none';
-                }
-                gptpdfUpdatePreview(null);
-            });
-        });
-    });
-
-    // Theme cards
-    document.querySelectorAll('#gptpdf-theme .gptpdf-theme-card').forEach(function(card) {
-        card.addEventListener('click', function() {
-            document.querySelectorAll('#gptpdf-theme .gptpdf-theme-card').forEach(c => c.classList.remove('active'));
-            this.classList.add('active');
-            gptpdfUpdatePreview(null);
-        });
-    });
-
-    // Build theme palette from EXPORT_THEMES
-    const qPalette = document.getElementById('gptpdf-q-palette');
-    if(qPalette) {
-        Object.keys(EXPORT_THEMES).forEach(function(key) {
-            const t = EXPORT_THEMES[key];
-            const btn = document.createElement('button');
-            btn.className = 'gptpdf-palette-btn';
-            btn.setAttribute('data-color', key);
-            btn.setAttribute('title', t.label);
-            const border = key === 'none' ? '1.5px dashed #ccc' : '1.5px solid rgba(0,0,0,0.1)';
-            btn.style.cssText = 'width:22px;height:22px;border-radius:50%;background:' +
-                t.swatch + ';border:' + border + ';cursor:pointer;';
-            qPalette.appendChild(btn);
-        });
-    }
-
-    // Unified palette clicks
-    if(qPalette) {
-        qPalette.querySelectorAll('.gptpdf-palette-btn').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                qPalette.querySelectorAll('.gptpdf-palette-btn').forEach(function(b) {
-                    b.style.outline = 'none';
-                    b.style.outlineOffset = '';
-                });
-                this.style.outline = '2px solid #EA4C3A';
-                this.style.outlineOffset = '2px';
-                const inp = document.getElementById('gptpdf-q-color-value');
-                if(inp) inp.value = this.getAttribute('data-color');
-                gptpdfUpdatePreview(null);
-            });
-        });
-    }
-
-    // Slider
-    const zoomSlider = document.getElementById('gptpdf-zoom');
-    if(zoomSlider) zoomSlider.addEventListener('input', function() {
-        document.getElementById('gptpdf-zoom-value').textContent = this.value + '%';
-        gptpdfUpdatePreview(null);
-    });
-
-    // Toggles
-    // A single long page has no page breaks and no page numbers to set.
-    const singlePage = document.getElementById('gptpdf-singlepage-toggle');
-    if(singlePage) singlePage.addEventListener('change', function() {
-        gptpdfShowPagedRows(!singlePage.checked);
-    });
-
-    document.querySelectorAll('#gptpdf-settings-modal .gptpdf-toggle input').forEach(function(cb) {
-        cb.addEventListener('change', function() { gptpdfUpdatePreview(null); });
-    });
-
-    // Apply
-    document.getElementById('gptpdf-settings-apply').addEventListener('click', function() {
-        gptpdfCloseSettings(); // Close first — don't depend on async callback
+function gptpdfSwSave() {
+    const o = gptpdfSwOpts;
+    if(!o) return;
+    gptpdfShared.getOptions(function(existing) {
+        // Size is set in points now; the old whole-sheet zoom is retired.
+        const next = Object.assign({}, existing, o, { zoom: 100 });
+        next.no_questions = existing.no_questions;
         try {
-            const newOpts = gptpdfGetSettings();
-            gptpdfShared.getOptions(function(existing) {
-                newOpts.no_questions = existing.no_questions;
-                chrome.storage.sync.set({options: newOpts});
-            });
+            chrome.storage.sync.set({ options: next });
         } catch(e) {
             console.error('gptpdf settings save error:', e);
         }
     });
+}
 
-    // Reset
+function gptpdfSwSet(changes) {
+    if(!gptpdfSwOpts) return;
+    Object.assign(gptpdfSwOpts, changes);
+    gptpdfSwSave();
+    gptpdfSwRender();
+}
+
+function gptpdfSwRender() {
+    const o = gptpdfSwOpts;
+    if(!o) return;
+    const style = gptpdfShared.lookStyle(o);
+    if(style) o.look_base = style;
+
+    gptpdfSetSegment('gptpdf-look-font', o.look_font);
+    gptpdfSetSegment('gptpdf-look-spacing', o.look_spacing);
+    gptpdfSetSegment('gptpdf-q-look', o.q_look);
+    gptpdfSetSegment('gptpdf-page-size', o.page_size || 'a4');
+    gptpdfSetSegment('gptpdf-orientation', o.orientation || '');
+    gptpdfSetSegment('gptpdf-margins', o.margins || '');
+    gptpdfSetSegment('gptpdf-page-break', o.single_page ? 'long' : (o.page_break || ''));
+    gptpdfSetSegment('gptpdf-title-mode', o.title_mode || '');
+    gptpdfSetSegment('gptpdf-datetime', o.datetime_format || 'none');
+    gptpdfSetSegment('gptpdf-toc', o.toc || '');
+
+    const size = document.getElementById('gptpdf-look-size');
+    if(size) size.textContent = (o.look_size % 1 ? o.look_size.toFixed(1) : o.look_size) + ' pt';
+    const dn = document.getElementById('gptpdf-look-size-dn');
+    const up = document.getElementById('gptpdf-look-size-up');
+    if(dn) dn.disabled = o.look_size <= gptpdfShared.LOOK_SIZE_MIN;
+    if(up) up.disabled = o.look_size >= gptpdfShared.LOOK_SIZE_MAX;
+
+    document.querySelectorAll('#gptpdf-q-colors button').forEach(function(b) {
+        b.classList.toggle('on', b.dataset.value === o.q_color);
+    });
+    document.querySelectorAll('#gptpdf-theme .gptpdf-theme-card').forEach(function(c) {
+        c.classList.toggle('active', c.dataset.value === (o.theme === 'dark' ? 'dark' : 'light'));
+    });
+
+    const custom = document.getElementById('gptpdf-margins-custom');
+    if(custom) {
+        custom.classList.toggle('on', o.margins === 'custom');
+        custom.querySelectorAll('input').forEach(function(inp) {
+            if(document.activeElement !== inp) inp.value = gptpdfMarginMm(o[inp.dataset.k]);
+        });
+    }
+
+    const pn = document.getElementById('gptpdf-page-numbers');
+    if(pn) {
+        pn.checked = !!o.page_numbers && !o.single_page;
+        pn.disabled = !!o.single_page;
+    }
+    const pnHint = document.getElementById('gptpdf-page-numbers-hint');
+    if(pnHint) pnHint.textContent = o.single_page ? 'not on one long page' : '';
+    const sl = document.getElementById('gptpdf-source-link');
+    if(sl) sl.checked = !!o.source_link;
+
+    const state = document.getElementById('gptpdf-sw-state');
+    if(state) {
+        if(style) {
+            state.className = 'gptpdf-sw-state';
+            state.textContent = gptpdfShared.LOOK_NAMES[style];
+            state.title = 'The style as it comes';
+        } else {
+            const base = gptpdfShared.LOOK_NAMES[o.look_base] || 'Chat';
+            state.className = 'gptpdf-sw-state custom';
+            state.textContent = 'Custom · ↺ ' + base;
+            state.title = 'You changed the style. Click to return to ' + base + ' — or pick any style above.';
+        }
+    }
+
+    // The sheets: each tile shows what you get if you click it — its style
+    // with your paper and header; the big one shows what you have now.
+    document.querySelectorAll('#gptpdf-sw-tiles .gptpdf-sw-tile').forEach(function(t) {
+        const k = t.dataset.style;
+        const o2 = Object.assign({}, o, gptpdfShared.LOOK_STYLES[k]);
+        try { gptpdfDrawSheet(t.querySelector('.gptpdf-sw-mini'), o2, { width: 64, tiny: true }); }
+        catch(e) { console.log('[gptpdf] tile sheet', e); }
+        t.classList.toggle('on', style === k);
+        t.classList.toggle('base', !style && o.look_base === k);
+    });
+
+    const box = document.getElementById('gptpdf-sw-sheetbox');
+    const sheet = document.getElementById('gptpdf-sw-sheet');
+    let src = null;
+    if(box && sheet && box.clientWidth) {
+        try {
+            src = gptpdfDrawSheet(sheet, o, { width: box.clientWidth - 8, maxH: box.clientHeight - 4 });
+        } catch(e) {
+            console.log('[gptpdf] sheet', e);
+        }
+    }
+    const cap = document.getElementById('gptpdf-sw-cap');
+    if(cap) {
+        let t = (o.page_size === 'letter' ? 'Letter' : 'A4') + ' · ' +
+            (o.orientation === 'landscape' ? 'landscape' : 'portrait');
+        if(src && src.empty) {
+            t = 'Open a chat to see its first page here.';
+        } else if(src && !src.startLoaded) {
+            // A long chat loads from the end: the beginning is not on the page
+            // yet. Say so rather than pass a middle page off as page 1.
+            t += ' · Showing the part of the chat on your screen — the PDF starts from the first message.';
+        } else {
+            t += ' · page 1 of this chat';
+            if(o.single_page) t += ', one long page';
+            else if(o.page_break === 'after') t += ' — the next question starts page 2';
+        }
+        cap.textContent = t;
+    }
+
+    const ver = document.getElementById('gptpdf-sw-ver');
+    if(ver) ver.textContent = 'ExportGPT ' + String(gptpdfShared.version || '').replace(/^v/, '');
+}
+
+// Wire up the window. Called from common.js init() AFTER the markup is in the
+// page, so the targets exist.
+function wireSettings() {
+    const overlay = document.getElementById('gptpdf-settings-overlay');
+    overlay.addEventListener('click', function(e) {
+        if(e.target === this) gptpdfCloseSettings();
+    });
+    document.getElementById('gptpdf-settings-close').addEventListener('click', gptpdfCloseSettings);
+    document.getElementById('gptpdf-settings-done').addEventListener('click', gptpdfCloseSettings);
+    document.addEventListener('keydown', function(e) {
+        if(e.key === 'Escape' && overlay.style.display === 'flex') gptpdfCloseSettings();
+    });
+
+    // Tabs
+    document.querySelectorAll('#gptpdf-settings-modal .gptpdf-sw-tab').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('#gptpdf-settings-modal .gptpdf-sw-tab').forEach(t => t.classList.toggle('on', t === tab));
+            document.querySelectorAll('#gptpdf-settings-modal .gptpdf-sw-pane').forEach(function(p) {
+                p.classList.toggle('on', p.dataset.pane === tab.dataset.tab);
+            });
+        });
+    });
+
+    // Style tiles and the way back from Custom
+    document.querySelectorAll('#gptpdf-sw-tiles .gptpdf-sw-tile').forEach(function(t) {
+        t.addEventListener('click', function() {
+            gptpdfSwSet(Object.assign({ look_base: t.dataset.style }, gptpdfShared.LOOK_STYLES[t.dataset.style]));
+        });
+    });
+    document.getElementById('gptpdf-sw-state').addEventListener('click', function() {
+        if(!gptpdfSwOpts || gptpdfShared.lookStyle(gptpdfSwOpts)) return;
+        gptpdfSwSet(Object.assign({}, gptpdfShared.LOOK_STYLES[gptpdfSwOpts.look_base] || gptpdfShared.LOOK_STYLES.chat));
+    });
+
+    // Segments: which option each one sets
+    const SEGMENT_KEYS = {
+        'gptpdf-look-font': 'look_font', 'gptpdf-look-spacing': 'look_spacing', 'gptpdf-q-look': 'q_look',
+        'gptpdf-page-size': 'page_size', 'gptpdf-orientation': 'orientation', 'gptpdf-margins': 'margins',
+        'gptpdf-title-mode': 'title_mode', 'gptpdf-datetime': 'datetime_format', 'gptpdf-toc': 'toc'
+    };
+    document.querySelectorAll('#gptpdf-settings-modal .gptpdf-segment').forEach(function(seg) {
+        seg.querySelectorAll('.gptpdf-seg-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const v = btn.dataset.value;
+                if(seg.id === 'gptpdf-page-break') {
+                    // One control for what were two (Page breaks + Single page).
+                    gptpdfSwSet(v === 'long' ? { single_page: true, page_break: '' }
+                                             : { single_page: false, page_break: v });
+                    return;
+                }
+                const key = SEGMENT_KEYS[seg.id];
+                if(!key) return;
+                const change = {};
+                change[key] = v;
+                // Custom margins start from the margins the sheet has now.
+                if(key === 'margins' && v === 'custom' && gptpdfSwOpts && gptpdfSwOpts.margins !== 'custom') {
+                    const m = gptpdfMarginsPx(gptpdfSwOpts);
+                    const mm = function(px) { return (Math.round(px / GPTPDF_MM)) + 'mm'; };
+                    change.margin_top = mm(m.t); change.margin_bottom = mm(gptpdfSwOpts.page_numbers ? Math.min(m.b, 18 * GPTPDF_MM) : m.b);
+                    change.margin_left = mm(m.l); change.margin_right = mm(m.r);
+                }
+                gptpdfSwSet(change);
+            });
+        });
+    });
+
+    // Size
+    document.getElementById('gptpdf-look-size-dn').addEventListener('click', function() {
+        if(gptpdfSwOpts) gptpdfSwSet({ look_size: Math.max(gptpdfShared.LOOK_SIZE_MIN, gptpdfSwOpts.look_size - 0.5) });
+    });
+    document.getElementById('gptpdf-look-size-up').addEventListener('click', function() {
+        if(gptpdfSwOpts) gptpdfSwSet({ look_size: Math.min(gptpdfShared.LOOK_SIZE_MAX, gptpdfSwOpts.look_size + 0.5) });
+    });
+
+    // Question colours: the same nine as before (theme.js)
+    const colors = document.getElementById('gptpdf-q-colors');
+    Object.keys(EXPORT_THEMES).forEach(function(key) {
+        const t = EXPORT_THEMES[key];
+        const b = document.createElement('button');
+        b.dataset.value = key;
+        b.title = t.label + (key === 'none' ? ' — no background behind questions' : '');
+        b.style.background = key === 'none' ? '#ffffff' : t.swatch;
+        if(key === 'none') b.className = 'none';
+        b.addEventListener('click', function() { gptpdfSwSet({ q_color: key }); });
+        colors.appendChild(b);
+    });
+
+    // Sheet: light or dark
+    document.querySelectorAll('#gptpdf-theme .gptpdf-theme-card').forEach(function(card) {
+        card.addEventListener('click', function() { gptpdfSwSet({ theme: card.dataset.value }); });
+    });
+
+    // Custom margins, in mm
+    document.querySelectorAll('#gptpdf-margins-custom input').forEach(function(inp) {
+        inp.addEventListener('input', function() {
+            const v = parseFloat(inp.value);
+            if(!(v >= 0)) return;
+            const change = {};
+            change[inp.dataset.k] = Math.min(60, v) + 'mm';
+            gptpdfSwSet(change);
+        });
+    });
+
+    // Toggles
+    document.getElementById('gptpdf-page-numbers').addEventListener('change', function() {
+        gptpdfSwSet({ page_numbers: this.checked });
+    });
+    document.getElementById('gptpdf-source-link').addEventListener('change', function() {
+        gptpdfSwSet({ source_link: this.checked });
+    });
+
+    // Reset: the Chat style and the standard paper and header
     document.getElementById('gptpdf-settings-reset').addEventListener('click', function() {
-        gptpdfLoadSettings(gptpdfShared.defaultOptions);
-        gptpdfUpdatePreview(gptpdfShared.defaultOptions);
+        if(!gptpdfSwOpts) return;
+        const fresh = Object.assign({}, gptpdfShared.defaultOptions, gptpdfShared.LOOK_STYLES.chat,
+            { look_base: 'chat', theme: 'light', no_questions: gptpdfSwOpts.no_questions });
+        gptpdfSwOpts = fresh;
+        gptpdfSwSave();
+        gptpdfSwRender();
+    });
+
+    window.addEventListener('resize', function() {
+        if(overlay.style.display === 'flex') gptpdfSwRender();
     });
 }

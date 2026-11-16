@@ -1065,7 +1065,7 @@ function setupBlockMode() {
                 rendering_mode: 'viewport',
                 smart_scaling_mode: 'viewport-fit',
                 viewport_width: 1300,
-                custom_css: buildExportCss(theme, isDark)
+                custom_css: buildExportCss(theme, isDark, gptpdfShared.look(options))
             };
             applyMarginSettings(data, options);
             // Paper size, orientation and a single long page apply here as on
@@ -1078,7 +1078,7 @@ function setupBlockMode() {
 
             const classes = buildCssClasses(options, singlePagePrint);
             if(isDark) data.page_background_color = '212121';
-            if(options.zoom) data.scale_factor = options.zoom;
+            // No zoom since 1.2.6 — text size comes from gptpdfShared.look (see common.js).
 
             const h1Hidden = options.title_mode === 'none' ? 'display:none;' : '';
             const displayTitle = title.length > 80 ? title.slice(0, 79) + '...' : title;

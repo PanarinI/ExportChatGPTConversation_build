@@ -38,6 +38,7 @@
                 "theme.js",
                 "lib/katex.min.js", "render.js",
                 "capture.js",
+                "preview.js",
                 "settings.js",
                 "blockmode.js",
                 "common.js",

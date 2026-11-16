@@ -376,7 +376,7 @@ gptpdfChatGPT.init = function() {
                     rendering_mode: 'viewport',
                     smart_scaling_mode: 'viewport-fit',
                     viewport_width: 1300,
-                    custom_css: buildExportCss(theme, isDarkMode)
+                    custom_css: buildExportCss(theme, isDarkMode, gptpdfShared.look(options))
                 };
 
                 const trigger = getTriggerButton(event);
@@ -398,9 +398,8 @@ gptpdfChatGPT.init = function() {
                     data.page_background_color = '212121';
                 }
 
-                if(options.zoom) {
-                    data.scale_factor = options.zoom;
-                }
+                // No zoom since 1.2.6: the old "Font size" (70–200 % of the
+                // whole sheet) is now a text size in points (gptpdfShared.look).
 
                 const toc = buildTocHtml(options, main_clone);
                 const h1Hidden = options.title_mode === 'none' ? 'display:none;' : '';
@@ -503,6 +502,8 @@ gptpdfChatGPT.init = function() {
                 'gptpdf-extra-btns');
             if(moreButtons.classList.contains('gptpdf-hidden')) {
                 moreButtons.classList.remove('gptpdf-hidden');
+                // The way into Settings is page 1 of this chat (preview.js).
+                if(typeof gptpdfRenderMenuSheet === 'function') gptpdfRenderMenuSheet();
             } else {
                 moreButtons.classList.add('gptpdf-hidden');
             }

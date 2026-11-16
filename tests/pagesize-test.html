@@ -26,6 +26,9 @@
 <script src="../helpers.js"></script>
 <script src="../theme.js"></script>
 <div id="gptpdf-host"></div>
+<script src="../render.js"></script>
+<script src="../capture.js"></script>
+<script src="../preview.js"></script>
 <script src="../settings.js"></script>
 <script>
 const out = [];
@@ -102,19 +105,22 @@ const seg = document.getElementById('gptpdf-page-size');
 const values = [...seg.querySelectorAll('.gptpdf-seg-btn')].map(b => b.dataset.value);
 eq('в сегменте два формата, A5 снят', values.join('|'), 'a4|letter');
 
+// Окно настроек 1.2.6: каждый щелчок сразу пишет в настройки окна (gptpdfSwOpts) и в хранилище.
+window.chrome = window.chrome || {};
+chrome.storage = chrome.storage || { sync: { get: function(k, cb) { cb && cb({}); }, set: function() {} } };
+wireSettings();
+gptpdfSwOpts = Object.assign({}, gptpdfShared.defaultOptions);
 ['a4', 'letter'].forEach(function(size) {
     gptpdfSetSegment('gptpdf-page-size', size);
     eq('загрузка настроек показывает ' + size, gptpdfGetSegment('gptpdf-page-size'), size);
     seg.querySelector('[data-value="' + size + '"]').click();
-    eq('клик по ' + size + ' доезжает до настроек', gptpdfGetSettings().page_size, size);
+    eq('клик по ' + size + ' доезжает до настроек', gptpdfSwOpts.page_size, size);
 });
 
-// ── 3. Геометрия превью — Letter шире и ниже A4 ─────────────────────────────
-const doc = document.getElementById('gptpdf-preview-doc');
+// ── 3. Геометрия листа (preview.js) — Letter шире и ниже A4 ─────────────────
 function shape(size) {
-    gptpdfUpdatePreview(Object.assign({}, gptpdfShared.defaultOptions,
-        { page_size: size, orientation: '' }));
-    return { w: parseInt(doc.style.width), h: parseInt(doc.style.height) };
+    const p = gptpdfPaperPx({ page_size: size, orientation: '' });
+    return { w: p.w, h: p.h };
 }
 const a4 = shape('a4'), letter = shape('letter');
 eq('Letter шире A4', letter.w > a4.w, true);

@@ -81,8 +81,62 @@ gptpdfShared.defaultOptions = {
     q_rounded: true,
     page_size: gptpdfShared.defaultPageSize(),
     orientation: '',
-    single_page: false
+    single_page: false,
+    look_base: 'chat'
 }
+
+// ── The look of the page (1.2.6): three styles and the knobs under them ──
+// A style sets five knobs at once. Touching any knob makes the look the
+// person's own ("Custom") until a style is picked again — the Fill in the
+// Blank pattern (dizajn/obzor-2026-11-16 §8). Chat is the default: the base
+// the author approved on frames 16.11. `look_base` remembers which style the
+// person last picked, for "Custom · ↺ Chat".
+// The knob keys are not in defaultOptions on purpose: before 1.2.6 the only
+// size control was "Font size", a 70–200 % zoom of the whole sheet, and a
+// stored zoom has to become a text size (look() below) instead of being
+// covered by a default 11 pt.
+gptpdfShared.LOOK_STYLES = {
+    chat:    { look_font: 'sans',   look_size: 11, look_spacing: 'normal', q_look: 'bubble',  q_color: 'default' },
+    doc:     { look_font: 'serif',  look_size: 11, look_spacing: 'normal', q_look: 'heading', q_color: 'none' },
+    compact: { look_font: 'narrow', look_size: 10, look_spacing: 'tight',  q_look: 'heading', q_color: 'default' }
+};
+gptpdfShared.LOOK_NAMES = { chat: 'Chat', doc: 'Document', compact: 'Compact' };
+gptpdfShared.LOOK_KEYS = ['look_font', 'look_size', 'look_spacing', 'q_look', 'q_color'];
+gptpdfShared.LOOK_SIZE_MIN = 9;
+gptpdfShared.LOOK_SIZE_MAX = 14;
+
+// The look an export uses, from saved options (missing keys → Chat).
+gptpdfShared.look = function(o) {
+    o = o || {};
+    const chat = gptpdfShared.LOOK_STYLES.chat;
+    let size = parseFloat(o.look_size);
+    if(!(size > 0)) {
+        const zoom = parseFloat(o.zoom) || 100;
+        size = Math.round(chat.look_size * zoom / 100 * 2) / 2;
+    }
+    size = Math.min(gptpdfShared.LOOK_SIZE_MAX, Math.max(gptpdfShared.LOOK_SIZE_MIN, size));
+    return {
+        font: ['sans', 'serif', 'narrow'].indexOf(o.look_font) !== -1 ? o.look_font : chat.look_font,
+        size: size,
+        spacing: ['tight', 'normal', 'airy'].indexOf(o.look_spacing) !== -1 ? o.look_spacing : chat.look_spacing,
+        qLook: o.q_look === 'heading' ? 'heading' : 'bubble',
+        qColor: o.q_color || 'default'
+    };
+};
+
+// The style whose five knobs the options match exactly, or '' (Custom).
+gptpdfShared.lookStyle = function(o) {
+    const L = gptpdfShared.look(o);
+    const S = gptpdfShared.LOOK_STYLES;
+    for(const k in S) {
+        if(S[k].look_font === L.font && S[k].look_size === L.size &&
+           S[k].look_spacing === L.spacing && S[k].q_look === L.qLook &&
+           S[k].q_color === L.qColor) {
+            return k;
+        }
+    }
+    return '';
+};
 
 // Shown under the error dialog. Until 1.2.3 it was a fixed 'v3.9' left from the
 // donor fork, so a user's screenshot said nothing about which version failed
