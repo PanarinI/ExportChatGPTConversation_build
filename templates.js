@@ -1249,6 +1249,8 @@ ${GPTPDF_DARK} .gptpdf-sw-colors button { border-color: rgba(255,255,255,0.2); }
 .gptpdf-sw-custom input { width: 54px; height: 28px; border-radius: 7px; border: 1px solid rgba(0,0,0,0.15); background: transparent; color: inherit; text-align: center; font: inherit; font-size: 12.5px; }
 ${GPTPDF_DARK} .gptpdf-sw-custom input { border-color: rgba(255,255,255,0.2); }
 .gptpdf-sw-ver { margin-right: auto; font-size: 11.5px; opacity: .45; }
+.gptpdf-dev-stamp { padding: 2px 10px 4px; font-size: 10.5px; color: rgba(0,0,0,0.35); text-align: right; }
+${GPTPDF_DARK} .gptpdf-dev-stamp { color: rgba(255,255,255,0.35); }
 `;
 
 // Floating Export button + dropdown markup. Interpolates gptpdfShared.version
@@ -1378,6 +1380,8 @@ const EXPORT_BUTTON_HTML = `
                 <span class="gptpdf-star" data-n="5">★</span>
             </div>
         </div>
+        <!-- Dev builds only: which build is live in the browser (build.sh stamps it; prod is a clean number). -->
+        ${/-dev/.test(gptpdfShared.build) ? '<div class="gptpdf-dev-stamp">build ' + gptpdfShared.build + '</div>' : ''}
 
     </div>
 
