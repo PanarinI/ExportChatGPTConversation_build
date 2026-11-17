@@ -62,6 +62,12 @@ const PNG_SMALL = (function() {
 const memory = { sync: {}, local: {} };
 // ?pdftheme=dark — тёмный лист, как у человека, чей ChatGPT в тёмной теме (выгрузка 04.10 вышла пустой)
 if(/pdftheme=dark/.test(location.search)) memory.sync.options = { theme: 'dark' };
+// ?fmt=word|md — файл, который делает Export (1.2.9, formats.js); ?noq — Questions › Hidden
+(function() {
+    const f = /fmt=(pdf|word|md)/.exec(location.search);
+    if(f) memory.sync.options = Object.assign({}, memory.sync.options, { export_format: f[1] });
+    if(/[?&]noq\b/.test(location.search)) memory.sync.options = Object.assign({}, memory.sync.options, { no_questions: true });
+})();
 // ?look=chat|doc|compact — стиль листа 1.2.6 (значения те же, что gptpdfShared.LOOK_STYLES в shared.js)
 (function() {
     const m = /look=(chat|doc|compact)/.exec(location.search);
@@ -419,6 +425,8 @@ if(/prevchat=1/.test(location.search)) {
 <script src="../preview.js"></script>
 <script src="../settings.js"></script>
 <script src="../blockmode.js"></script>
+<script src="../formats.js"></script>
+<script src="../docx.js"></script>
 <script src="../common.js"></script>
 <script src="../request.js"></script>
 <script>

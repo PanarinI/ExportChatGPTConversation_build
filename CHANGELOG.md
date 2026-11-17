@@ -5,6 +5,25 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [Unreleased] — 1.2.9
+### Added
+- **Word and Markdown.** The Export menu now asks which file to make: PDF,
+  Word or Markdown. The Export button makes the one you picked, and its
+  tooltip names it. Word (.docx) opens in Word, Google Docs and Pages, to
+  edit; Markdown (.md) is plain text with headings, for Obsidian, Notion or
+  another AI. Both are made right in your browser, so the chat does not
+  leave your computer for them. Word keeps your Settings: the style, the
+  questions, paper and margins, a page per question, page numbers and the
+  header. Headings, lists, tables, code, links, pictures and formulas come
+  across as Word's own. Markdown keeps the questions and the header; it
+  marks where a picture was instead of carrying it.
+
+### Changed
+- **"AI answers only" moved to Settings**, as a third way to show questions:
+  Questions › Bubble, Heading or Hidden. "Select all" left the menu: Export
+  always takes the whole chat. "Select to export" is one line now; its
+  explanation is in its tooltip.
+
 ## [1.2.8] — 2026-11-17
 ### Changed
 - **The figure in the export card is now a character: a clerk from the past.**

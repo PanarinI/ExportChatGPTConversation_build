@@ -1,0 +1,191 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Word and Markdown — formats-test</title>
+<!--
+  1.2.9: the chat copy → Markdown and Word (formats.js, docx.js). Made-up markup of both ChatGPT pages
+  (classic .markdown and the new data-d-component answers), no real chats. Checks the Markdown text,
+  TeX read back from KaTeX's drawing, and a .docx opened back: zip, XML, the parts Word needs.
+  Run: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu \
+       --allow-file-access-from-files --virtual-time-budget=60000 --dump-dom "file://$PWD/tests/formats-test.html"
+-->
+<script>window.chrome = window.chrome || {}; chrome.runtime = chrome.runtime || { getManifest: function() { return { version: '1.2.9' }; } };</script>
+<script src="../shared.js"></script>
+<script src="../templates.js"></script>
+<script src="../helpers.js"></script>
+<script src="../theme.js"></script>
+<script src="../lib/katex.min.js"></script>
+<script src="../render.js"></script>
+<script src="../preview.js"></script>
+<script src="../formats.js"></script>
+<script src="../docx.js"></script>
+</head><body>
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+
+<template id="classic">
+<main>
+ <div data-testid="conversation-turn-1"><div data-message-author-role="user"><div data-user-message-bubble="true">
+  <span title="notes.csv">notes.csv</span>
+  <div class="whitespace-pre-wrap">Plan a trip.
+- one
+- two
+
+1. first</div></div></div></div>
+ <div data-testid="conversation-turn-2"><div data-message-author-role="assistant"><div class="markdown prose">
+  <h3>Your <strong>3-day</strong> plan</h3>
+  <p>A <strong>relaxed</strong> pace, <em>one</em> sight, <code>split_budget()</code> and <a href="https://example.com/a">a link</a>.</p>
+  <ul><li>Alfama<ul><li>castle</li></ul></li><li><input type="checkbox" checked disabled> book tickets</li></ul>
+  <ol start="3"><li>third</li><li>fourth</li></ol>
+  <table><thead><tr><th>Day</th><th style="text-align:right">Cost</th></tr></thead>
+   <tbody><tr><td>1 | a</td><td style="text-align:right">90</td></tr></tbody></table>
+  <pre><div><div>python</div><div><code class="language-python">def f(x):
+    return x * 2</code></div></div></pre>
+  <blockquote><p>quoted</p></blockquote>
+  <hr>
+  <p>Inline <span role="math" data-math-source="a^2+b^2=c^2"><span class="katex">a²</span></span> here.</p>
+  <span class="katex-display"><span role="math" data-math-source="\frac{1}{2}"><span class="katex">½</span></span></span>
+  <p class="sr-only">ChatGPT said:</p>
+ </div></div></div>
+</main>
+</template>
+
+<template id="fresh">
+<main>
+ <div data-testid="conversation-turn-1"><div data-message-author-role="user"><div class="whitespace-pre-wrap">Cluster the keys</div></div></div>
+ <div data-testid="conversation-turn-2"><div data-message-author-role="assistant"><div class="markdown"><div data-markdown-copy="contents">
+  <h2 data-d-component="title"><strong>1. Clusters</strong></h2>
+  <p data-d-component="text">Read <span data-d-component="text"><strong>1 603 rows</strong></span>, columns <code data-d-component="code">kd</code>.
+   <span class="contents" data-markdown-copy="contents"><span><a data-testid="chatgpt-citation" href="https://www.nalog.gov.ru/x" aria-label="Federal Tax Service: page, https://www.nalog.gov.ru/x, 1 more"><span><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt=""><span>Federal Tax Service</span></span><div>+1</div></a></span></span></p>
+  <div data-d-component="badge"><span data-d-component="favicon"></span>site +1</div>
+  <ul data-d-component="list"><li data-d-component="list-item"><div><div data-d-list-item-content=""><p data-d-component="text">study guide</p></div></div></li></ul>
+  <div data-d-component="table"><table><tbody>
+   <tr data-d-component="table-row"><th data-d-component="table-cell"><p data-d-component="text">Cluster</p></th><th data-d-align="end" data-d-component="table-cell"><p data-d-component="text">Volume</p></th></tr>
+   <tr data-d-component="table-row"><td data-d-component="table-cell"><p data-d-component="text">Guides</p></td><td data-d-align="end" data-d-component="table-cell"><p data-d-component="text">43 550</p></td></tr>
+  </tbody></table></div>
+  <div data-code-block="true" data-markdown-copy="code-block"><div data-markdown-copy="exclude">Код</div><div data-code-block-source="true"><code><span>a</span>
+<span>+ b</span></code></div></div>
+  <p data-d-component="text">Formula <span class="katex" id="kx"></span> end.</p>
+ </div></div></div></div>
+</main>
+</template>
+
+<script>
+const log = document.getElementById('log');
+let fails = 0;
+function check(name, cond, detail) {
+    if(!cond) fails++;
+    log.textContent += (cond ? '✓ ' : '✗ ') + name + (cond ? '' : '   ' + (detail || '')) + '\n';
+}
+function copyOf(id) {
+    return document.getElementById(id).content.firstElementChild.cloneNode(true);
+}
+const O = Object.assign({}, gptpdfShared.defaultOptions, { datetime_format: 'none', toc: 'basic' });
+// Two TeX strings are the same formula when KaTeX draws them the same (its note of the source aside).
+function sameMath(a, b) {
+    const ml = function(s) { return katex.renderToString(s, { output: 'mathml' }).replace(/<annotation[\s\S]*?<\/annotation>/, ''); };
+    try { return ml(a) === ml(b); } catch(e) { return false; }
+}
+
+(async function() {
+    // ── classic page → Markdown ──
+    const m1 = gptpdfFmtRead(copyOf('classic'), O);
+    const md = gptpdfToMarkdown(m1, O, 'Lisbon trip');
+    check('title', md.startsWith('# Lisbon trip\n'), md.slice(0, 40));
+    check('question with its label, typed lines kept and not read as a list',
+        md.includes('**You:**') && md.includes('\\- one') && md.includes('1\\. first'), md.slice(0, 300));
+    check('the file a question carried', md.includes('*File: notes.csv*'));
+    check('answer label', md.includes('**ChatGPT:**'));
+    check('heading without the bold inside', md.includes('### Your 3-day plan'), (md.match(/^###.*$/m) || [''])[0]);
+    check('bold, italic, code, link', md.includes('A **relaxed** pace, *one* sight, `split_budget()` and [a link](https://example.com/a).'));
+    check('nested list', /- Alfama\n  - castle/.test(md), (md.match(/- Alfama[\s\S]{0,30}/) || [''])[0]);
+    check('task item', md.includes('- [x] book tickets'));
+    check('ordered list keeps its start', md.includes('3. third\n4. fourth'));
+    check('table: header, right-aligned column, a | inside a cell',
+        md.includes('| Day | Cost |\n| --- | ---: |\n| 1 \\| a | 90 |'), (md.match(/\| Day[\s\S]{0,60}/) || [''])[0]);
+    check('code with its language', md.includes('```python\ndef f(x):\n    return x * 2\n```'));
+    check('quote and rule', md.includes('> quoted') && md.includes('\n---\n'));
+    check('formulas from their TeX', md.includes('$a^2+b^2=c^2$') && md.includes('$$\n\\frac{1}{2}\n$$'));
+    check('screen-reader labels stay out', !md.includes('ChatGPT said'));
+
+    // ── questions hidden, questions as headings ──
+    const hidden = gptpdfToMarkdown(gptpdfFmtRead(copyOf('classic'), Object.assign({}, O, { no_questions: true })),
+        Object.assign({}, O, { no_questions: true }), 'T');
+    check('Hidden: no questions, no labels', !hidden.includes('Plan a trip') && !hidden.includes('**You:**') && !hidden.includes('**ChatGPT:**'));
+    const H = Object.assign({}, O, gptpdfShared.LOOK_STYLES.doc);
+    const asHead = gptpdfToMarkdown(gptpdfFmtRead(copyOf('classic'), H), H, 'T');
+    check('Heading: the question is a ## heading, the answer one level down',
+        asHead.includes('## Plan a trip.') && asHead.includes('#### Your 3-day plan'), asHead.slice(0, 200));
+
+    // ── the new page: components, source pills, code block, formula drawn by KaTeX only ──
+    const fresh = copyOf('fresh');
+    fresh.querySelector('#kx').outerHTML = katex.renderToString('\\frac{a}{b}+x^{2}', { output: 'html' });
+    const md2 = gptpdfToMarkdown(gptpdfFmtRead(fresh, O), O, 'Keys');
+    check('new page: title heading', md2.includes('## 1. Clusters'));
+    check('new page: paragraph with bold and code', md2.includes('Read **1 603 rows**, columns `kd`.'));
+    check('source pill: one link with the source name, no +1',
+        md2.includes('[Federal Tax Service](https://www.nalog.gov.ru/x)') && !md2.includes('+1'), (md2.match(/Read[^\n]*/) || [''])[0]);
+    check('favicon badge stays out', !md2.includes('site +1'));
+    check('new page: table from tbody with th, right column',
+        md2.includes('| Cluster | Volume |\n| --- | ---: |\n| Guides | 43 550 |'), (md2.match(/\| Cluster[\s\S]{0,80}/) || [''])[0]);
+    check('new page: code block without the toolbar word', md2.includes('```\na\n+ b\n```') && !md2.includes('Код'));
+    const back = (md2.match(/Formula \$([^$]+)\$ end\./) || [])[1] || '';
+    check('TeX read back from KaTeX\'s drawing', !!back && sameMath(back, '\\frac{a}{b}+x^{2}'), (md2.match(/Formula[^\n]*/) || [''])[0]);
+
+    // ── TeX read back: more shapes, each drawn by KaTeX and read again ──
+    [['x_{i}^{2}', 'x_{i}^{2}'], ['\\sqrt{x+1}', '\\sqrt{x+1}'], ['\\sqrt[3]{8}', '\\sqrt[3]{8}'], ['\\alpha \\le \\beta', '\\alpha \\le \\beta'],
+     ['\\frac{x^{2}}{2}', '\\frac{x^{2}}{2}'], ['\\text{if } x', '\\text{if } x']].forEach(function(c) {
+        const box = document.createElement('div');
+        box.innerHTML = katex.renderToString(c[0], { output: 'html' });
+        const back = gptpdfKatexToTex(box.querySelector('.katex-html'));
+        check('KaTeX → TeX: ' + c[0], sameMath(back, c[1]), 'got ' + back);
+    });
+
+    // ── Word ──
+    const W = Object.assign({}, O, { page_numbers: true, page_break: 'after', source_link: false });
+    const bytes = await gptpdfToDocx(gptpdfFmtRead(copyOf('classic'), W), W, 'Lisbon trip');
+    check('docx is a zip', bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 3 && bytes[3] === 4);
+    const files = await unzip(bytes);
+    ['[Content_Types].xml', '_rels/.rels', 'word/document.xml', 'word/styles.xml', 'word/numbering.xml',
+     'word/settings.xml', 'word/_rels/document.xml.rels', 'word/footer1.xml', 'docProps/core.xml'].forEach(function(n) {
+        check('part ' + n, !!files[n]);
+    });
+    let allXml = true, bad = '';
+    Object.keys(files).forEach(function(n) {
+        if(!/\.(xml|rels)$/.test(n)) return;
+        const doc = new DOMParser().parseFromString(files[n], 'application/xml');
+        if(doc.getElementsByTagName('parsererror').length) { allXml = false; bad = n; }
+    });
+    check('every part is well-formed XML', allXml, bad);
+    const d = files['word/document.xml'] || '';
+    check('word: heading, list numbering, table, code style', /Heading3/.test(d) && /<w:numPr>/.test(d) && /<w:tbl>/.test(d) && /w:val="Code"/.test(d));
+    check('word: formulas as Word math', /<m:oMath>/.test(d) && /<m:oMathPara>/.test(d) && /<m:f>/.test(d) && /<m:sSup>/.test(d));
+    check('word: link with its address', /<w:hyperlink r:id="rId\d+"/.test(d) && (files['word/_rels/document.xml.rels'] || '').includes('https://example.com/a'));
+    check('word: question as a bookmark target, page numbers, A4 margins',
+        /w:name="gptpdf_q0"/.test(d) && /footerReference/.test(d) && /<w:pgSz w:w="11906" w:h="16838"\/>/.test(d));
+    check('word: ordered list starts at 3', /<w:startOverride w:val="3"\/>/.test(files['word/numbering.xml'] || ''));
+
+    log.textContent += fails ? '\nFAIL: ' + fails + '\n' : '\nall passed\n';
+})().catch(function(e) { log.textContent += '✗ crashed: ' + e + '\n' + (e.stack || '') + '\n'; });
+
+// A small unzip for the check: the central directory, then each part (stored or deflated).
+async function unzip(b) {
+    const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
+    let e = b.length - 22;
+    while(e > 0 && v.getUint32(e, true) !== 0x06054b50) e--;
+    const n = v.getUint16(e + 10, true);
+    let p = v.getUint32(e + 16, true);
+    const out = {};
+    for(let i = 0; i < n; i++) {
+        const method = v.getUint16(p + 10, true), csize = v.getUint32(p + 20, true);
+        const nameLen = v.getUint16(p + 28, true), extra = v.getUint16(p + 30, true), comment = v.getUint16(p + 32, true);
+        const off = v.getUint32(p + 42, true);
+        const name = new TextDecoder().decode(b.subarray(p + 46, p + 46 + nameLen));
+        const lNameLen = v.getUint16(off + 26, true), lExtra = v.getUint16(off + 28, true);
+        const data = b.subarray(off + 30 + lNameLen + lExtra, off + 30 + lNameLen + lExtra + csize);
+        let raw = data;
+        if(method === 8) raw = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+        out[name] = /\.(xml|rels)$/.test(name) ? new TextDecoder().decode(raw) : raw;
+        p += 46 + nameLen + extra + comment;
+    }
+    return out;
+}
+</script>
+</body></html>

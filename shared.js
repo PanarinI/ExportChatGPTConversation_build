@@ -82,7 +82,9 @@ gptpdfShared.defaultOptions = {
     page_size: gptpdfShared.defaultPageSize(),
     orientation: '',
     single_page: false,
-    look_base: 'chat'
+    look_base: 'chat',
+    // The file Export makes: 'pdf', 'word' or 'md' (1.2.9; formats.js).
+    export_format: 'pdf'
 }
 
 // ── The look of the page (1.2.6): three styles and the knobs under them ──

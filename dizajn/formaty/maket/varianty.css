@@ -1,0 +1,130 @@
+/* Макет 1.2.9 «форматы в меню» — стили вариантов A–D поверх настоящего меню (UI_CSS из templates.js).
+   Язык тот же, что у меню: скругление 10, подсветка выбранного — красный #EA4C3A. */
+
+/* ── полоса макета над чатом (для автора, по-русски) ── */
+#page-top.fx-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-weight: 400; font-size: 13px; }
+#page-top.fx-top b { font-weight: 600; }
+.fx-vs, .fx-th { display: inline-flex; gap: 4px; }
+.fx-vs a, .fx-th a { padding: 3px 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,.14); color: inherit; text-decoration: none; }
+.fx-vs a.on, .fx-th a.on { border-color: #EA4C3A; color: #c93a2a; font-weight: 600; background: rgba(234,76,58,.07); }
+.fx-vnote { flex-basis: 100%; color: #666; font-size: 12.5px; line-height: 1.4; }
+
+/* ── тёмная страница стенда (меню темнеет само, по html.dark) ── */
+html.fx-dark, html.fx-dark body { background: #212121 !important; color: #ececec !important; }
+html.fx-dark #page-top, html.fx-dark #side-head { border-color: #333 !important; color: #bbb; }
+html.fx-dark #side { border-color: #333 !important; background: #1b1b1b; }
+html.fx-dark .bubble { background: #303030 !important; color: #ececec; }
+html.fx-dark pre { background: #2a2a2a !important; }
+html.fx-dark .fx-vnote { color: #aaa; }
+html.fx-dark .fx-vs a, html.fx-dark .fx-th a { border-color: rgba(255,255,255,.18); }
+html.fx-dark .fx-vs a.on, html.fx-dark .fx-th a.on { color: #ff9b8f; background: rgba(234,76,58,.18); }
+
+/* ── общие куски ── */
+.fx-label { font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: rgba(0,0,0,.4); padding: 8px 6px 6px; }
+:is(html.dark) .fx-label { color: rgba(255,255,255,.38); }
+.fx-sep { height: 1px; margin: 6px 4px; background: rgba(0,0,0,.08); }
+:is(html.dark) .fx-sep { background: rgba(255,255,255,.08); }
+.fx-ico { display: block; flex: none; }
+/* «Select to export» одной строкой: описание уходит в подсказку */
+.fx-oneline .gptpdf-menu-desc { display: none; }
+
+/* значок формата на самой кнопке Export */
+#gptpdf-btn-left .fx-btn-ico { width: 15px; height: 18px; margin-right: .25rem; vertical-align: -3px; }
+
+/* ── A: плитки-выбор ── */
+.fx-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0 2px; }
+.fx-tile {
+    display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 4px 8px;
+    border: 1.5px solid rgba(0,0,0,.10); border-radius: 10px; background: transparent; color: inherit;
+    font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s;
+}
+.fx-tile:hover { background: rgba(0,0,0,.04); }
+.fx-tile.on { border-color: #EA4C3A; background: rgba(234,76,58,.07); color: #c93a2a; }
+:is(html.dark) .fx-tile { border-color: rgba(255,255,255,.14); }
+:is(html.dark) .fx-tile:hover { background: rgba(255,255,255,.06); }
+:is(html.dark) .fx-tile.on { border-color: #EA4C3A; background: rgba(234,76,58,.18); color: #ff9b8f; }
+.fx-hint { text-align: left; font-size: 12px; line-height: 1.35; color: rgba(0,0,0,.45); padding: 7px 6px 2px; min-height: 32px; }
+:is(html.dark) .fx-hint { color: rgba(255,255,255,.42); }
+
+/* ── B: строки-действия ── */
+.fx-row .gptpdf-menu-icon { background: transparent; }
+.fx-row .fx-dl { opacity: 0; color: rgba(0,0,0,.45); font-size: 16px; transition: opacity .15s; }
+.fx-row:hover .fx-dl { opacity: 1; }
+:is(html.dark) .fx-row .fx-dl { color: rgba(255,255,255,.5); }
+
+/* ── C: три листа ── */
+#gptpdf-extra-btns.fx-c { width: 440px; }
+.fx-c .gptpdf-menu-main { flex-direction: column; gap: 0; }
+.fx-sheets { display: flex; justify-content: center; gap: 8px; padding: 2px 4px 0; }
+.fx-sh {
+    display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 10px 8px 8px;
+    border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; cursor: pointer;
+}
+.fx-sh:hover { background: rgba(0,0,0,.04); }
+:is(html.dark) .fx-sh:hover { background: rgba(255,255,255,.06); }
+.fx-sh-wrap { position: relative; display: block; }
+.fx-sh-frame {
+    display: block; width: 92px; height: 130px; border-radius: 2px; background: #fff; overflow: hidden; position: relative;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.12); transition: transform .15s, box-shadow .15s;
+}
+.fx-sh:hover .fx-sh-frame { transform: translateY(-2px); }
+.fx-sh.on .fx-sh-frame { box-shadow: 0 0 0 2px #EA4C3A, 0 6px 16px rgba(234,76,58,.22); }
+.fx-sh-name { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; color: rgba(0,0,0,.6); }
+.fx-sh.on .fx-sh-name { color: #c93a2a; font-weight: 600; }
+:is(html.dark) .fx-sh-name { color: rgba(255,255,255,.6); }
+:is(html.dark) .fx-sh.on .fx-sh-name { color: #ff9b8f; }
+.fx-sh-pill {
+    position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); background: rgba(20,20,20,.82); color: #fff;
+    font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; opacity: 0; transition: opacity .15s;
+    pointer-events: none; white-space: nowrap;
+}
+.fx-sh.on:hover .fx-sh-pill { opacity: 1; }
+.fx-c-cap { text-align: center; font-size: 12px; color: rgba(0,0,0,.5); padding: 2px 0 4px; }
+.fx-c-cap a { color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; cursor: pointer; }
+.fx-c-cap b { color: rgba(0,0,0,.85); font-weight: 600; }
+:is(html.dark) .fx-c-cap { color: rgba(255,255,255,.5); }
+:is(html.dark) .fx-c-cap b { color: rgba(255,255,255,.9); }
+
+/* ── D: меню без форматов; формат — в окне настроек ── */
+#gptpdf-extra-btns.fx-d { width: 380px; }
+.fx-file { display: flex; align-items: center; gap: 12px; padding: 12px 20px 10px; border-bottom: 1px solid rgba(0,0,0,.08); }
+:is(html.dark) .fx-file { border-bottom-color: rgba(255,255,255,.08); }
+.fx-file .fx-label { padding: 0; min-width: 52px; }
+.fx-file .fx-tiles { flex: 1; padding: 0; }
+.fx-file .fx-tile { flex-direction: row; justify-content: center; padding: 7px 6px; gap: 7px; }
+
+/* ── лист Markdown: текст вместо страницы ── */
+.fx-md {
+    position: absolute; inset: 0; background: #fff; overflow: hidden; border-radius: 2px; text-align: left;
+}
+.fx-md pre {
+    margin: 0 !important; padding: 26px 24px !important; background: transparent !important; border-radius: 0 !important;
+    box-sizing: border-box; font: 13px/1.5 "Noto Sans Mono", ui-monospace, Menlo, monospace; color: #24292f; white-space: pre-wrap; word-break: break-word;
+    width: 420px; transform-origin: 0 0;
+}
+.fx-md .h { color: #0b5cad; font-weight: 700; }
+.fx-md .m { color: #8a6d00; }
+.fx-md .q { color: #6e7781; }
+
+/* ── окно настроек при Markdown: бумага и шрифты не при чём ── */
+.fx-off { opacity: .38; pointer-events: none; }
+.gptpdf-sw-tab.fx-off { pointer-events: auto; cursor: help; }
+.fx-md-note { text-align: left; font-size: 12.5px; line-height: 1.45; color: rgba(0,0,0,.55); background: rgba(0,0,0,.035); border-radius: 10px; padding: 10px 12px; margin: 0 0 14px; }
+:is(html.dark) .fx-md-note { color: rgba(255,255,255,.6); background: rgba(255,255,255,.05); }
+.fx-sw-md { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #efeff1; }
+:is(html.dark) .fx-sw-md { background: #1b1b1b; }
+.fx-sw-md .fx-md { position: relative; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 10px 30px rgba(0,0,0,.14); }
+
+/* тост макета: что было бы на самом деле */
+#fx-toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 2147483647;
+    background: #1f1f1f; color: #fff; font: 13px/1.45 system-ui, sans-serif; padding: 10px 16px; border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.25); max-width: 520px; opacity: 0; transition: opacity .2s; pointer-events: none;
+}
+#fx-toast.on { opacity: 1; }
+
+/* значок файла: лист и загиб — свои в каждой теме */
+.fx-ico .pg { fill: #fff; stroke: rgba(0,0,0,.32); }
+.fx-ico .fd { fill: none; stroke: rgba(0,0,0,.32); }
+:is(html.dark) .fx-ico .pg { fill: #3a3a3a; stroke: rgba(255,255,255,.45); }
+:is(html.dark) .fx-ico .fd { stroke: rgba(255,255,255,.45); }

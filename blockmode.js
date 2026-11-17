@@ -891,7 +891,7 @@ function setupBlockMode() {
             done();
             exitBlockMode();
             gptpdfChatGPT.showError(null,
-                'Failed to prepare the PDF:<br><small>' + err + '</small>');
+                'Failed to prepare ' + GPTPDF_FORMATS[gptpdfFormatNow].what + ':<br><small>' + err + '</small>');
         }
 
         gptpdfShared.getOptions(function(options) {
@@ -1094,6 +1094,20 @@ function setupBlockMode() {
                     el.remove();
                 }
             });
+
+            // Word and Markdown (1.2.9): the chosen blocks are written here, in
+            // the browser (formats.js), after the same cleaning the full export
+            // gives its copy — code widgets, checkboxes, made pictures.
+            const fmt = gptpdfFormat(options);
+            if(fmt !== 'pdf') {
+                gptpdfFlattenCodeWidgets(main_clone);
+                gptpdfCheckboxesToBoxes(main_clone);
+                gptpdfRemoveDateSeparators(main_clone);
+                extractDalleImages(main_clone);
+                const name = getTitle();
+                gptpdfMakeFile(fmt, main_clone, options, name, name, done);
+                return;
+            }
 
             // Dark sheet only when chosen — never from ChatGPT's own theme (1.2.6).
             const isDark = options.theme === 'dark';

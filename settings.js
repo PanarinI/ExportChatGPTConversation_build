@@ -69,7 +69,10 @@ function gptpdfSwSave() {
     gptpdfShared.getOptions(function(existing) {
         // Size is set in points now; the old whole-sheet zoom is retired.
         const next = Object.assign({}, existing, o, { zoom: 100 });
-        next.no_questions = existing.no_questions;
+        // Questions › Hidden is set here since 1.2.9 (it was the menu's
+        // "AI answers only"); the file type is the menu's.
+        next.no_questions = !!o.no_questions;
+        next.export_format = existing.export_format;
         try {
             chrome.storage.sync.set({ options: next });
         } catch(e) {
@@ -93,7 +96,7 @@ function gptpdfSwRender() {
 
     gptpdfSetSegment('gptpdf-look-font', o.look_font);
     gptpdfSetSegment('gptpdf-look-spacing', o.look_spacing);
-    gptpdfSetSegment('gptpdf-q-look', o.q_look);
+    gptpdfSetSegment('gptpdf-q-look', o.no_questions ? 'hidden' : o.q_look);
     gptpdfSetSegment('gptpdf-page-size', o.page_size || 'a4');
     gptpdfSetSegment('gptpdf-orientation', o.orientation || '');
     gptpdfSetSegment('gptpdf-margins', o.margins || '');
@@ -175,6 +178,9 @@ function gptpdfSwRender() {
             (o.orientation === 'landscape' ? 'landscape' : 'portrait');
         if(src && src.empty) {
             t = 'Open a chat to see its first page here.';
+        } else if(typeof gptpdfFormat === 'function' && gptpdfFormat(o) === 'md') {
+            // Markdown has no pages: the sheet is the start of the file.
+            t = 'The start of the .md file' + (src && !src.startLoaded ? ' — from the part of the chat on your screen' : '');
         } else if(src && !src.startLoaded) {
             // A long chat loads from the end: the beginning is not on the page
             // yet. Say so rather than pass a middle page off as page 1.
@@ -192,6 +198,41 @@ function gptpdfSwRender() {
 
     const ver = document.getElementById('gptpdf-sw-ver');
     if(ver) ver.textContent = 'ExportGPT ' + String(gptpdfShared.version || '').replace(/^v/, '');
+    gptpdfSwFormat(o);
+}
+
+// What the chosen file takes from these settings (1.2.9). Markdown is plain
+// text: no fonts, sizes, colours or paper — questions and the header only.
+// Word takes the look and the page, but not a dark sheet or one long page.
+// What does not apply is dimmed, with a word why; nothing is lost — it comes
+// back for a PDF.
+function gptpdfSwFormat(o) {
+    const fmt = typeof gptpdfFormat === 'function' ? gptpdfFormat(o) : 'pdf';
+    const md = fmt === 'md', word = fmt === 'word';
+    const off = function(el, yes, why) {
+        if(!el) return;
+        el.classList.toggle('gptpdf-fmt-off', !!yes);
+        if(yes) el.title = why; else if(el.dataset.gptpdfTitle !== undefined) el.title = el.dataset.gptpdfTitle;
+    };
+    const keep = function(el) { if(el && el.dataset.gptpdfTitle === undefined) el.dataset.gptpdfTitle = el.title || ''; return el; };
+    const row = function(id) { const e = document.getElementById(id); return e && keep(e.closest('.gptpdf-sw-row')); };
+    const note = document.getElementById('gptpdf-sw-fmt-note');
+    if(note) {
+        note.textContent = md ? 'Markdown is plain text: the font, size, spacing, colour and paper do not apply. ' +
+            'Questions and the Header tab do.' : '';
+        note.classList.toggle('on', md);
+    }
+    const plain = 'Markdown is plain text';
+    off(keep(document.getElementById('gptpdf-sw-tiles')), md, plain);
+    off(row('gptpdf-look-font'), md, plain);
+    off(row('gptpdf-look-size'), md, plain);
+    off(row('gptpdf-look-spacing'), md, plain);
+    const colors = row('gptpdf-q-colors');
+    off(colors, md || !!o.no_questions, o.no_questions ? 'Questions are hidden — there is nothing to colour' : plain);
+    off(keep(document.querySelector('#gptpdf-settings-modal .gptpdf-sw-tab[data-tab="paper"]')), md, 'Markdown has no paper');
+    off(keep(document.querySelector('#gptpdf-settings-modal .gptpdf-sw-pane[data-pane="paper"]')), md, 'Markdown has no paper');
+    off(keep(document.querySelector('#gptpdf-theme .gptpdf-theme-card[data-value="dark"]')), word, 'A Word document is always white');
+    off(keep(document.querySelector('#gptpdf-page-break .gptpdf-seg-btn[data-value="long"]')), word, 'A Word document has pages');
 }
 
 // Wire up the window. Called from common.js init() AFTER the markup is in the
@@ -246,6 +287,12 @@ function wireSettings() {
                 }
                 const key = SEGMENT_KEYS[seg.id];
                 if(!key) return;
+                // Questions: Bubble, Heading — or Hidden (no_questions), the
+                // menu's old "AI answers only" (1.2.9).
+                if(key === 'q_look') {
+                    gptpdfSwSet(v === 'hidden' ? { no_questions: true } : { q_look: v, no_questions: false });
+                    return;
+                }
                 const change = {};
                 change[key] = v;
                 // Custom margins start from the margins the sheet has now.
@@ -309,7 +356,7 @@ function wireSettings() {
     document.getElementById('gptpdf-settings-reset').addEventListener('click', function() {
         if(!gptpdfSwOpts) return;
         const fresh = Object.assign({}, gptpdfShared.defaultOptions, gptpdfShared.LOOK_STYLES.chat,
-            { look_base: 'chat', theme: 'light', no_questions: gptpdfSwOpts.no_questions });
+            { look_base: 'chat', theme: 'light', no_questions: false, export_format: gptpdfSwOpts.export_format });
         gptpdfSwOpts = fresh;
         gptpdfSwSave();
         gptpdfSwRender();

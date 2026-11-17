@@ -149,11 +149,46 @@ function gptpdfFitSheet(area, scale) {
 
 // Draw page 1 into `frame` (an element the caller owns and sizes nothing in).
 // opt: { width, maxH, tiny } — tiny skips the text-fitting pass (tiles, menu).
+// Markdown has no page (1.2.9): the sheet shows the file's first lines — this
+// chat's own, written the way the export writes them (formats.js).
+function gptpdfDrawMdSheet(frame, o, opt) {
+    const src = gptpdfSheetSource(false);
+    const W = 420, H = Math.round(W * 1.4142);
+    let scale = opt.width / W;
+    if(opt.maxH) scale = Math.min(scale, opt.maxH / H);
+    frame.style.width = Math.round(W * scale) + 'px';
+    frame.style.height = Math.round(H * scale) + 'px';
+    let md = '';
+    try {
+        md = gptpdfToMarkdown(gptpdfFmtRead(src.clone.cloneNode(true), o), o, src.title);
+    } catch(e) {
+        console.log('[gptpdf] markdown sheet', e);
+    }
+    const lines = md.split('\n').slice(0, 70).map(function(l) {
+        const e = gptpdfEscapeHtml(l.length > 400 ? l.slice(0, 400) : l);
+        if(/^#{1,6} /.test(l)) return '<span class="h">' + e + '</span>';
+        if(/^\*\*(You|ChatGPT):\*\*/.test(l)) return e.replace(/^(\*\*(?:You|ChatGPT):\*\*)/, '<span class="m">$1</span>');
+        if(/^(\||```|---$)/.test(l)) return '<span class="q">' + e + '</span>';
+        return e.replace(/^(\s*(?:[-*+]|\d+\.) )/, '<span class="m">$1</span>');
+    });
+    let root = frame.shadowRoot;
+    if(!root) root = frame.attachShadow({ mode: 'open' });
+    root.innerHTML = '<style>:host{all:initial;display:block;position:relative;overflow:hidden;background:#fff}' +
+        'pre{position:absolute;left:0;top:0;margin:0;padding:26px 24px;box-sizing:border-box;width:' + W + 'px;height:' + H + 'px;' +
+        'overflow:hidden;transform-origin:0 0;transform:scale(' + scale + ');font:13px/1.5 "Noto Sans Mono",ui-monospace,Menlo,monospace;' +
+        'color:#24292f;white-space:pre-wrap;word-break:break-word;text-align:left;background:#fff}' +
+        '.h{color:#0b5cad;font-weight:700}.m{color:#8a6d00}.q{color:#6e7781}</style><pre>' + lines.join('\n') + '</pre>';
+    return src;
+}
+
 function gptpdfDrawSheet(frame, o, opt) {
     opt = opt || {};
+    if(typeof gptpdfFormat === 'function' && gptpdfFormat(o) === 'md') return gptpdfDrawMdSheet(frame, o, opt);
     const src = gptpdfSheetSource(false);
     const paper = gptpdfPaperPx(o);
-    const single = !!o.single_page;
+    // Word has pages and a white sheet (1.2.9): its page 1 is drawn so.
+    const pdf = typeof gptpdfFormat !== 'function' || gptpdfFormat(o) === 'pdf';
+    const single = !!o.single_page && pdf;
     const W = paper.w;
     const H = single ? paper.h * 1.9 : paper.h;
     let scale = opt.width / W;
@@ -163,7 +198,7 @@ function gptpdfDrawSheet(frame, o, opt) {
     frame.style.width = Math.round(W * scale) + 'px';
     frame.style.height = Math.round(shownH) + 'px';
 
-    const dark = o.theme === 'dark';
+    const dark = o.theme === 'dark' && pdf;
     const look = gptpdfShared.look(o);
     const theme = EXPORT_THEMES[look.qColor] || EXPORT_THEMES['default'];
     let css = gptpdfScopeCss(buildExportCss(theme, dark, look));
@@ -323,11 +358,12 @@ function gptpdfRenderMenuSheet() {
             console.log('[gptpdf] menu sheet failed', e);
         }
         const style = gptpdfShared.lookStyle(o);
+        const fmt = typeof gptpdfFormat === 'function' ? gptpdfFormat(o) : 'pdf';
         const name = document.getElementById('gptpdf-menu-style');
-        if(name) name.textContent = style ? gptpdfShared.LOOK_NAMES[style] : 'Custom';
+        if(name) name.textContent = fmt === 'md' ? 'Plain text' : (style ? gptpdfShared.LOOK_NAMES[style] : 'Custom');
         const paper = document.getElementById('gptpdf-menu-paper');
-        if(paper) paper.textContent = (o.page_size === 'letter' ? 'Letter' : 'A4') +
-            (o.theme === 'dark' ? ' · dark' : '');
+        if(paper) paper.textContent = fmt === 'md' ? '' : (o.page_size === 'letter' ? 'Letter' : 'A4') +
+            (o.theme === 'dark' && fmt === 'pdf' ? ' · dark' : '') + ' · ';
     });
     gptpdfSheetFonts();
     gptpdfKatexCssLoad();

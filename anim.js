@@ -90,7 +90,7 @@ const gptpdfAnim = (function() {
         // The book the stack becomes: a cover and its title.
         el.cover = mk('rect', { x: 265, rx: 2.5, width: 40, class: 'a-cover', opacity: 0 }, svg);
         el.title = mk('text', { x: 285, class: 'a-title', 'text-anchor': 'middle', opacity: 0 }, svg);
-        el.title.textContent = 'PDF';
+        el.title.textContent = 'PDF';   // the file's own word on export (bookTitle)
         el.fly = mk('rect', { width: 14, height: 7, rx: 2, class: 'a-sheet', opacity: 0 }, svg);
         el.armB = mk('path', { class: 'a-arm' }, svg);
         el.legL = mk('line', { class: 'a-leg' }, svg);
@@ -376,7 +376,7 @@ const gptpdfAnim = (function() {
             stop();
             return;
         }
-        const m = /^(Loading conversation|Loading older messages|Reading|Filling in|Paused|Preparing the PDF|Adding images|Compressing images|Creating the PDF)\D*(\d+)?/
+        const m = /^(Loading conversation|Loading older messages|Reading|Filling in|Paused|Preparing the|Writing the|Adding images|Compressing images|Creating the PDF)\D*(\d+)?/
             .exec(String(text || ''));
         if(!m) {
             stop();
@@ -389,6 +389,10 @@ const gptpdfAnim = (function() {
         const which = (m[1] === 'Reading' || m[1] === 'Filling in') ? 'reading'
             : /^Loading/.test(m[1]) ? 'loading' : 'binding';
         step(which, which === 'binding' ? undefined : (m[2] ? parseInt(m[2], 10) : undefined));
+        // The book on his stack says which file it becomes (1.2.9).
+        if(el && el.title && typeof GPTPDF_FORMATS !== 'undefined' && typeof gptpdfFormatNow !== 'undefined') {
+            el.title.textContent = (GPTPDF_FORMATS[gptpdfFormatNow] || GPTPDF_FORMATS.pdf).book;
+        }
     }
 
     return {

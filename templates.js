@@ -1224,6 +1224,37 @@ ${GPTPDF_DARK} #gptpdf-preview-label { color: rgba(255,255,255,0.28); }
 #gptpdf-extra-btns { min-width: 0; width: 440px; }
 .gptpdf-menu-main { display: flex; gap: 4px; align-items: stretch; }
 .gptpdf-menu-actions { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+/* ── 1.2.9: the file Export makes — PDF · Word · Markdown ── */
+.gptpdf-fmt-label { font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: rgba(0,0,0,.4); padding: 8px 6px 6px; text-align: left; }
+${GPTPDF_DARK} .gptpdf-fmt-label { color: rgba(255,255,255,.38); }
+.gptpdf-fmt-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0 2px; }
+.gptpdf-fmt-tile {
+    display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 4px 8px;
+    border: 1.5px solid rgba(0,0,0,.10); border-radius: 10px; background: transparent; color: rgba(0,0,0,.85);
+    font: inherit; font-size: 13px; font-weight: 500; line-height: 1.2; cursor: pointer; transition: background .15s;
+}
+.gptpdf-fmt-tile:hover { background: rgba(0,0,0,.04); }
+.gptpdf-fmt-tile.on { border-color: #EA4C3A; background: rgba(234,76,58,.07); color: #c93a2a; }
+${GPTPDF_DARK} .gptpdf-fmt-tile { border-color: rgba(255,255,255,.14); color: rgba(255,255,255,.92); }
+${GPTPDF_DARK} .gptpdf-fmt-tile:hover { background: rgba(255,255,255,.06); }
+${GPTPDF_DARK} .gptpdf-fmt-tile.on { border-color: #EA4C3A; background: rgba(234,76,58,.18); color: #ff9b8f; }
+.gptpdf-fmt-ico { display: block; flex: none; }
+.gptpdf-fmt-ico .pg { fill: #fff; stroke: rgba(0,0,0,.32); }
+.gptpdf-fmt-ico .fd { fill: none; stroke: rgba(0,0,0,.32); }
+${GPTPDF_DARK} .gptpdf-fmt-ico .pg { fill: #3a3a3a; stroke: rgba(255,255,255,.45); }
+${GPTPDF_DARK} .gptpdf-fmt-ico .fd { stroke: rgba(255,255,255,.45); }
+.gptpdf-fmt-hint { text-align: left; font-size: 12px; line-height: 1.35; color: rgba(0,0,0,.45); padding: 7px 6px 2px; min-height: 32px; }
+${GPTPDF_DARK} .gptpdf-fmt-hint { color: rgba(255,255,255,.42); }
+.gptpdf-fmt-sep { height: 1px; margin: 6px 4px; background: rgba(0,0,0,.08); }
+${GPTPDF_DARK} .gptpdf-fmt-sep { background: rgba(255,255,255,.08); }
+/* the Markdown sheet: the file's first lines */
+.gptpdf-md-sheet { position: absolute; inset: 0; background: #fff; overflow: hidden; border-radius: 2px; text-align: left; }
+/* Settings, when the file is Markdown or Word: what does not apply is dimmed */
+.gptpdf-sw-fmt-note { display: none; text-align: left; font-size: 12.5px; line-height: 1.45; color: rgba(0,0,0,.55); background: rgba(0,0,0,.035); border-radius: 10px; padding: 10px 12px; margin: 0 0 14px; }
+.gptpdf-sw-fmt-note.on { display: block; }
+${GPTPDF_DARK} .gptpdf-sw-fmt-note { color: rgba(255,255,255,.6); background: rgba(255,255,255,.05); }
+.gptpdf-fmt-off { opacity: .38; pointer-events: none; }
+.gptpdf-sw-tab.gptpdf-fmt-off { pointer-events: auto; cursor: help; }
 .gptpdf-sheet-entry {
     flex: 0 0 120px; display: flex; flex-direction: column; align-items: center; gap: 7px;
     padding: 10px 6px 8px; border-radius: 10px; text-decoration: none !important; color: inherit;
@@ -1345,6 +1376,23 @@ const SELECT_ALL_ROW_HTML = `
     <input type="checkbox" class="gptpdf-sel-cb" style="margin-left:auto">`;
 
 // (defined in shared.js, loaded before this file).
+// File icons for the format tiles (1.2.9): a page with a folded corner and a
+// coloured band with the format's letters. Not any company's logo.
+const GPTPDF_FILE_ICONS = {
+    pdf:  { color: '#E5322D', label: 'PDF', fs: 7.2 },
+    word: { color: '#2B5797', label: 'W',   fs: 9 },
+    md:   { color: '#3D444D', label: 'MD',  fs: 7.4 }
+};
+function gptpdfFileIcon(f, w, h) {
+    const F = GPTPDF_FILE_ICONS[f];
+    return '<svg class="gptpdf-fmt-ico" width="' + w + '" height="' + h + '" viewBox="0 0 24 28" aria-hidden="true">' +
+        '<path class="pg" d="M5.5 1.5h9.5l6.5 6.5v16.5a2 2 0 0 1-2 2h-14a2 2 0 0 1-2-2v-21a2 2 0 0 1 2-2z" stroke-width="1.2"/>' +
+        '<path class="fd" d="M15 1.5v4.5a2 2 0 0 0 2 2h4.5" stroke-width="1.2"/>' +
+        '<rect x="0.6" y="13.2" width="18" height="9.4" rx="2" fill="' + F.color + '"/>' +
+        '<text x="9.6" y="20.5" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="' + F.fs +
+        '" font-weight="700" fill="#fff">' + F.label + '</text></svg>';
+}
+
 const EXPORT_BUTTON_HTML = `
     <button
         id="gptpdf-convert-main"
@@ -1397,45 +1445,24 @@ const EXPORT_BUTTON_HTML = `
         <a id="gptpdf-options" href="#" class="gptpdf-sheet-entry"
            title="How your PDF will look — page 1 of this chat. Click to change the style, paper and header.">
             <span class="gptpdf-sheet-wrap"><span class="gptpdf-sheet-frame" id="gptpdf-menu-sheet"></span><span class="gptpdf-sheet-pill">Settings</span></span>
-            <span class="gptpdf-sheet-cap"><b id="gptpdf-menu-style">Chat</b><br><span id="gptpdf-menu-paper">A4</span> · Settings&nbsp;›</span>
+            <span class="gptpdf-sheet-cap"><b id="gptpdf-menu-style">Chat</b><br><span id="gptpdf-menu-paper">A4 · </span>Settings&nbsp;›</span>
         </a>
         <div class="gptpdf-menu-actions">
-        <button
-            id="gptpdf-everything"
-            type="button"
-            class="gptpdf-extra-btn">
-            <span class="gptpdf-menu-icon">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="1.5" y="2.5" width="10" height="6.5" rx="2"/>
-                    <rect x="6.5" y="9" width="10" height="6.5" rx="2"/>
-                </svg>
-            </span>
-            <span class="gptpdf-menu-text">
-                <span class="gptpdf-menu-title">Select all</span>
-                <span class="gptpdf-menu-desc">Your prompts + AI answers</span>
-            </span>
-        </button>
-
-        <button
-            id="gptpdf-ai-only"
-            type="button"
-            class="gptpdf-extra-btn">
-            <span class="gptpdf-menu-icon">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M2 4a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2H5l-3 3V4z"/>
-                    <path d="M12.5 2.5l-.6 1.3-1.3.6 1.3.6.6 1.3.6-1.3 1.3-.6-1.3-.6-.6-1.3z" fill="currentColor" stroke="none"/>
-                </svg>
-            </span>
-            <span class="gptpdf-menu-text">
-                <span class="gptpdf-menu-title">AI answers only</span>
-                <span class="gptpdf-menu-desc">Exclude your prompts from the PDF</span>
-            </span>
-        </button>
-
+            <!-- 1.2.9: which file Export makes. "Select all" went (Export takes everything anyway),
+                 "AI answers only" moved to Settings as Questions · Hidden. common.js wires the tiles. -->
+            <div class="gptpdf-fmt-label">Save as</div>
+            <div class="gptpdf-fmt-tiles" id="gptpdf-formats" role="radiogroup" aria-label="File type">
+                <button type="button" class="gptpdf-fmt-tile" data-format="pdf" role="radio" title="PDF (.pdf) — pages to keep, send or print">${gptpdfFileIcon('pdf', 28, 33)}<span>PDF</span></button>
+                <button type="button" class="gptpdf-fmt-tile" data-format="word" role="radio" title="Word (.docx) — a document to edit in Word, Google Docs or Pages">${gptpdfFileIcon('word', 28, 33)}<span>Word</span></button>
+                <button type="button" class="gptpdf-fmt-tile" data-format="md" role="radio" title="Markdown (.md) — plain text for Obsidian, Notion or another AI">${gptpdfFileIcon('md', 28, 33)}<span>Markdown</span></button>
+            </div>
+            <div class="gptpdf-fmt-hint" id="gptpdf-fmt-hint"></div>
+            <div class="gptpdf-fmt-sep"></div>
         <button
             id="gptpdf-blocks"
             type="button"
-            class="gptpdf-extra-btn">
+            title="Pick the blocks you want in the file — the rest stays out"
+            class="gptpdf-extra-btn gptpdf-oneline">
             <span class="gptpdf-menu-icon">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="1.5" y="4" width="7" height="7" rx="1.5"/>
@@ -1445,13 +1472,10 @@ const EXPORT_BUTTON_HTML = `
             </span>
             <span class="gptpdf-menu-text">
                 <span class="gptpdf-menu-title">Select to export</span>
-                <span class="gptpdf-menu-desc">Pick blocks to export</span>
             </span>
         </button>
         </div>
       </div>
-
-        <div class="gptpdf-divider"></div>
 
         <div class="gptpdf-rate-row">
             <span>Rate us</span>
@@ -1558,6 +1582,7 @@ const EXPORT_BUTTON_HTML = `
             <div class="gptpdf-sw-panes">
 
               <div class="gptpdf-sw-pane on" data-pane="style">
+                <div class="gptpdf-sw-fmt-note" id="gptpdf-sw-fmt-note"></div>
                 <div class="gptpdf-sw-sec">
                   <span class="gptpdf-sw-sec-l">Style</span>
                   <button class="gptpdf-sw-state" id="gptpdf-sw-state"></button>
@@ -1597,6 +1622,7 @@ const EXPORT_BUTTON_HTML = `
                   <div class="gptpdf-segment" id="gptpdf-q-look">
                     <button class="gptpdf-seg-btn" data-value="bubble" title="A bubble on the right — like in ChatGPT"><svg width="30" height="18" viewBox="0 0 30 18"><rect x="11" y="2" width="17" height="7" rx="3.5" fill="currentColor" opacity=".55"/><path d="M2 12.5h26M2 16h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".55"/></svg>Bubble</button>
                     <button class="gptpdf-seg-btn" data-value="heading" title="A bold line across the page — like a report"><svg width="30" height="18" viewBox="0 0 30 18"><path d="M2 4.5h20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M2 11h26M2 15h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".55"/></svg>Heading</button>
+                    <button class="gptpdf-seg-btn" data-value="hidden" title="Only the AI answers — your questions stay out of the file"><svg width="30" height="18" viewBox="0 0 30 18"><path d="M2 4.5h26M2 9h26M2 13.5h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".55"/></svg>Hidden</button>
                   </div>
                 </div>
                 <div class="gptpdf-sw-row">

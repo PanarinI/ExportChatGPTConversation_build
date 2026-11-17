@@ -213,17 +213,20 @@ gptpdfChatGPT.init = function() {
         }
         // The scrolling's card goes straight on — no blank moment between steps.
         if(gptpdfExportCard.shown) {
-            gptpdfExportStep('Preparing the PDF…');
+            gptpdfExportStep('Preparing ' + GPTPDF_FORMATS[gptpdfFormatNow].what + '…');
         }
 
         gptpdfShared.getOptions(function(options) {
             // The open chat, not the hidden previous one (helpers.js).
             let main = gptpdfChatRoot();
+            // Markdown carries no pictures (formats.js): nothing to fetch.
+            const fmt = gptpdfFormat(options);
+            const noPictures = fmt === 'md';
 
             // Lock computed image sizes and convert external images to base64
             const imgPromises = [];
             const liveImgs = [];
-            main.querySelectorAll('img').forEach(function(img) {
+            (noPictures ? [] : main.querySelectorAll('img')).forEach(function(img) {
                 gptpdfLiveImagesSave(img, liveImgs);
                 gptpdfMarkPicture(img, img.getAttribute('src'));
                 const isGallery = !!img.closest('.no-scrollbar');
@@ -308,7 +311,7 @@ gptpdfChatGPT.init = function() {
             // Second-pass: convert any images that came in via virtualized turns
             // (they were captured as raw HTML with original URLs, not base64)
             const lateImgPromises = [];
-            main_clone.querySelectorAll('img').forEach(function(img) {
+            (noPictures ? [] : main_clone.querySelectorAll('img')).forEach(function(img) {
                 const src = img.getAttribute('src') || '';
                 if (!src || src.startsWith('data:')) return;
                 if (src.startsWith('blob:')) {
@@ -353,6 +356,13 @@ gptpdfChatGPT.init = function() {
             const cleanup = restoreButtonState;
 
             function doConvert() {
+                // Word and Markdown are written here, in the browser (formats.js,
+                // docx.js) — from this same copy, before the PDF's own touches.
+                if(fmt !== 'pdf') {
+                    if(/-dev/.test(gptpdfShared.build)) gptpdfDevHarvest(turnCache, filename, false);
+                    gptpdfMakeFile(fmt, main_clone, options, title, filename, cleanup);
+                    return;
+                }
                 // Resolve theme and dark mode before building data object
                 const theme = EXPORT_THEMES[options.q_color] || EXPORT_THEMES['default'];
                 // Dark sheet only when chosen — never from ChatGPT's own theme (1.2.6).
@@ -594,8 +604,8 @@ gptpdfChatGPT.init = function() {
 
     // Hook into saveBlob — fires on every successful export
     const _gptpdfOrigSaveBlob = gptpdfChatGPT.saveBlob;
-    gptpdfChatGPT.saveBlob = function(url, filename) {
-        _gptpdfOrigSaveBlob.call(this, url, filename);
+    gptpdfChatGPT.saveBlob = function(url, filename, format) {
+        _gptpdfOrigSaveBlob.call(this, url, filename, format);
         // Rate Us appears from the 2nd successful export onward (not the 1st),
         // and only until the user has rated. Count exports in storage.
         // Also honor the legacy 'pcr_rated' key — users who rated on a pre-rename
@@ -962,50 +972,41 @@ if (singlePageBtn) {
     });
 }
 
-// "Everything" and "AI answers only" are the two halves of one setting
-// (`no_questions`), shown as a lit pair. The full export was always the
-// default, but the menu named only the narrower mode — so a user could not
-// tell what the plain Export button did, and asked how to include their own
-// prompts (user report 2026-07-20). Naming the default fixes that without
-// changing any behavior. Clicking a half SETS its value rather than toggling:
-// with both halves visible, a toggle would let the lit one turn itself off.
-const aiOnlyBtn = document.getElementById('gptpdf-ai-only');
-const everythingBtn = document.getElementById('gptpdf-everything');
-
-function gptpdfPaintScope(noQuestions) {
-    if(everythingBtn) {
-        everythingBtn.classList.toggle('gptpdf-active', !noQuestions);
-    }
-    if(aiOnlyBtn) {
-        aiOnlyBtn.classList.toggle('gptpdf-active', !!noQuestions);
-    }
+// The file Export makes (1.2.9): PDF, Word or Markdown, chosen in the menu,
+// kept in the options, shown by the lit tile and the line under the tiles.
+// The button keeps its own picture (author 17.11: «миниатюру не менять») —
+// its tooltip names the file. "Select all" and "AI answers only" left the menu:
+// Export takes everything anyway, and hiding questions is Settings › Questions ›
+// Hidden now (the same `no_questions`).
+function gptpdfPaintFormat(f) {
+    gptpdfFormatNow = GPTPDF_FORMATS[f] ? f : 'pdf';
+    document.querySelectorAll('#gptpdf-formats .gptpdf-fmt-tile').forEach(function(t) {
+        const on = t.dataset.format === gptpdfFormatNow;
+        t.classList.toggle('on', on);
+        t.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    const F = GPTPDF_FORMATS[gptpdfFormatNow];
+    const hint = document.getElementById('gptpdf-fmt-hint');
+    if(hint) hint.textContent = F.hint;
+    const btn = document.getElementById('gptpdf-convert-main');
+    if(btn) btn.title = 'Export as ' + F.name + ' (' + F.ext + ')';
+    if(typeof gptpdfRenderMenuSheet === 'function') gptpdfRenderMenuSheet();
 }
 
-function gptpdfSetScope(noQuestions) {
+function gptpdfSetFormat(f) {
     gptpdfShared.getOptions(function(options) {
-        options.no_questions = noQuestions;
-        chrome.storage.sync.set({options: options});
-        gptpdfPaintScope(noQuestions);
+        options.export_format = f;
+        chrome.storage.sync.set({ options: options });
+        gptpdfPaintFormat(f);
     });
 }
 
-if (aiOnlyBtn || everythingBtn) {
-    gptpdfShared.getOptions(function(options) {
-        gptpdfPaintScope(options.no_questions);
-    });
-}
-
-if (everythingBtn) {
-    everythingBtn.addEventListener('click', function() {
-        gptpdfSetScope(false);
-    });
-}
-
-if (aiOnlyBtn) {
-    aiOnlyBtn.addEventListener('click', function() {
-        gptpdfSetScope(true);
-    });
-}
+gptpdfShared.getOptions(function(options) {
+    gptpdfPaintFormat(gptpdfFormat(options));
+});
+document.querySelectorAll('#gptpdf-formats .gptpdf-fmt-tile').forEach(function(t) {
+    t.addEventListener('click', function() { gptpdfSetFormat(t.dataset.format); });
+});
     const options_el = document.getElementById('gptpdf-options');
     if(gptpdfShared.hasOptions) {
         options_el.addEventListener('click', function(e) {
@@ -1082,11 +1083,11 @@ gptpdfChatGPT.showError = function(status, text, hideContact) {
   document.getElementById('gptpdf-error-overlay').style.display = 'flex';
 };
 
-gptpdfChatGPT.saveBlob = function(url, filename) {
+gptpdfChatGPT.saveBlob = function(url, filename, format) {
     // `layout` says which ChatGPT page the export ran on (helpers.js): the new
     // one cannot be tested live from our account, so the field has to say
-    // whether exports there go through.
-    sendGA4Event('export_completed', { layout: gptpdfLayoutName() });
+    // whether exports there go through. `format`: pdf, word or md (1.2.9).
+    sendGA4Event('export_completed', { layout: gptpdfLayoutName(), format: format || 'pdf' });
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
