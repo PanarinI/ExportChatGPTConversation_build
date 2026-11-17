@@ -1,33 +1,44 @@
-// The figure in the export card while the chat is read (author 17.11, chosen
-// from two sketches; mockup dizajn/animaciya/maket-a-v2.html).
+// The figure in the export card while the chat is scrolled (author 17.11:
+// sketch A chosen, v2 approved, then v3 from his own thought — «он вверх
+// крутит, а вниз он просто читает, а крутится само»; mockups in
+// dizajn/animaciya/maket-a-v2.html and maket-a-v3.html).
 //
-// A small figure turns a crank; the chat's messages pass through a "screen" —
-// outlines outside it, drawn inside — and each message read flies to a stack
-// as a copy. It shows what the step does (ChatGPT shows only the messages that
-// fit on the screen, so the export scrolls and copies each one), and it is
-// honest: it moves only while the real count grows. When the count stops — a
-// hidden tab, ChatGPT still fetching an older part — the figure lets go of the
-// crank, turns to the reader and waits. The climb to the start of the chat
-// ("Loading conversation") turns the crank the other way, without copies.
-//
-// Driven from capture.js: setHarvestProgress() hands its line here
-// (gptpdfAnim.fromText) and hideLoadingOverlay() ends it. The drawing lives in
-// the card's .gptpdf-anim slot (templates.js), coloured by the card's text
-// colour, so it follows the card's light and dark.
+// The chat's messages pass through a "screen" — outlines outside it, drawn
+// inside. What the figure does says what the export is doing:
+//   climb   ("Loading conversation…", "Loading older messages… N parts") —
+//           he turns a crank: ChatGPT has to be made to hand over the older
+//           parts; the tape runs down, the older messages come from above;
+//   read    ("Reading X of Y", "Filling in N") — the tape steps by itself, one
+//           step per message; he nods to each and writes it into a notepad,
+//           the sheet goes to the stack;
+//   pics    (capture.js waits for a message's pictures: gptpdfAnim.pictures())
+//           — the tape stands, a picture develops in the window and he looks
+//           at it; the card's line says "waiting for pictures";
+//   pause   (no new message for 2.5 s, or "Paused" — a hidden tab) — he lets
+//           go, turns to the reader and waits, "…".
+// It moves only with the real count, never on a clock. The card's text
+// colour draws it, so it follows the card's light and dark. Driven from
+// capture.js: setHarvestProgress() hands its line here (fromText),
+// hideLoadingOverlay() ends it.
 const gptpdfAnim = (function() {
     const NS = 'http://www.w3.org/2000/svg';
     const WIDTHS = [46, 40, 52, 36, 44, 48, 42];
     const CRANK = { x: 206, y: 56 }, HANDLE = 8, UPPER = 15, FORE = 15;
-    const STALL_MS = 2500;       // no new message for this long: the figure waits
-    const SHOW_AFTER_MS = 1200;  // a chat read in a second gets no flicker
-    const TURN_S = 1.4;          // one turn of the crank = one message through
+    const STALL_MS = 2500;        // no new message this long: he waits
+    const SHOW_AFTER_MS = 1200;   // a chat read in a second gets no flicker
+    const PICTURES_HOLD_MS = 400; // one "waiting for pictures" signal lasts this
+    const TURN_S = 1.4;           // one turn of the crank on the climb
+    const STEP_S = 0.25;          // the tape's step for one message
     const STACK_MAX = 9;
+    const POSES = ['climb', 'read', 'pics', 'pause'];
     const reduced = !!(window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
     let host = null, svg = null, el = {};
-    let mode = '', count = -1, lastProgress = 0, theta = 0, last = null;
-    let rest = 0, raf = 0, flight = null, stackN = 0, showTimer = null;
+    let mode = '', count = -1, lastProgress = 0, picturesUntil = 0;
+    let theta = 0, tape = 0, tapeTarget = 0, picT = 0, nodT = 1;
+    let mix = { climb: 0, read: 0, pics: 0, pause: 1 };
+    let last = null, raf = 0, flight = null, stackN = 0, showTimer = null;
     let manual = false, manualTs = 0;   // stands and tests drive time themselves
 
     function mk(tag, attrs, parent) {
@@ -43,7 +54,8 @@ const gptpdfAnim = (function() {
         const clip = mk('clipPath', { id: 'gptpdf-anim-win' }, mk('defs', {}, svg));
         mk('rect', { x: 104, y: 14, width: 86, height: 84, rx: 6 }, clip);
         el.tapeOut = mk('g', { class: 'a-out' }, svg);
-        el.tapeIn = mk('g', { class: 'a-in' }, mk('g', { 'clip-path': 'url(#gptpdf-anim-win)' }, svg));
+        const inside = mk('g', { 'clip-path': 'url(#gptpdf-anim-win)' }, svg);
+        el.tapeIn = mk('g', { class: 'a-in' }, inside);
         [el.tapeOut, el.tapeIn].forEach(function(g) {
             for(let i = 0; i < 14; i++) {
                 const w = WIDTHS[i % 7];
@@ -51,21 +63,29 @@ const gptpdfAnim = (function() {
                              width: w, height: 10, rx: 5 }, g);
             }
         });
+        // The picture that develops in the window while its message waits.
+        el.pic = mk('g', { opacity: 0 }, inside);
+        mk('rect', { x: 118, y: 46, width: 58, height: 34, rx: 5, class: 'a-pic' }, el.pic);
+        mk('path', { d: 'M122 76 l12-13 9 8 7-6 13 11z', class: 'a-ink2' }, el.pic);
+        mk('circle', { cx: 163, cy: 55, r: 3.5, class: 'a-ink2' }, el.pic);
         mk('rect', { x: 104, y: 14, width: 86, height: 84, rx: 6, class: 'a-frame' }, svg);
         mk('circle', { cx: CRANK.x, cy: CRANK.y, r: 9, class: 'a-frame' }, svg);
         el.spoke = mk('line', { x1: CRANK.x, y1: CRANK.y, class: 'a-thin' }, svg);
         mk('line', { x1: 190, y1: 56, x2: 197, y2: 56, class: 'a-thin' }, svg);
+        el.knob = mk('circle', { r: 2.6, class: 'a-ink' }, svg);
         el.stack = mk('g', {}, svg);
-        el.fly = mk('rect', { width: 16, height: 7, rx: 3.5, class: 'a-fly', opacity: 0 }, svg);
-        el.armBack = mk('line', { class: 'a-limb' }, svg);
+        el.fly = mk('rect', { width: 14, height: 7, rx: 2, class: 'a-sheet', opacity: 0 }, svg);
+        el.backUpper = mk('line', { class: 'a-limb' }, svg);
+        el.backFore = mk('line', { class: 'a-limb' }, svg);
         mk('line', { x1: 229, y1: 86, x2: 226, y2: 104, class: 'a-limb' }, svg);
         mk('line', { x1: 235, y1: 86, x2: 238, y2: 104, class: 'a-limb' }, svg);
         el.body = mk('rect', { y: 58, width: 14, height: 30, rx: 7, class: 'a-ink' }, svg);
-        el.head = mk('circle', { cy: 48, r: 7.5, class: 'a-ink' }, svg);
+        el.head = mk('circle', { r: 7.5, class: 'a-ink' }, svg);
         el.eye = mk('circle', { class: 'a-eye' }, svg);
+        el.pad = mk('rect', { width: 11, height: 13, rx: 1.5, class: 'a-sheet', opacity: 0 }, svg);
+        el.pen = mk('line', { class: 'a-pen', opacity: 0 }, svg);
         el.upper = mk('line', { class: 'a-limb' }, svg);
         el.fore = mk('line', { class: 'a-limb' }, svg);
-        el.knob = mk('circle', { r: 2.6, class: 'a-ink' }, svg);
         el.dots = mk('text', { x: 238, y: 34, class: 'a-dots', opacity: 0 }, svg);
         el.dots.textContent = '…';
         container.appendChild(svg);
@@ -85,6 +105,12 @@ const gptpdfAnim = (function() {
         return e1.y > e2.y ? e1 : e2;
     }
 
+    function arm(upper, fore, S, H) {
+        const E = elbow(S, H);
+        set(upper, { x1: S.x, y1: S.y, x2: E.x, y2: E.y });
+        set(fore, { x1: E.x, y1: E.y, x2: H.x, y2: H.y });
+    }
+
     function addSheet() {
         if(stackN >= STACK_MAX) return;
         mk('rect', { x: 270 + (stackN % 2 ? 1 : -1), y: 99 - stackN * 5,
@@ -92,26 +118,75 @@ const gptpdfAnim = (function() {
         stackN++;
     }
 
+    // What the figure should be doing now.
+    function target(now) {
+        if(mode === 'reading' && now < picturesUntil) return 'pics';
+        if(now - lastProgress > STALL_MS) return 'pause';
+        return mode === 'loading' ? 'climb' : 'read';
+    }
+
     function draw(ts) {
+        const crank = mix.climb, read = mix.read, pics = mix.pics, pause = mix.pause;
+        const sum = crank + read + pics + pause || 1;
         const K = { x: CRANK.x + HANDLE * Math.cos(theta), y: CRANK.y + HANDLE * Math.sin(theta) };
         set(el.spoke, { x2: K.x, y2: K.y });
         set(el.knob, { cx: K.x, cy: K.y });
-        const lean = -Math.cos(theta) * 1.6 * (1 - rest);
-        const S = { x: 224 + lean, y: 62 };
-        const H = { x: K.x + (S.x - 4 - K.x) * rest, y: K.y + (S.y + 24 - K.y) * rest };
-        const E = elbow(S, H);
-        set(el.upper, { x1: S.x, y1: S.y, x2: E.x, y2: E.y });
-        set(el.fore, { x1: E.x, y1: E.y, x2: H.x, y2: H.y });
+        const lean = -Math.cos(theta) * 1.6 * crank - 1.8 * pics;
+        const S = { x: 224 + lean, y: 62 }, SB = { x: 234 + lean * 0.6, y: 63 };
+        const pad = { x: 218 + lean, y: 73 };
+        // The front hand: on the crank, holding the notepad, by the side.
+        const H = {
+            x: (K.x * crank + pad.x * read + (S.x - 6) * pics + (S.x - 4) * pause) / sum,
+            y: (K.y * crank + pad.y * read + (S.y + 20) * pics + (S.y + 24) * pause) / sum
+        };
+        arm(el.upper, el.fore, S, H);
+        // The back hand writes while reading, hangs otherwise.
+        const write = Math.sin(ts / 90) * 1.6 * read;
+        const HB = { x: 236 * (1 - read) + (222 + write + lean) * read,
+                     y: 80 * (1 - read) + (71 + Math.cos(ts / 70) * 1.2) * read };
+        arm(el.backUpper, el.backFore, SB, HB);
+        set(el.pad, { x: pad.x - 6, y: pad.y - 7, opacity: read });
+        set(el.pen, { x1: HB.x, y1: HB.y, x2: HB.x - 3, y2: HB.y - 5, opacity: read });
+        const nod = read * Math.max(0, Math.sin(nodT * Math.PI)) * 1.2;
         set(el.body, { x: 223 + lean * 0.6 });
-        set(el.head, { cx: 230 + lean });
-        const blink = rest > 0.5 && Math.floor(ts / 1600) % 3 === 0;
-        set(el.eye, { cx: 230 + lean - 3 * (1 - rest), cy: 47 + rest * 0.5, r: blink ? 0.4 : 1.4 });
-        set(el.armBack, { x1: 234 + lean * 0.6, y1: 63, x2: 236 + Math.sin(theta) * 3 * (1 - rest), y2: 80 });
-        el.dots.setAttribute('opacity', rest > 0.6 ? 1 : 0);
-        const off = (theta / (2 * Math.PI)) * 16;
-        const shift = 'translate(0,' + (-(((off % 112) + 112) % 112)) + ')';
+        set(el.head, { cx: 230 + lean, cy: 48 + nod });
+        const blink = pause > 0.5 && Math.floor(ts / 1600) % 3 === 0;
+        set(el.eye, { cx: 230 + lean - 3 * (1 - pause), cy: 47 + nod + pause * 0.5, r: blink ? 0.4 : 1.4 });
+        el.dots.setAttribute('opacity', pause > 0.6 ? 1 : 0);
+        el.pic.setAttribute('opacity', Math.min(1, picT * 1.1));
+        const shift = 'translate(0,' + (-(((tape % 112) + 112) % 112)) + ')';
         el.tapeOut.setAttribute('transform', shift);
         el.tapeIn.setAttribute('transform', shift);
+    }
+
+    // One step of the scene, dt seconds long.
+    function advance(dt, ts) {
+        const pose = target(Date.now());
+        POSES.forEach(function(k) {
+            mix[k] += ((k === pose ? 1 : 0) - mix[k]) * Math.min(1, dt * 5);
+        });
+        if(pose === 'climb') {
+            theta -= dt * 2 * Math.PI / TURN_S;
+            tape -= dt * 16 / TURN_S;
+            tapeTarget = tape;
+        } else if(tape < tapeTarget) {
+            tape = Math.min(tapeTarget, tape + dt * 16 / STEP_S);
+        }
+        picT = pose === 'pics' ? Math.min(1, picT + dt / 2.2) : Math.max(0, picT - dt * 2);
+        nodT = Math.min(1, nodT + dt / 0.75);
+        if(flight) {
+            flight.t += dt / 0.6;
+            const t = Math.min(1, flight.t);
+            const px = 212, py = 66;
+            set(el.fly, { x: px + (270 - px) * t,
+                          y: py + (99 - flight.to * 5 - py) * t - 5 * Math.sin(Math.PI * t),
+                          opacity: t < 0.95 ? 1 : 0 });
+            if(t >= 1) {
+                flight = null;
+                addSheet();
+            }
+        }
+        draw(ts);
     }
 
     function frame(ts) {
@@ -124,23 +199,17 @@ const gptpdfAnim = (function() {
         raf = requestAnimationFrame(frame);
     }
 
-    // One step of the scene, dt seconds long.
-    function advance(dt, ts) {
-        const waiting = Date.now() - lastProgress > STALL_MS;
-        rest += ((waiting ? 1 : 0) - rest) * Math.min(1, dt * 4);
-        if(!waiting) theta += (mode === 'loading' ? -1 : 1) * dt * 2 * Math.PI / TURN_S;
-        if(flight) {
-            flight.t += dt / 0.7;
-            const t = Math.min(1, flight.t);
-            set(el.fly, { x: 182 + (271 - 182) * t,
-                          y: 12 + (99 - flight.to * 5 - 12) * t - 20 * Math.sin(Math.PI * t),
-                          opacity: t < 0.95 ? 1 : 0 });
-            if(t >= 1) {
-                flight = null;
-                addSheet();
-            }
+    function kick() {
+        if(!svg) return;
+        if(reduced) {
+            const pose = target(Date.now());
+            POSES.forEach(function(k) { mix[k] = k === pose ? 1 : 0; });
+            picT = pose === 'pics' ? 1 : 0;
+            draw(0);
+        } else if(!raf && !manual) {
+            last = null;
+            raf = requestAnimationFrame(frame);
         }
-        draw(ts);
     }
 
     function show() {
@@ -164,33 +233,33 @@ const gptpdfAnim = (function() {
             mode = newMode;
             count = -1;
             flight = null;
+            picturesUntil = 0;
             lastProgress = Date.now();
             if(newMode === 'reading') {
                 el.stack.textContent = '';
                 stackN = 0;
+                tapeTarget = tape;
             }
             if(!wasOn && !showTimer) showTimer = setTimeout(show, SHOW_AFTER_MS);
         }
         if(typeof n === 'number' && n !== count) {
             if(count >= 0 && mode === 'reading') {   // "Filling in" counts down
+                tapeTarget = Math.max(tapeTarget, tape) + 16;
+                nodT = 0;
                 if(reduced) addSheet();
                 else if(!flight) flight = { t: 0, to: Math.min(stackN, STACK_MAX - 1) };
             }
             count = n;
             lastProgress = Date.now();
         }
-        if(reduced) {
-            draw(0);            // still picture, the stack still grows
-        } else if(!raf && !manual) {
-            last = null;
-            raf = requestAnimationFrame(frame);
-        }
+        kick();
     }
 
     function stop() {
         mode = '';
         count = -1;
         flight = null;
+        picturesUntil = 0;
         clearTimeout(showTimer);
         showTimer = null;
         if(raf) cancelAnimationFrame(raf);
@@ -198,11 +267,15 @@ const gptpdfAnim = (function() {
         if(host) host.classList.remove('on');
     }
 
-    // The card's own line says which step this is (capture.js): the climb —
-    // "Loading conversation… 40", "Loading older messages… 3 parts"; the walk —
-    // "Reading 120 of 257", "Reading 12 messages…", "Filling in 5…"; a hidden
-    // tab — "Paused: …", when the figure stays and waits. Any other line
-    // (pictures, the PDF) ends the scene.
+    // The export waits for a message's pictures (capture.js, every 100 ms of
+    // the wait): work is going on, and it is the pictures he watches.
+    function pictures() {
+        if(mode !== 'reading') return;
+        picturesUntil = Date.now() + PICTURES_HOLD_MS;
+        lastProgress = Date.now();
+        kick();
+    }
+
     // Dev builds: "#gptpdf-noanim" in the page address turns the scene off —
     // to export the same chat with and without it and compare (17.11).
     function off() {
@@ -210,27 +283,36 @@ const gptpdfAnim = (function() {
             /gptpdf-noanim/.test(location.hash || '');
     }
 
+    // The card's own line says which step this is (capture.js): the climb —
+    // "Loading conversation… 40", "Loading older messages… 3 parts"; the walk —
+    // "Reading 120 of 257", "Reading 12 messages…", "Filling in 5…"; a hidden
+    // tab — "Paused: …", when he stays and waits. Any other line (pictures
+    // being added, the PDF) ends the scene.
     function fromText(text) {
         if(off()) {
             stop();
             return;
         }
-        const m = /^(Loading conversation|Loading older messages|Reading|Filling in|Paused)\D*(\d+)?/
-            .exec(String(text || ''));
+        const s = String(text || '');
+        const m = /^(Loading conversation|Loading older messages|Reading|Filling in|Paused)\D*(\d+)?/.exec(s);
         if(!m) {
             stop();
             return;
         }
         if(m[1] === 'Paused') {
             lastProgress = 0;        // nothing moves until the tab is back
+            picturesUntil = 0;
+            kick();
             return;
         }
         const walk = m[1] === 'Reading' || m[1] === 'Filling in';
         step(walk ? 'reading' : 'loading', m[2] ? parseInt(m[2], 10) : undefined);
+        if(/waiting for pictures/.test(s)) pictures();
     }
 
     return {
         fromText: fromText,
+        pictures: pictures,
         stop: stop,
         _off: off,
         // Stands and tests: time by hand (a hidden or headless page draws no
@@ -248,9 +330,12 @@ const gptpdfAnim = (function() {
             advance(Math.min(0.05, ms / 1000), manualTs);
         },
         _state: function() {
+            let pose = 'pause';
+            POSES.forEach(function(k) { if(mix[k] > mix[pose]) pose = k; });
             return { mode: mode, count: count, on: !!(host && host.classList.contains('on')),
-                     waiting: Date.now() - lastProgress > STALL_MS, sheets: stackN, flying: !!flight,
-                     rest: Math.round(rest * 100) / 100 };
+                     target: mode ? target(Date.now()) : '', pose: pose, sheets: stackN,
+                     flying: !!flight, crank: Math.round(theta * 100) / 100,
+                     tape: Math.round(tape), picture: Math.round(picT * 100) / 100 };
         }
     };
 })();

@@ -37,12 +37,18 @@ history and working notes.
   red, the colour of deleting; they are blue now, the usual colour of
   "selected". The checkbox is drawn by the extension itself, so a ticked block
   always shows its tick.
-- **A small figure shows the reading.** While a long chat is read, the export
-  card shows what is going on: a figure turns a crank, the chat's messages pass
-  through a "screen", and each message read flies to a stack. It moves only
-  while messages really arrive; when they stop (the tab is hidden, or ChatGPT
-  is still loading), it lets go and waits. Short chats don't show it. With
-  "reduce motion" on in your system, it stays still.
+- **A small figure shows what the export is doing.** While a long chat is
+  scrolled, the export card shows it: going up to the start of the chat, a
+  figure turns a crank to bring in the older messages; going down, the messages
+  pass through a "screen" by themselves and he copies each one into a notepad
+  and onto a stack; while a message's pictures load, a picture develops in the
+  window. He moves only with what really happens: when nothing comes (a hidden
+  tab), he lets go and waits. Short chats don't show him. With "reduce motion"
+  on in your system, he stays still.
+- **No more long silence on chats with pictures.** The count of messages read
+  now moves with every message, and while the export waits for pictures the
+  card says "waiting for pictures". On a chat with many generated pictures the
+  count used to stand still for half a minute and looked stuck.
 - **A clearer line while the chat is read:** "ChatGPT shows only the messages
   that fit on your screen, so the export scrolls through the chat and copies
   each one."

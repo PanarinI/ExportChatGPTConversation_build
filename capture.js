@@ -135,6 +135,30 @@ function setHarvestProgress(text) {
     if(typeof gptpdfAnim !== 'undefined') gptpdfAnim.fromText(text);
 }
 
+// "— waiting for pictures…" on the card's line while the export waits for a
+// message's pictures (author 17.11: «Reading 58» stood 30–40 s and looked stuck
+// — it was waiting for pictures). Said after a short wait, taken back when it
+// ends; meanwhile the figure watches a picture develop (anim.js).
+// Short enough for one line of the card: "Reading 18 of 40 — waiting for
+// pictures…" (the word "messages" goes; the line comes back word for word).
+const GPTPDF_PICTURES_TAG = ' — waiting for pictures…';
+let gptpdfPicturesLine = null;   // the line the tag replaced
+function gptpdfPicturesWait(on) {
+    const t = document.querySelector('#gptpdf-progress .gptpdf-loading-text');
+    if(!t) return;
+    const text = t.textContent || '';
+    if(on) {
+        if(/^Reading/.test(text) && text.indexOf(GPTPDF_PICTURES_TAG) === -1) {
+            gptpdfPicturesLine = text;
+            setHarvestProgress(text.replace(/[.…]+$/, '').replace(/ messages$/, '') +
+                GPTPDF_PICTURES_TAG);
+        }
+    } else if(text.indexOf(GPTPDF_PICTURES_TAG) !== -1) {
+        setHarvestProgress(gptpdfPicturesLine || text.replace(GPTPDF_PICTURES_TAG, '…'));
+        gptpdfPicturesLine = null;
+    }
+}
+
 // Граница прохода — прогресс, а не часы: идём, пока позиция двигается или
 // прибывают сообщения; стоп, когда ничего не двигалось. Абсолютный потолок
 // существует только чтобы сломанная страница не крутилась вечно — Cancel
@@ -433,6 +457,9 @@ function gallerySettled(t, seen) {
 // caller takes a fresh snapshot.
 async function waitGalleries(seen, done, budget) {
     let waited = false;
+    const started = Date.now();
+    let said = false;
+    try {
     while(!harvestCancelled) {
         let open = 0;
         gptpdfChatRoot().querySelectorAll(GPTPDF_TURN).forEach(function(t) {
@@ -457,9 +484,17 @@ async function waitGalleries(seen, done, budget) {
         }
         waited = true;
         budget.progress();
+        if(typeof gptpdfAnim !== 'undefined') gptpdfAnim.pictures();
+        if(!said && Date.now() - started > 800) {
+            said = true;
+            gptpdfPicturesWait(true);
+        }
         await new Promise(r => setTimeout(r, 100));
     }
     return waited;
+    } finally {
+        if(said) gptpdfPicturesWait(false);
+    }
 }
 
 // What a mounted turn still waits for: hrefless citation links, pictures.
@@ -1260,6 +1295,10 @@ async function harvestByWrappers(scroller, cache, budget) {
                 }
                 pictures = t.querySelectorAll(GPTPDF_PENDING_PICTURE).length +
                     (galleryReady ? 0 : 1);
+                if(pictures) {
+                    if(typeof gptpdfAnim !== 'undefined') gptpdfAnim.pictures();
+                    if(Date.now() - since > 800) gptpdfPicturesWait(true);
+                }
                 const now = t.querySelectorAll('a.decorated-link[href], img').length;
                 if(resolved >= 0 && now > resolved) {
                     moved = true;
@@ -1416,6 +1455,16 @@ async function harvestVirtualizedTurns() {
         let stableTries = 0;
         let stuckTries = 0;
         let lastHeight = scroller.scrollHeight;
+        // Every new message moves the count. It moved every 8th step: with
+        // pictures to wait for, «Reading 58» stood 30–40 s on the author's
+        // «Художник_базовый» (17.11) and looked stuck.
+        let shown = -1;
+        const showCount = function() {
+            if(cache.size !== shown) {
+                shown = cache.size;
+                setHarvestProgress('Reading ' + cache.size + ' messages…');
+            }
+        };
         for(let i = 0; i < maxIter; i++) {
             if(harvestCancelled || budget.expired()) {
                 break;
@@ -1432,6 +1481,7 @@ async function harvestVirtualizedTurns() {
                 if(await waitGalleries(gallerySeen, galleryDone, budget)) {
                     captureRenderedTurns(cache);
                 }
+                showCount();
                 if(scroller.scrollHeight === lastHeight) {
                     stableTries++;
                     if(stableTries >= 2) {
@@ -1453,8 +1503,8 @@ async function harvestVirtualizedTurns() {
             if(cache.size > seen) {
                 budget.progress();
             }
+            showCount();
             if(i % 8 === 0) {
-                setHarvestProgress('Reading ' + cache.size + ' messages…');
                 gptpdfSetFact(gptpdfFactAt(GPTPDF_FACTS_READING,
                     budget.elapsed(), GPTPDF_FACT_READING_AFTER_MS));
             }

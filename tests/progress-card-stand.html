@@ -10,7 +10,8 @@
     pages   — 41 с: «Loading older messages… 23 parts» + факт A и то же «не уходите»
     request — 58 с: «Loading older messages… 31 parts» + факт A2 (факты догрузки сменяются каждые 20 с)
     reading — проход по сообщениям: «Reading 214 of 513 messages…» + факт B и «не уходите»
-    walk    — живой прогон для человечка (anim.js): подъём частями, чтение, 4 с без нового (ждёт), картинки;
+    walk    — живой прогон для человечка (anim.js): подъём частями, чтение, 3 с ждём картинки, 4 с без нового
+              (ждёт), картинки;
               &manual — время вручную (для headless-кадров)
     paused  — вкладка скрыта: «Paused: …»
     back    — человек вернулся: чтение идёт, внизу — почему ждали
@@ -96,14 +97,25 @@ if(step === 'walk') {
     const plan = [];
     for(let p = 1; p <= 4; p++) plan.push([900, 'Loading older messages… ' + p + (p === 1 ? ' part' : ' parts')]);
     for(let k = 1; k <= 18; k++) plan.push([380, 'Reading ' + k + ' of 40 messages…']);
-    plan.push([4200, 'Reading 18 of 40 messages…']);
-    for(let k = 19; k <= 40; k++) plan.push([380, 'Reading ' + k + ' of 40 messages…']);
+    plan.push([0, 'pictures']);                  // 3 s waiting for a message's pictures
+    for(let k = 19; k <= 26; k++) plan.push([k === 19 ? 3000 : 380, 'Reading ' + k + ' of 40 messages…']);
+    plan.push([4200, 'Reading 26 of 40 messages…']);
+    for(let k = 27; k <= 40; k++) plan.push([380, 'Reading ' + k + ' of 40 messages…']);
     plan.push([1500, null]);
     let at = 0;
     plan.forEach(function(p) {
         at += p[0];
         setTimeout(function() {
-            if(p[1]) {
+            if(p[1] === 'pictures') {
+                // As capture.js waits for pictures: a signal every 100 ms, the
+                // line says so after 0.8 s and takes it back at the end.
+                const from = Date.now();
+                const iv = setInterval(function() {
+                    gptpdfAnim.pictures();
+                    if(Date.now() - from > 800) gptpdfPicturesWait(true);
+                    if(Date.now() - from > 2900) { clearInterval(iv); gptpdfPicturesWait(false); }
+                }, 100);
+            } else if(p[1]) {
                 setHarvestProgress(p[1]);
                 if(/^Reading/.test(p[1])) gptpdfSetFact(GPTPDF_FACT_SCREEN);
             } else {
