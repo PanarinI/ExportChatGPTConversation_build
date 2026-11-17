@@ -1,0 +1,21 @@
+/* Человечек 1.2.8 — клерк из прошлого: стили новых частей (руки, лицо, очки, бабочка, перчатки).
+   После слова автора переезжают в templates.js рядом с .gptpdf-anim.
+   Правила с .c-hat / .c-hair — только для макета: котелок или волосы. */
+.gptpdf-anim .a-arm { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
+.gptpdf-anim .a-leg { stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
+.gptpdf-anim .a-skin { fill: var(--gptpdf-card-bg); stroke: currentColor; stroke-width: 1.3; }
+.gptpdf-anim .a-glove { fill: var(--gptpdf-card-bg); stroke: currentColor; stroke-width: 1.1; }
+.gptpdf-anim .a-collar { fill: var(--gptpdf-card-bg); }
+.gptpdf-anim .a-hair { fill: currentColor; stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; }
+.gptpdf-anim .a-band { fill: none; stroke: var(--gptpdf-card-bg); stroke-width: 1.1; }
+.gptpdf-anim .a-feat { fill: currentColor; }
+.gptpdf-anim .a-glasses { fill: none; stroke: currentColor; stroke-width: .9; stroke-linecap: round; }
+.gptpdf-anim .a-mouth { fill: none; stroke: currentColor; stroke-width: 1.1; stroke-linecap: round; }
+/* Dark card: face and gloves stay light, with dark features and outlines — not their negative. */
+.gptpdf-dark .gptpdf-anim .a-skin, .gptpdf-dark .gptpdf-anim .a-glove { fill: currentColor; stroke: var(--gptpdf-card-bg); }
+.gptpdf-dark .gptpdf-anim .a-hair { fill: var(--gptpdf-card-bg); stroke: currentColor; }
+.gptpdf-dark .gptpdf-anim .a-feat { fill: var(--gptpdf-card-bg); }
+.gptpdf-dark .gptpdf-anim .a-glasses, .gptpdf-dark .gptpdf-anim .a-mouth { stroke: var(--gptpdf-card-bg); }
+
+.c-hat .gptpdf-anim .a-hair { display: none; }
+.c-hair .gptpdf-anim .a-hat { display: none; }

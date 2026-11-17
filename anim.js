@@ -1,6 +1,15 @@
 // The figure in the export card (author 17.11: sketch A chosen, v2 approved,
 // then his own thought — «он вверх крутит, а вниз он просто читает, а крутится
 // само»; mockups in dizajn/animaciya/maket-a-v2.html and maket-a-v3.html).
+// 1.2.8 — a character: an office clerk from the past (author 17.11: «дать ему
+// немножко характера»; then, on the cute mockup: «Мне не нравится его радостное,
+// ликующее лицо… более сдержанным… офисным сотрудником из прошлого… элегантным»;
+// mockups dizajn/animaciya/maket-b.html, maket-c.html; the author chose the
+// bowler: «Да, в шляпе, только сделай его самого более узким… более тонким, более
+// таким худым»). A lean clerk in a bowler hat, round spectacles, a bow tie, white
+// gloves; a calm face that changes only with the stage — straight at the crank,
+// attentive over the notepad, a small smile over the bound book. Small life
+// between: he blinks, he breathes, he nods to each message.
 //
 // The chat's messages pass through a "screen" — outlines outside it, drawn
 // inside. One state per stage, none that change on their own (author 17.11:
@@ -24,13 +33,21 @@
 const gptpdfAnim = (function() {
     const NS = 'http://www.w3.org/2000/svg';
     const WIDTHS = [46, 40, 52, 36, 44, 48, 42];
-    const CRANK = { x: 206, y: 56 }, HANDLE = 8, UPPER = 15, FORE = 15;
+    const CRANK = { x: 206, y: 56 }, HANDLE = 8;
+    const ARM = 21;               // a bendy arm's own length: it sags when slack, stretches to reach
     const SHOW_AFTER_MS = 1200;   // a chat read in a second gets no flicker
     const RESUME_MS = 3000;       // a stage this soon after the last: no delay
     const TURN_S = 1.4;           // one turn of the crank on the way up
     const STEP_S = 0.25;          // the tape's step for one message
-    const WALK = 26, WALK_S = 0.8, TAP_S = 0.7;
-    const STACK_MAX = 9, STACK_BIND = 5;
+    const WALK = 26, WALK_S = 0.9, TAP_S = 0.8;
+    const STACK_MAX = 8, STACK_BIND = 5;
+    const BLINKS = [3400, 2600, 4400, 3000, 3800];   // ms from one blink to the next, in turn
+    // His mouth, drawn facing left from the middle of his head.
+    const MOUTH = {
+        work: 'M-4 5.7H-1.6',                      // at the crank
+        heed: 'M-4 5.7Q-2.8 6.2-1.6 5.7',          // over the notepad
+        done: 'M-4.4 5.3Q-2.8 6.8-1.2 5.3'         // over the bound book
+    };
     const reduced = !!(window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
@@ -39,6 +56,7 @@ const gptpdfAnim = (function() {
     let theta = 0, tape = 0, tapeTarget = 0, nodT = 1, clock = 0;
     let up = 0, bind = 0;         // how far into "up" and "bind" (eased), the rest is "down"
     let walk = 0, tapClock = 0, cover = 0;
+    let blinkAt = BLINKS[0], blinkN = 0, mouth = '', handBehind = null;
     let last = null, raf = 0, flight = null, stackN = 0, showTimer = null;
     let manual = false;           // stands and tests drive time themselves
 
@@ -74,39 +92,60 @@ const gptpdfAnim = (function() {
         el.title = mk('text', { x: 285, class: 'a-title', 'text-anchor': 'middle', opacity: 0 }, svg);
         el.title.textContent = 'PDF';
         el.fly = mk('rect', { width: 14, height: 7, rx: 2, class: 'a-sheet', opacity: 0 }, svg);
-        el.backUpper = mk('line', { class: 'a-limb' }, svg);
-        el.backFore = mk('line', { class: 'a-limb' }, svg);
-        el.legL = mk('line', { class: 'a-limb' }, svg);
-        el.legR = mk('line', { class: 'a-limb' }, svg);
-        el.body = mk('rect', { y: 58, width: 14, height: 30, rx: 7, class: 'a-ink' }, svg);
-        el.head = mk('circle', { r: 7.5, class: 'a-ink' }, svg);
-        el.eye = mk('circle', { r: 1.4, class: 'a-eye' }, svg);
+        el.armB = mk('path', { class: 'a-arm' }, svg);
+        el.legL = mk('line', { class: 'a-leg' }, svg);
+        el.legR = mk('line', { class: 'a-leg' }, svg);
+        el.shoeL = mk('ellipse', { rx: 3, ry: 1.5, class: 'a-ink' }, svg);
+        el.shoeR = mk('ellipse', { rx: 3, ry: 1.5, class: 'a-ink' }, svg);
+        el.body = mk('rect', { width: 10, height: 29, rx: 4, class: 'a-ink' }, svg);
+        // Collar and bow tie, round the top of his jacket; they turn with him.
+        el.tie = mk('g', {}, svg);
+        mk('path', { d: 'M-3.6 1.6L-1.5 6.2L.6 1.6Z', class: 'a-collar' }, el.tie);
+        mk('path', { d: 'M-1.5 3.2L-3.9 2V4.4ZM-1.5 3.2L.9 2V4.4Z', class: 'a-ink' }, el.tie);
+        // The head, drawn facing left round its own middle; a flip turns it.
+        el.head = mk('g', {}, svg);
+        mk('ellipse', { rx: 8, ry: 9.2, class: 'a-skin' }, el.head);
+        el.hat = mk('g', { class: 'a-hat' }, el.head);
+        mk('path', { d: 'M6.2-5.4C8-3.2 8.1.4 7.3 2.4C6.4.4 5.4-2.4 3.8-5.4Z', class: 'a-ink' }, el.hat);
+        mk('path', { d: 'M-6.6-6.6C-6.6-16.6 7.6-16.6 7.6-6.6Z', class: 'a-ink' }, el.hat);
+        mk('ellipse', { cx: .5, cy: -6.6, rx: 10.4, ry: 1.6, class: 'a-ink' }, el.hat);
+        mk('path', { d: 'M-6.5-8.2H7.5', class: 'a-band' }, el.hat);
+        el.eyes = mk('g', {}, el.head);
+        el.eyeA = mk('ellipse', { cx: -4.6, cy: .8, rx: 1, ry: 1.15, class: 'a-feat' }, el.eyes);
+        el.eyeB = mk('ellipse', { cx: .6, cy: .8, rx: .95, ry: 1.1, class: 'a-feat' }, el.eyes);
+        mk('path', { d: 'M-2.1.7a2.5 2.5 0 1 1-5 0a2.5 2.5 0 1 1 5 0M3.1.7a2.5 2.5 0 1 1-5 0a2.5 2.5 0 1 1 5 0M3.1.4L7.6-.6',
+                     class: 'a-glasses' }, el.head);
+        el.mouth = mk('path', { class: 'a-mouth' }, el.head);
+        el.armF = mk('path', { class: 'a-arm' }, svg);
         el.pad = mk('rect', { width: 11, height: 13, rx: 1.5, class: 'a-sheet', opacity: 0 }, svg);
         el.pen = mk('line', { class: 'a-pen', opacity: 0 }, svg);
         el.stapler = mk('rect', { width: 9, height: 4, rx: 1, class: 'a-ink', opacity: 0 }, svg);
-        el.upper = mk('line', { class: 'a-limb' }, svg);
-        el.fore = mk('line', { class: 'a-limb' }, svg);
+        el.backHand = mk('circle', { r: 2, class: 'a-glove' }, svg);
+        el.hand = mk('circle', { r: 2, class: 'a-glove' }, svg);
         container.appendChild(svg);
+        mouth = '';
+        handBehind = null;
     }
 
     function set(e, attrs) {
         for(const k in attrs) e.setAttribute(k, attrs[k]);
     }
 
-    // Two-part arm from shoulder S to hand H: the elbow that hangs lower.
-    function elbow(S, H) {
-        const d = Math.min(Math.max(Math.hypot(H.x - S.x, H.y - S.y), 1), UPPER + FORE - 0.01);
-        const a = Math.atan2(H.y - S.y, H.x - S.x);
-        const b = Math.acos((UPPER * UPPER + d * d - FORE * FORE) / (2 * UPPER * d));
-        const e1 = { x: S.x + UPPER * Math.cos(a + b), y: S.y + UPPER * Math.sin(a + b) };
-        const e2 = { x: S.x + UPPER * Math.cos(a - b), y: S.y + UPPER * Math.sin(a - b) };
-        return e1.y > e2.y ? e1 : e2;
-    }
-
-    function arm(upper, fore, S, H) {
-        const E = elbow(S, H);
-        set(upper, { x1: S.x, y1: S.y, x2: E.x, y2: E.y });
-        set(fore, { x1: E.x, y1: E.y, x2: H.x, y2: H.y });
+    // A bendy arm from shoulder S to hand H, a gloved hand at its end: the
+    // closer the hand, the more it bows — forward (side -1) or back (side 1);
+    // a side between them bows less, so a change of side never jumps.
+    function arm(path, hand, S, H, side) {
+        const dx = H.x - S.x, dy = H.y - S.y, d = Math.hypot(dx, dy) || 1;
+        const bow = Math.sqrt(Math.max(0, ARM * ARM - d * d)) * 0.9 * Math.abs(side);
+        let nx = -dy / d, ny = dx / d;
+        if(nx * side < 0) {
+            nx = -nx;
+            ny = -ny;
+        }
+        path.setAttribute('d', 'M' + S.x + ' ' + S.y + 'Q' + ((S.x + H.x) / 2 + nx * bow) + ' ' +
+                          ((S.y + H.y) / 2 + ny * bow) + ' ' + H.x + ' ' + H.y);
+        set(hand, { cx: H.x, cy: H.y });
+        return H;
     }
 
     function addSheet() {
@@ -126,37 +165,64 @@ const gptpdfAnim = (function() {
         set(el.spoke, { x2: K.x, y2: K.y });
         set(el.knob, { cx: K.x, cy: K.y });
         const wx = WALK * ease(walk);
-        const lean = -Math.cos(theta) * 1.6 * up;
-        const S = { x: 224 + lean + wx, y: 62 }, SB = { x: 234 + lean * 0.6 + wx, y: 63 };
-        const pad = { x: 218, y: 73 };
+        const lean = Math.cos(theta) * 1.6 * up;        // into the crank as it swings away
+        const stride = walk > 0 && walk < 1 ? Math.sin(walk * Math.PI * 4) : 0;
+        const breath = Math.sin(clock / 1500 * Math.PI) * 0.4 * (1 - up);
+        const bob = -Math.abs(stride) * 0.6;
+        const y0 = bob + breath;
+        const S = { x: 225.5 + lean + wx, y: 64 + y0 }, SB = { x: 232.5 + lean * 0.6 + wx, y: 64.5 + y0 };
+        const pad = { x: 215.5, y: 78.5 };
         const top = 99 - (Math.max(stackN, 1) - 1) * 5;
-        // Front hand: the crank going up, the notepad going down, by the side binding.
-        const rest = { x: S.x - 3, y: S.y + 24 };
-        arm(el.upper, el.fore, S, {
-            x: K.x * up + pad.x * read + rest.x * bind,
-            y: K.y * up + pad.y * read + rest.y * bind
-        });
-        // Back hand: hangs going up, writes going down, staples binding.
-        const write = Math.sin(clock / 90) * 1.6 * read;
+        // Front hand: the crank going up, the notepad's corner going down, by the side binding.
+        arm(el.armF, el.hand, S, {
+            x: K.x * up + (pad.x - 4) * read + (S.x + 1) * bind,
+            y: K.y * up + (pad.y + 5.5) * read + (S.y + 19) * bind
+        }, 2 * read - 1);
+        // Back hand: hangs going up, writes going down, staples binding — at the
+        // book's spine. Behind him while it hangs, in front while it works.
+        const write = Math.sin(clock / 110) * 1.4 * read;
         const ph = (tapClock % TAP_S) / TAP_S;
         const tap = ph < 0.25 ? ph / 0.25 : Math.max(0, 1 - (ph - 0.25) / 0.45);
-        const staple = { x: 283, y: top - 13 + 9 * tap };
-        const HB = {
-            x: 236 * up + (222 + write) * read + staple.x * bind,
-            y: 80 * up + (71 + Math.cos(clock / 70) * 1.2) * read + staple.y * bind
-        };
-        arm(el.backUpper, el.backFore, SB, HB);
-        set(el.stapler, { x: HB.x - 2, y: HB.y - 2, opacity: bind });
-        set(el.pad, { x: pad.x - 6, y: pad.y - 7, opacity: read });
+        // While he walks over he carries the stapler at his chest; there, he reaches the book.
+        const reach = ease(walk);
+        const staple = { x: SB.x + 6 + (275 - SB.x - 6) * reach,
+                         y: SB.y + 10 + (top - 15 + 8 * tap - SB.y - 10) * reach };
+        const HB = arm(el.armB, el.backHand, SB, {
+            x: (SB.x + 2) * up + (218.5 + write) * read + staple.x * bind,
+            y: (SB.y + 19) * up + (76.5 + Math.cos(clock / 85) * 1.1) * read + staple.y * bind
+        }, 1);
+        if((up > 0.5) !== handBehind) {
+            handBehind = up > 0.5;
+            svg.insertBefore(el.backHand, handBehind ? el.body : el.hand);
+        }
+        set(el.stapler, { x: HB.x - 4.5, y: HB.y - 1, opacity: bind });
+        set(el.pad, { x: pad.x - 5.5, y: pad.y - 6.5, opacity: read });
         set(el.pen, { x1: HB.x, y1: HB.y, x2: HB.x - 3, y2: HB.y - 5, opacity: read });
-        // Legs step while he walks over.
-        const gait = walk > 0 && walk < 1 ? Math.sin(walk * Math.PI * 4) * 3 : 0;
-        set(el.legL, { x1: 229 + wx, y1: 86, x2: 226 + wx + gait, y2: 104 });
-        set(el.legR, { x1: 235 + wx, y1: 86, x2: 238 + wx - gait, y2: 104 });
+        // Legs step while he walks over; the shoes point where he faces.
+        const face = bind > 0.5 ? -1 : 1;
+        const gait = stride * 2.5;
+        const hip = 87.5 + bob, foot = 100.9;
+        set(el.legL, { x1: 227.3 + wx, y1: hip, x2: 226.3 + wx + gait, y2: foot });
+        set(el.legR, { x1: 230.7 + wx, y1: hip, x2: 231.7 + wx - gait, y2: foot });
+        set(el.shoeL, { cx: 226.3 + wx + gait - 1.3 * face, cy: foot + 1.6 });
+        set(el.shoeR, { cx: 231.7 + wx - gait - 1.3 * face, cy: foot + 1.6 });
+        const bx = 229 + lean * 0.6 + wx;
+        set(el.body, { x: bx - 5, y: 60 + y0 });
+        el.tie.setAttribute('transform', 'translate(' + bx + ',' + (60 + y0) + ') scale(' + face + ',1)');
         const nod = read * Math.max(0, Math.sin(nodT * Math.PI)) * 1.2;
-        set(el.body, { x: 223 + lean * 0.6 + wx });
-        set(el.head, { cx: 230 + lean + wx, cy: 48 + nod });
-        set(el.eye, { cx: 227 + lean + wx + 6 * bind, cy: 47 + nod });
+        el.head.setAttribute('transform', 'translate(' + (229 + lean + wx) + ',' + (50 + y0 + nod) +
+                             ') scale(' + face + ',1)');
+        // His face: where he looks, his blinks, his mouth for the stage.
+        el.eyes.setAttribute('transform', 'translate(' + (-0.5 * up - 0.2 * read - 0.2 * bind) + ',' +
+                             (0.6 * read + 0.2 * bind) + ')');
+        const open = clock >= blinkAt ? 0.15 : 1;
+        set(el.eyeA, { ry: 1.15 * open });
+        set(el.eyeB, { ry: 1.1 * open });
+        const m = bind > 0.5 ? 'done' : up > 0.5 ? 'work' : 'heed';
+        if(m !== mouth) {
+            mouth = m;
+            el.mouth.setAttribute('d', MOUTH[m]);
+        }
         // The cover closes round the stack as the staples go in.
         set(el.cover, { y: top - 4, height: 103 - top + 4 + 2, opacity: cover * bind });
         set(el.title, { y: (top - 4 + 105) / 2 + 3.5, opacity: cover * bind });
@@ -169,6 +235,7 @@ const gptpdfAnim = (function() {
     function advance(dt) {
         if(frozen) return;
         clock += dt * 1000;
+        if(clock >= blinkAt + 150) blinkAt = clock + BLINKS[++blinkN % BLINKS.length];
         const k = Math.min(1, dt * 5);
         up += ((mode === 'loading' ? 1 : 0) - up) * k;
         bind += ((mode === 'binding' ? 1 : 0) - bind) * k;
@@ -192,7 +259,7 @@ const gptpdfAnim = (function() {
         if(flight) {
             flight.t += dt / 0.6;
             const t = Math.min(1, flight.t);
-            const px = 212, py = 66;
+            const px = 210, py = 72;
             set(el.fly, { x: px + (270 - px) * t,
                           y: py + (99 - flight.to * 5 - py) * t - 5 * Math.sin(Math.PI * t),
                           opacity: t < 0.95 ? 1 : 0 });
@@ -346,7 +413,7 @@ const gptpdfAnim = (function() {
                      pose: bind > 0.5 ? 'bind' : up > 0.5 ? 'up' : 'down', frozen: frozen,
                      sheets: stackN, flying: !!flight, crank: Math.round(theta * 100) / 100,
                      tape: Math.round(tape), walk: Math.round(walk * 100) / 100,
-                     cover: Math.round(cover * 100) / 100 };
+                     cover: Math.round(cover * 100) / 100, mouth: mouth };
         }
     };
 })();

@@ -707,7 +707,8 @@ ${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(
  }
  .gptpdf-loading-card { --gptpdf-card-bg: #fff; }
  .gptpdf-loading-card.gptpdf-dark { --gptpdf-card-bg: #2a2a2a; }
- /* The figure that acts out the reading (anim.js), in the card's text colour. */
+ /* The figure that acts out the reading (anim.js), in the card's text colour:
+    a lean clerk in a bowler hat (1.2.8). */
  .gptpdf-anim { display: none; width: 100%; margin: 2px 0 0; }
  .gptpdf-anim.on { display: block; }
  .gptpdf-anim svg { display: block; width: 100%; height: auto; overflow: hidden; }
@@ -715,9 +716,20 @@ ${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(
  .gptpdf-anim .a-in rect { fill: currentColor; fill-opacity: .42; stroke: none; }
  .gptpdf-anim .a-frame { fill: none; stroke: currentColor; stroke-width: 1.5; }
  .gptpdf-anim .a-thin { stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
- .gptpdf-anim .a-limb { fill: none; stroke: currentColor; stroke-width: 3.5; stroke-linecap: round; }
+ .gptpdf-anim .a-arm { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+ .gptpdf-anim .a-leg { stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
  .gptpdf-anim .a-ink { fill: currentColor; stroke: none; }
- .gptpdf-anim .a-eye { fill: var(--gptpdf-card-bg); stroke: none; }
+ .gptpdf-anim .a-skin { fill: var(--gptpdf-card-bg); stroke: currentColor; stroke-width: 1.3; }
+ .gptpdf-anim .a-glove { fill: var(--gptpdf-card-bg); stroke: currentColor; stroke-width: 1.1; }
+ .gptpdf-anim .a-collar { fill: var(--gptpdf-card-bg); }
+ .gptpdf-anim .a-band { fill: none; stroke: var(--gptpdf-card-bg); stroke-width: 1.1; }
+ .gptpdf-anim .a-feat { fill: currentColor; }
+ .gptpdf-anim .a-glasses { fill: none; stroke: currentColor; stroke-width: .9; stroke-linecap: round; }
+ .gptpdf-anim .a-mouth { fill: none; stroke: currentColor; stroke-width: 1.1; stroke-linecap: round; }
+ /* Dark card: his face and gloves stay light, with dark features and outlines — not their negative. */
+ .gptpdf-dark .gptpdf-anim .a-skin, .gptpdf-dark .gptpdf-anim .a-glove { fill: currentColor; stroke: var(--gptpdf-card-bg); }
+ .gptpdf-dark .gptpdf-anim .a-feat { fill: var(--gptpdf-card-bg); }
+ .gptpdf-dark .gptpdf-anim .a-glasses, .gptpdf-dark .gptpdf-anim .a-mouth { stroke: var(--gptpdf-card-bg); }
  .gptpdf-anim .a-sheet { fill: var(--gptpdf-card-bg); stroke: currentColor; stroke-width: 1; }
  .gptpdf-anim .a-pen { stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
  .gptpdf-anim .a-cover { fill: var(--gptpdf-card-bg); stroke: currentColor; stroke-width: 1.6; }

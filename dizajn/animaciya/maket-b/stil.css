@@ -1,0 +1,26 @@
+/* Человечек 1.2.8 — стили новых частей (лицо, волосы, глаза, рот, щёки).
+   После слова автора переезжают в templates.js рядом с .gptpdf-anim (вариант А).
+   Правила с .b — только для макета: вариант Б, силуэт. */
+.gptpdf-anim .a-face { fill: var(--gptpdf-card-bg); stroke: currentColor; stroke-width: 1.5; }
+.gptpdf-anim .a-hair { fill: currentColor; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
+.gptpdf-anim .a-tuft { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.gptpdf-anim .a-eyes { fill: currentColor; }
+.gptpdf-anim .a-glint { fill: var(--gptpdf-card-bg); }
+.gptpdf-anim .a-mouth { fill: none; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+.gptpdf-anim .a-mouth.open { fill: currentColor; }
+.gptpdf-anim .a-blush { fill: #f2899b; fill-opacity: .5; }
+.gptpdf-anim .a-tongue { fill: #ec6f86; }
+/* Dark card: the face stays a light face with dark eyes and dark hair, not its negative. */
+.gptpdf-dark .gptpdf-anim .a-face { fill: currentColor; }
+.gptpdf-dark .gptpdf-anim .a-hair { fill: var(--gptpdf-card-bg); }
+.gptpdf-dark .gptpdf-anim .a-eyes { fill: var(--gptpdf-card-bg); }
+.gptpdf-dark .gptpdf-anim .a-glint { fill: currentColor; }
+.gptpdf-dark .gptpdf-anim .a-mouth { stroke: var(--gptpdf-card-bg); }
+.gptpdf-dark .gptpdf-anim .a-mouth.open { fill: var(--gptpdf-card-bg); }
+
+.b .gptpdf-anim .a-face, .b .gptpdf-dark .gptpdf-anim .a-face { fill: currentColor; stroke: none; }
+.b .gptpdf-anim .a-hair, .b .gptpdf-anim .a-glint,
+.b .gptpdf-anim .a-blush, .b .gptpdf-anim .a-tongue { display: none; }
+.b .gptpdf-anim .a-eyes, .b .gptpdf-dark .gptpdf-anim .a-eyes { fill: var(--gptpdf-card-bg); }
+.b .gptpdf-anim .a-mouth, .b .gptpdf-dark .gptpdf-anim .a-mouth { stroke: var(--gptpdf-card-bg); }
+.b .gptpdf-anim .a-mouth.open, .b .gptpdf-dark .gptpdf-anim .a-mouth.open { fill: var(--gptpdf-card-bg); }

@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Человечек крупно</title>
+<!--
+  Рабочий стенд макета 1.2.8 (клерк): одна сцена втрое крупнее, на заданном мгновении — разглядеть лицо и позы.
+  ?v=old|c-hat|c-hair|prod (1.2.7 · котелок · без шляпы · что в продукте: anim.js и стили templates.js) · ?s=up|down|bind · ?t=мс (сколько сцена идёт) · ?dark
+  Время вручную, синхронно: кадр готов сразу, без ожидания.
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu \
+      --allow-file-access-from-files --hide-scrollbars --window-size=1000,380 --screenshot=k.png \
+      "file://$PWD/dizajn/animaciya/maket-c/krupno.html?v=c-hat&s=down&t=5000"
+-->
+<script src="../../../shared.js"></script>
+<script src="../../../templates.js"></script>
+<script>
+const q = new URLSearchParams(location.search);
+const V = q.get('v') || 'c-hat', SCENE = q.get('s') || 'down', T = +(q.get('t') || 4000), DARK = q.get('dark') !== null;
+document.write('<script src="' + (V === 'old' ? 'anim-1.2.7.js' : V === 'prod' ? '../../../anim.js' : 'anim.js') + '"><\/script>');
+if(V !== 'old' && V !== 'prod') document.write('<link rel="stylesheet" href="stil.css">');
+if(V !== 'old' && V !== 'prod') document.documentElement.classList.add(V);
+</script>
+<style>
+body { margin: 0; }
+#gptpdf-progress { display: flex !important; position: static !important; width: 1000px !important;
+                   box-shadow: none !important; border: 0 !important; border-radius: 0 !important; padding: 10px 20px !important; }
+.gptpdf-anim { display: block !important; }
+</style>
+<div class="gptpdf-loading-card" id="gptpdf-progress">
+  <div class="gptpdf-loading-text"></div>
+  <div class="gptpdf-anim"></div>
+</div>
+<script>
+document.head.insertAdjacentHTML('afterbegin', '<style>' + UI_CSS + '</style>');
+document.body.style.background = DARK ? '#2a2a2a' : '#fff';
+const card = document.getElementById('gptpdf-progress');
+card.classList.toggle('gptpdf-dark', DARK);
+gptpdfAnim._manual(true);
+const line = t => { card.querySelector('.gptpdf-loading-text').textContent = t; gptpdfAnim.fromText(t); };
+const run = ms => { for(let t = 0; t < ms; t += 33) gptpdfAnim._tick(33); };
+if(SCENE === 'up') {
+    let p = 1;
+    for(let t = 0; t < T; t += 900) { line('Loading older messages… ' + p++ + ' parts'); run(Math.min(900, T - t)); }
+} else if(SCENE === 'down') {
+    let k = 1;
+    for(let t = 0; t < T; t += 650) { line('Reading ' + k++ + ' of 40 messages…'); run(Math.min(650, T - t)); }
+} else {
+    for(let k = 1; k <= 6; k++) { line('Reading ' + k + ' of 40 messages…'); run(650); }
+    gptpdfAnim.stop();
+    line('Creating the PDF from 40 messages…');
+    run(T);
+}
+</script>

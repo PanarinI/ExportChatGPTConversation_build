@@ -11,6 +11,8 @@
     «Paused» (вкладка скрыта) — сцена замирает на месте; число пошло — живёт дальше;
     после прокрутки (подготовка, картинки, сервер) — идёт к стопке и скрепляет её в книгу «PDF», без мигания
     между шагами (1.2.7); конец экспорта — сцены нет; короткий чат не мелькает (сцена с 1,2 с).
+  1.2.8 — клерк в котелке (слово автора: «более сдержанным… офисным сотрудником из прошлого… элегантным»): лицо
+  своё на каждом шаге и держится весь шаг — ровное у ручки, внимательное над блокнотом, сдержанная улыбка над книгой.
   Время сцены — вручную (_manual/_tick): в headless кадры анимации с виртуальным временем не идут.
 
   Запуск:
@@ -59,6 +61,8 @@ const st = () => gptpdfAnim._state();
         check('через 1,2 с — видна', st().on);
         check('в карточке нарисована', !!document.querySelector('#gptpdf-progress .gptpdf-anim svg'));
         check('крутит ручку', st().pose === 'up' && st().crank !== c0, st().pose + ', ручка ' + c0 + ' → ' + st().crank);
+        check('клерк в котелке', !!document.querySelector('#gptpdf-progress .gptpdf-anim .a-hat'));
+        check('у ручки лицо ровное', st().mouth === 'work', st().mouth);
         setHarvestProgress('Loading older messages… 2 parts');
         check('наверху листы не летят', !st().flying && st().sheets === 0);
 
@@ -79,6 +83,7 @@ const st = () => gptpdfAnim._state();
         out.push('', '— Число стоит (картинки грузятся) —');
         await run(5000);
         check('5 с без нового — поза та же, без перескоков', st().pose === 'down' && !st().frozen, st().pose);
+        check('и лицо то же — внимательное, само не меняется', st().mouth === 'heed', st().mouth);
 
         out.push('', '— Вкладка скрыта —');
         setHarvestProgress('Paused: switch back to this tab to continue');
@@ -103,6 +108,7 @@ const st = () => gptpdfAnim._state();
         check('дошёл до стопки и скрепляет: обложка закрывается',
               st().pose === 'bind' && st().walk === 1 && st().cover > 0, 'шаг ' + st().walk + ', обложка ' + st().cover);
         check('в стопке есть что скреплять', st().sheets >= 5, st().sheets);
+        check('над книгой — сдержанная улыбка', st().mouth === 'done', st().mouth);
         gptpdfExportServer(40);
         check('сервер делает PDF — сцена остаётся', st().on && st().mode === 'binding');
         hideLoadingOverlay();

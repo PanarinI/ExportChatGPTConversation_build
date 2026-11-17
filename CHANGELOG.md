@@ -5,6 +5,15 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [1.2.8] — 2026-11-17
+### Changed
+- **The figure in the export card is now a character: a clerk from the past.**
+  A lean man in a bowler hat, round glasses, a bow tie and white gloves turns
+  the crank, copies the messages into his notepad and binds them into a PDF
+  book, as before. His face is calm and changes only when the step changes;
+  in between he blinks and nods to each message he copies. In the dark theme
+  his face and gloves stay light.
+
 ## [1.2.7] — 2026-11-17
 ### Changed
 - **The figure stays until the file comes.** After the chat is read, while
