@@ -135,30 +135,6 @@ function setHarvestProgress(text) {
     if(typeof gptpdfAnim !== 'undefined') gptpdfAnim.fromText(text);
 }
 
-// "— waiting for pictures…" on the card's line while the export waits for a
-// message's pictures (author 17.11: «Reading 58» stood 30–40 s and looked stuck
-// — it was waiting for pictures). Said after a short wait, taken back when it
-// ends; meanwhile the figure watches a picture develop (anim.js).
-// Short enough for one line of the card: "Reading 18 of 40 — waiting for
-// pictures…" (the word "messages" goes; the line comes back word for word).
-const GPTPDF_PICTURES_TAG = ' — waiting for pictures…';
-let gptpdfPicturesLine = null;   // the line the tag replaced
-function gptpdfPicturesWait(on) {
-    const t = document.querySelector('#gptpdf-progress .gptpdf-loading-text');
-    if(!t) return;
-    const text = t.textContent || '';
-    if(on) {
-        if(/^Reading/.test(text) && text.indexOf(GPTPDF_PICTURES_TAG) === -1) {
-            gptpdfPicturesLine = text;
-            setHarvestProgress(text.replace(/[.…]+$/, '').replace(/ messages$/, '') +
-                GPTPDF_PICTURES_TAG);
-        }
-    } else if(text.indexOf(GPTPDF_PICTURES_TAG) !== -1) {
-        setHarvestProgress(gptpdfPicturesLine || text.replace(GPTPDF_PICTURES_TAG, '…'));
-        gptpdfPicturesLine = null;
-    }
-}
-
 // Граница прохода — прогресс, а не часы: идём, пока позиция двигается или
 // прибывают сообщения; стоп, когда ничего не двигалось. Абсолютный потолок
 // существует только чтобы сломанная страница не крутилась вечно — Cancel
@@ -457,9 +433,6 @@ function gallerySettled(t, seen) {
 // caller takes a fresh snapshot.
 async function waitGalleries(seen, done, budget) {
     let waited = false;
-    const started = Date.now();
-    let said = false;
-    try {
     while(!harvestCancelled) {
         let open = 0;
         gptpdfChatRoot().querySelectorAll(GPTPDF_TURN).forEach(function(t) {
@@ -484,17 +457,9 @@ async function waitGalleries(seen, done, budget) {
         }
         waited = true;
         budget.progress();
-        if(typeof gptpdfAnim !== 'undefined') gptpdfAnim.pictures();
-        if(!said && Date.now() - started > 800) {
-            said = true;
-            gptpdfPicturesWait(true);
-        }
         await new Promise(r => setTimeout(r, 100));
     }
     return waited;
-    } finally {
-        if(said) gptpdfPicturesWait(false);
-    }
 }
 
 // What a mounted turn still waits for: hrefless citation links, pictures.
@@ -789,13 +754,24 @@ async function climbToConversationStart(scroller, ax, cache, budget) {
     // Threshold at one viewport so ordinary breathing (turns mounting and
     // unmounting around us) is not mistaken for a page arriving.
     let lastHeight = scroller.scrollHeight;
+    // A record of the climb for dev dumps (common.js, .harvest.json): every
+    // step [ms, at top 0/1, position, list height, messages held], the last
+    // 600, and why it ended. Twice on 17.11 the climb stood at five messages
+    // on «Художник_базовый» "beating its head on the top"; a reload helped,
+    // nothing said why.
+    const trace = [];
+    const t0 = Date.now();
+    let end = 'limit';
+    cache.gptpdfClimbTrace = trace;
     for(let i = 0; i < 20000; i++) {
         if(harvestCancelled || budget.expired()) {
+            end = harvestCancelled ? 'cancelled' : 'budget';
             break;
         }
         const before = ax.get();
         const seen = cache.size;
         if(++sinceGain > 200) {
+            end = 'no gain in 200 steps';
             break;
         }
         if(before > 0) {
@@ -866,6 +842,7 @@ async function climbToConversationStart(scroller, ax, cache, budget) {
                 // height even when its turns are unmounted.
                 if(topLoads === 0 &&
                    scroller.scrollHeight < scroller.clientHeight * 2) {
+                    end = 'fits on screen';
                     break;
                 }
                 if(!quietSince) {
@@ -875,15 +852,20 @@ async function climbToConversationStart(scroller, ax, cache, budget) {
                     : Math.min(CLIMB_MAX_PATIENCE_MS,
                         Math.max(CLIMB_MIN_PATIENCE_MS, maxArrivalGap * 3));
                 if(Date.now() - quietSince > limit) {
+                    end = 'quiet at top ' + limit + ' ms';
                     break;
                 }
             }
         }
+        trace.push([Date.now() - t0, before > 0 ? 0 : 1, Math.round(ax.get()),
+                    scroller.scrollHeight, cache.size]);
+        if(trace.length > 600) trace.shift();
         if(i % 4 === 0) {
             setHarvestProgress('Loading conversation... ' + cache.size +
                 ' messages so far');
         }
     }
+    cache.gptpdfClimbEnd = end;
     // Deliberately NOT "did we reach turn 1". Field measurement 2026-08-26:
     // `[gptpdf] harvest: 39 turns (1→40) ... reached the start` on a chat whose
     // beginning was nowhere in the PDF — the number in data-testid counts the
@@ -1295,10 +1277,6 @@ async function harvestByWrappers(scroller, cache, budget) {
                 }
                 pictures = t.querySelectorAll(GPTPDF_PENDING_PICTURE).length +
                     (galleryReady ? 0 : 1);
-                if(pictures) {
-                    if(typeof gptpdfAnim !== 'undefined') gptpdfAnim.pictures();
-                    if(Date.now() - since > 800) gptpdfPicturesWait(true);
-                }
                 const now = t.querySelectorAll('a.decorated-link[href], img').length;
                 if(resolved >= 0 && now > resolved) {
                     moved = true;

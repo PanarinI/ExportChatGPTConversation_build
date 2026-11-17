@@ -718,11 +718,7 @@ ${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(
  .gptpdf-anim .a-limb { fill: none; stroke: currentColor; stroke-width: 3.5; stroke-linecap: round; }
  .gptpdf-anim .a-ink { fill: currentColor; stroke: none; }
  .gptpdf-anim .a-eye { fill: var(--gptpdf-card-bg); stroke: none; }
- .gptpdf-anim .a-fly { fill: currentColor; fill-opacity: .55; stroke: none; }
  .gptpdf-anim .a-sheet { fill: var(--gptpdf-card-bg); stroke: currentColor; stroke-width: 1; }
- .gptpdf-anim .a-dots { font-size: 12px; fill: currentColor; fill-opacity: .6; }
- .gptpdf-anim .a-pic { fill: var(--gptpdf-card-bg); stroke: currentColor; stroke-opacity: .55; }
- .gptpdf-anim .a-ink2 { fill: currentColor; fill-opacity: .55; stroke: none; }
  .gptpdf-anim .a-pen { stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
  .gptpdf-loading-text { font-weight: 600; line-height: 1.35; }
  .gptpdf-loading-fact { font-size: 13px; line-height: 1.4; opacity: .85; }

@@ -180,6 +180,11 @@ gptpdfChatGPT.init = function() {
             }
         }
         if(harvestCancelled) {
+            // Dev builds: a climb that beat its head on the top is ended with
+            // Cancel — and that is the run whose record is wanted (17.11).
+            if(/-dev/.test(gptpdfShared.build)) {
+                gptpdfDevHarvest(turnCache, document.title, true);
+            }
             restoreButtonState();
             return;
         }
@@ -446,6 +451,7 @@ gptpdfChatGPT.init = function() {
                     // console: turns, top loads, climb/down seconds) — 17.11:
                     // a climb that gave up left a PDF of the last 11 pairs and
                     // no word why.
+                    gptpdfDevHarvest(turnCache, filename, false);
                     gptpdfDevDump(htmlContent, data, filename, devLive, devCopy,
                         Object.assign({}, devHeader, {
                             harvest: (turnCache && turnCache.gptpdfHarvest) || null,
@@ -1099,18 +1105,51 @@ gptpdfChatGPT.saveBlob = function(url, filename) {
 // trace of how it was built. Both are inert <template>s: nothing loads or runs.
 // Plus the header as the Export button's placement saw it, at the click and
 // when the button stood cut down or under the header for 3 s (JSON).
+function gptpdfDevSave(base, suffix, text, type) {
+    const url = URL.createObjectURL(new Blob([text], { type: type || 'text/html' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = base + suffix;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
+}
+
+// Dev builds: the harvest's own account as a small file beside the PDF,
+// "<title>.harvest.json" — its summary (messages, top loads, seconds) and the
+// climb step by step with why it ended. Saved on Cancel too: a climb that
+// beats its head on the top is ended by a person, and that is the run to read
+// (17.11, twice on «Художник_базовый»). Small enough to keep when the big
+// dumps are thrown away.
+function gptpdfDevHarvest(cache, filename, cancelled) {
+    try {
+        gptpdfDevSave(String(filename || 'export').replace(/\.pdf$/i, ''), '.harvest.json',
+            JSON.stringify({
+                build: gptpdfShared.build, at: new Date().toISOString(), page: location.pathname,
+                cancelled: !!cancelled,
+                harvest: (cache && cache.gptpdfHarvest) || null,
+                climbEnd: (cache && cache.gptpdfClimbEnd) || null,
+                climbColumns: ['ms', 'atTop', 'position', 'listHeight', 'messages'],
+                climb: (cache && cache.gptpdfClimbTrace) || null
+            }), 'application/json');
+    } catch(e) {
+        console.log('[gptpdf] dev harvest record failed', e);
+    }
+}
+
 function gptpdfDevDump(html, data, filename, live, copy, header) {
     const base = String(filename || 'export').replace(/\.pdf$/i, '');
-    function save(text, suffix) {
-        const url = URL.createObjectURL(new Blob([text], { type: 'text/html' }));
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = base + suffix;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
-    }
+    const save = function(text, suffix) { gptpdfDevSave(base, suffix, text); };
+    // The markup is what this file is for: pictures keep their size in place
+    // of their bytes (a chat of 40 pictures made it 170 MB, 17.11).
+    const lean = function(h) {
+        return (h || '').replace(/src="data:[^"]{200,}"/g, function(m) {
+            return 'src="data:…(' + m.length + ' chars)"';
+        });
+    };
+    live = lean(live);
+    copy = lean(copy);
     try {
         const params = Object.assign({}, data);
         delete params.custom_css;

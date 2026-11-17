@@ -2,13 +2,14 @@
 <meta charset="utf-8">
 <title>Человечек карточки — стенд</title>
 <!--
-  Проверяет сцену anim.js (v3, слово автора 17.11: «вверх крутит, а вниз он просто читает») в настоящей карточке
-  (templates.js + capture.js): она идёт за строкой шага и за сигналом «ждём картинки», а не за часами.
-    подъём — крутит ручку, лента едет вниз, листы не летят;
-    чтение — ручка стоит, на каждое новое число лента делает шаг, листок летит в стопку;
-    ждём картинки (gptpdfAnim.pictures / строка «— waiting for pictures…») — смотрит на картинку, не «ждёт»;
-    2,5 с без нового и «Paused» — ждёт «…»; картинки, PDF, конец экспорта — сцены нет;
-    короткий чат не мелькает (сцена с 1,2 с).
+  Проверяет сцену anim.js в настоящей карточке (templates.js + capture.js). Два состояния — слово автора 17.11
+  после живой выгрузки: «2 состояния наверх и вниз»; позы, что менялись сами (ждёт, картинки), «скорее больше
+  раздражало».
+    наверх (подъём) — крутит ручку, лента едет вниз, листы не летят;
+    вниз (чтение) — ручка стоит, на каждое новое число лента делает шаг, листок летит в стопку;
+    сколько бы ни стояло число (картинки грузятся) — он пишет дальше, поза не меняется;
+    «Paused» (вкладка скрыта) — сцена замирает на месте; число пошло — живёт дальше;
+    картинки, PDF, конец экспорта — сцены нет; короткий чат не мелькает (сцена с 1,2 с).
   Время сцены — вручную (_manual/_tick): в headless кадры анимации с виртуальным временем не идут.
 
   Запуск:
@@ -31,15 +32,13 @@ function check(name, cond, detail) {
     if(!cond) failed++;
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-async function run(ms, every) {             // scene time and page time together
+async function run(ms) {                    // scene time and page time together
     for(let t = 0; t < ms; t += 50) {
-        if(every) every();
         gptpdfAnim._tick(50);
         await sleep(50);
     }
 }
 const st = () => gptpdfAnim._state();
-const line = () => document.querySelector('#gptpdf-progress .gptpdf-loading-text').textContent;
 
 (async function() {
     try {
@@ -51,53 +50,46 @@ const line = () => document.querySelector('#gptpdf-progress .gptpdf-loading-text
         gptpdfAnim._manual(true);
         showLoadingOverlay();
 
-        out.push('— Подъём к началу чата —');
+        out.push('— Наверх: подъём к началу чата —');
         setHarvestProgress('Loading older messages… 1 part');
         check('сцена началась, но сразу не видна (короткий чат не мелькает)', st().mode === 'loading' && !st().on);
         const c0 = st().crank;
         await run(1300);
         check('через 1,2 с — видна', st().on);
         check('в карточке нарисована', !!document.querySelector('#gptpdf-progress .gptpdf-anim svg'));
-        check('крутит ручку', st().pose === 'climb' && st().crank !== c0, st().pose + ', ручка ' + c0 + ' → ' + st().crank);
+        check('крутит ручку', st().pose === 'up' && st().crank !== c0, st().pose + ', ручка ' + c0 + ' → ' + st().crank);
         setHarvestProgress('Loading older messages… 2 parts');
-        check('на подъёме листы не летят', !st().flying && st().sheets === 0);
+        check('наверху листы не летят', !st().flying && st().sheets === 0);
 
-        out.push('', '— Чтение —');
+        out.push('', '— Вниз: чтение —');
         setHarvestProgress('Reading 1 of 10 messages…');
-        await run(400);
+        await run(600);
         const c1 = st().crank, t1 = st().tape;
         setHarvestProgress('Reading 2 of 10 messages…');
-        check('новое число — лист летит', st().flying);
+        check('новое число — листок летит', st().flying);
         await run(900);
-        check('читает (ручка стоит, лента шагнула сама)', st().pose === 'read' && st().crank === c1 && st().tape === t1 + 16,
+        check('читает: ручка стоит, лента шагнула сама', st().pose === 'down' && st().crank === c1 && st().tape === t1 + 16,
               st().pose + ', ручка ' + c1 + ' → ' + st().crank + ', лента ' + t1 + ' → ' + st().tape);
-        check('лист долетел в стопку', !st().flying && st().sheets === 1, st().sheets);
+        check('листок долетел в стопку', !st().flying && st().sheets === 1, st().sheets);
         setHarvestProgress('Reading 3 of 10 messages…');
         await run(900);
         check('ещё одно — стопка растёт', st().sheets === 2, st().sheets);
 
-        out.push('', '— Ждём картинки —');
-        await run(1500, () => gptpdfAnim.pictures());
-        check('ждёт картинку — смотрит на неё, а не «…»', st().pose === 'pics' && st().picture > 0.5, st().pose + ', картинка ' + st().picture);
-        gptpdfPicturesWait(true);
-        check('строка говорит, чего ждём (в одну строку: без «messages»)', line() === 'Reading 3 of 10 — waiting for pictures…', line());
-        gptpdfPicturesWait(false);
-        check('и возвращает строку слово в слово', line() === 'Reading 3 of 10 messages…', line());
+        out.push('', '— Число стоит (картинки грузятся) —');
+        await run(5000);
+        check('5 с без нового — поза та же, без перескоков', st().pose === 'down' && !st().frozen, st().pose);
+
+        out.push('', '— Вкладка скрыта —');
+        setHarvestProgress('Paused: switch back to this tab to continue');
+        const t2 = st().tape;
+        await run(1500);
+        check('«Paused» — сцена замирает на месте', st().on && st().frozen && st().tape === t2 && st().pose === 'down');
         setHarvestProgress('Reading 4 of 10 messages…');
         await run(800);
-        check('картинки пришли — снова читает', st().pose === 'read', st().pose);
-
-        out.push('', '— Нового нет —');
-        await run(3200);
-        check('2,5 с без нового — ждёт «…»', st().pose === 'pause', st().pose);
-        setHarvestProgress('Paused: switch back to this tab to continue');
-        check('«Paused» — сцена остаётся и ждёт', st().on && st().mode === 'reading' && st().target === 'pause');
-        setHarvestProgress('Reading 5 of 10 messages…');
-        await run(800);
-        check('число пошло — снова читает', st().pose === 'read', st().pose);
+        check('число пошло — живёт дальше', !st().frozen && st().tape === t2 + 16, st().tape);
         setHarvestProgress('Filling in 5 messages…');
         setHarvestProgress('Filling in 4 messages…');
-        check('дособор («осталось N», вниз) — тоже копия', st().flying);
+        check('дособор («осталось N», вниз) — тоже листок', st().flying);
 
         out.push('', '— После прокрутки —');
         gptpdfExportImages('Adding images', 1, 3);
