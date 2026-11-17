@@ -5,7 +5,7 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
-## [Unreleased] — 1.2.7
+## [1.2.7] — 2026-11-17
 ### Changed
 - **The figure stays until the file comes.** After the chat is read, while
   pictures are added and the server makes the PDF, he steps over to his stack
