@@ -1,0 +1,101 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Анимация шага чтения — макет A v2</title>
+<!--
+  Макет для автора (17.11): вариант A «окно» — человечек крутит ручку, лента сообщений едет сквозь
+  рамку-экран (снаружи контуры, внутри нарисованы), каждое вышедшее сообщение улетает листом в стопку,
+  счёт растёт. v2: рука из двух звеньев держит ручку и ходит с ней по кругу (в v1 рука стояла, а колесо
+  крутилось — слово автора: «некрасиво»). Кнопка внизу — честная пауза: вкладка скрыта, ChatGPT не отдаёт
+  сообщения, человечек опускает руку и ждёт. ?dark — тёмная тема.
+-->
+<style>
+:root { --surface-1:#f4f4f2; --surface-2:#ffffff; --border:rgba(0,0,0,.12); --border-strong:rgba(0,0,0,.28);
+        --text-primary:#1f1f1e; --text-secondary:#6b6a66; --text-muted:#9a9993; }
+:root.dark { --surface-1:#2a2a29; --surface-2:#1f1f1e; --border:rgba(255,255,255,.12); --border-strong:rgba(255,255,255,.3);
+             --text-primary:#ececea; --text-secondary:#a8a7a1; --text-muted:#7c7b76; }
+body { margin:0; padding:24px 16px; background:var(--surface-1); color:var(--text-primary);
+       font:14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:14px 16px;max-width:380px}
+.step{font-size:14px;font-weight:500;margin:0 0 6px}
+.bar{height:4px;border-radius:2px;background:var(--surface-1);margin:0 0 8px;overflow:hidden}
+.cap{font-size:12px;color:var(--text-secondary);margin:6px 0 0;line-height:1.45}
+.hint{font-size:12px;color:var(--text-muted);margin:6px 0 0;line-height:1.45}
+button{font:inherit;padding:6px 12px;border-radius:8px;border:0.5px solid var(--border-strong);background:transparent;color:inherit;cursor:pointer}
+</style>
+<div class="card">
+<p class="step" id="stepline">Reading the chat… <span id="n">120</span> of 257</p>
+<div class="bar"><div id="barfill" style="width:47%;height:100%;background:var(--text-secondary)"></div></div>
+<svg id="sc" viewBox="0 0 320 110" width="100%" role="img" aria-label="A figure turns a crank; message bubbles scroll through a screen frame; copies fly to a stack">
+<defs><clipPath id="win2"><rect x="104" y="14" width="86" height="84" rx="6"/></clipPath></defs>
+<g id="tapeA" fill="none" stroke="var(--border-strong)" stroke-dasharray="3 3"></g>
+<g clip-path="url(#win2)"><g id="tapeB" fill="var(--text-secondary)" opacity=".8"></g></g>
+<rect x="104" y="14" width="86" height="84" rx="6" fill="none" stroke="var(--text-primary)" stroke-width="1.5"/>
+<circle cx="206" cy="56" r="9" fill="none" stroke="var(--text-primary)" stroke-width="1.5"/>
+<line id="spoke" x1="206" y1="56" x2="214" y2="56" stroke="var(--text-primary)" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="190" y1="56" x2="197" y2="56" stroke="var(--text-primary)" stroke-width="1.5"/>
+<g id="stack"></g>
+<rect id="fly" x="0" y="0" width="16" height="7" rx="3.5" fill="var(--text-secondary)" opacity="0"/>
+<g stroke="var(--text-primary)" stroke-linecap="round" fill="none">
+<line id="armBack" stroke-width="3.5" x1="234" y1="63" x2="236" y2="80"/>
+<line id="legL" stroke-width="3.5" x1="229" y1="86" x2="226" y2="104"/>
+<line id="legR" stroke-width="3.5" x1="235" y1="86" x2="238" y2="104"/>
+</g>
+<rect id="body" x="223" y="58" width="14" height="30" rx="7" fill="var(--text-primary)"/>
+<circle id="head" cx="230" cy="48" r="7.5" fill="var(--text-primary)"/>
+<circle id="eye" cx="227" cy="47" r="1.4" fill="var(--surface-2)"/>
+<g stroke="var(--text-primary)" stroke-linecap="round" fill="none" stroke-width="3.5">
+<line id="ua" x1="224" y1="62" x2="214" y2="70"/>
+<line id="fa" x1="214" y1="70" x2="214" y2="56"/>
+</g>
+<circle id="knob" cx="214" cy="56" r="2.6" fill="var(--text-primary)"/>
+<text id="dots" x="238" y="34" style="font-size:12px;fill:var(--text-secondary)" opacity="0">…</text>
+</svg>
+<p class="cap">ChatGPT shows only the messages that fit on your screen, so the export scrolls through the chat and copies each one.</p>
+<p class="hint" id="hint">Don't switch tabs or minimize the window yet: the export pauses while this tab is hidden.</p>
+</div>
+<div style="margin-top:10px"><button id="pause">Показать паузу (вкладка скрыта)</button></div>
+<script>
+if(/[?&]dark/.test(location.search)) document.documentElement.classList.add('dark');
+(function(){
+const NS='http://www.w3.org/2000/svg';
+const $=id=>document.getElementById(id);
+const W=[46,40,52,36,44,48,42];
+function mk(g){for(let i=0;i<14;i++){const r=document.createElementNS(NS,'rect');const left=i%2===0;const w=W[i%7];r.setAttribute('x',left?112:182-w);r.setAttribute('y',2+i*16);r.setAttribute('width',w);r.setAttribute('height',10);r.setAttribute('rx',5);g.appendChild(r);}}
+mk($('tapeA'));mk($('tapeB'));
+const C={x:206,y:56},R=8,L1=15,L2=15;
+let theta=0,last=null,paused=false,count=120,copied=0,flight=null,stackN=3,rest=0;
+function addSheet(i){const r=document.createElementNS(NS,'rect');r.setAttribute('x',270+(i%2?1:-1));r.setAttribute('y',99-i*5);r.setAttribute('width',30);r.setAttribute('height',4);r.setAttribute('rx',1);r.setAttribute('fill','var(--surface-2)');r.setAttribute('stroke','var(--text-primary)');r.setAttribute('stroke-width','1');$('stack').appendChild(r);}
+for(let i=0;i<stackN;i++)addSheet(i);
+function set(id,a){const e=$(id);for(const k in a)e.setAttribute(k,a[k]);}
+function ik(S,K){let dx=K.x-S.x,dy=K.y-S.y,d=Math.hypot(dx,dy);d=Math.min(Math.max(d,1),L1+L2-0.01);const a=Math.atan2(dy,dx);const al=Math.acos((L1*L1+d*d-L2*L2)/(2*L1*d));const e1={x:S.x+L1*Math.cos(a+al),y:S.y+L1*Math.sin(a+al)},e2={x:S.x+L1*Math.cos(a-al),y:S.y+L1*Math.sin(a-al)};return e1.y>e2.y?e1:e2;}
+window.__step=function(ts){frame(ts,true);};
+function frame(ts,once){
+ if(last===null)last=ts;const dt=Math.min(0.05,(ts-last)/1000);last=ts;
+ rest+=((paused?1:0)-rest)*Math.min(1,dt*4);
+ if(!paused)theta+=dt*2*Math.PI/1.4;
+ const K={x:C.x+R*Math.cos(theta),y:C.y+R*Math.sin(theta)};
+ set('spoke',{x2:K.x,y2:K.y});set('knob',{cx:K.x,cy:K.y});
+ const lean=-Math.cos(theta)*1.6*(1-rest);
+ const S={x:224+lean,y:62};
+ const hand={x:K.x+(S.x-4-K.x)*rest,y:K.y+(S.y+24-K.y)*rest};
+ const E=ik(S,hand);
+ set('ua',{x1:S.x,y1:S.y,x2:E.x,y2:E.y});set('fa',{x1:E.x,y1:E.y,x2:hand.x,y2:hand.y});
+ set('body',{x:223+lean*0.6});set('head',{cx:230+lean});
+ set('eye',{cx:230+lean-3*(1-rest),cy:47+rest*0.5,r:rest>0.5&&(Math.floor(ts/1600)%3===0)?0.4:1.4});
+ const sw=Math.sin(theta)*3*(1-rest);
+ set('armBack',{x1:234+lean*0.6,y1:63,x2:236+sw,y2:80});
+ $('dots').setAttribute('opacity',rest>0.6?1:0);
+ const off=(theta/(2*Math.PI))*16;
+ const shift=-(off%112);
+ $('tapeA').setAttribute('transform','translate(0,'+shift+')');$('tapeB').setAttribute('transform','translate(0,'+shift+')');
+ const passed=Math.floor(off/16);
+ if(!paused&&passed>copied&&!flight){copied=passed;flight={t:0,to:Math.min(stackN,9)};}
+ if(flight){flight.t+=dt/0.7;const t=Math.min(1,flight.t);const x=182+(271-182)*t,y=12+(99-flight.to*5-12)*t-20*Math.sin(Math.PI*t);set('fly',{x:x,y:y,opacity:t<0.95?1:0});
+  if(t>=1){flight=null;count=count>=257?120:count+1;$('n').textContent=count;$('barfill').style.width=Math.round(count/257*100)+'%';if(stackN<9){addSheet(stackN);stackN++;}}}
+ if(!once)requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+$('pause').addEventListener('click',function(){paused=!paused;this.textContent=paused?'Вернуться на вкладку':'Показать паузу (вкладка скрыта)';$('hint').textContent=paused?'The export waited while this tab was hidden: ChatGPT loads messages only in a visible tab.':"Don't switch tabs or minimize the window yet: the export pauses while this tab is hidden.";});
+})();
+</script>

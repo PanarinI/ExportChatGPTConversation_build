@@ -108,6 +108,50 @@ function gptpdfFindBlockGroups(root) {
     return groups;
 }
 
+// The blocks of one text body. New answers (11-2026) keep their text inside
+// ChatGPT's own renderer: text root › div[data-dil-source-message-id] › … ›
+// [data-dil-response] › p, ul, h…, table. The text root's one child held the
+// whole answer, and block mode offered it as a single block — an "image block"
+// at that, for the site icons in its source pills (author 17.11, "the whole
+// text is one image block, I can only pick the whole answer"). The blocks of
+// such a part are the renderer's own children.
+function gptpdfTextBlocks(md) {
+    const out = [];
+    Array.from(md.children).forEach(function(child) {
+        const tag = child.tagName;
+        if(!tag) return;
+        if(tag === 'HR' || tag === 'SCRIPT' || tag === 'STYLE') return;
+        if(child.classList.contains('gptpdf-img-sel-row')) return;
+        const dil = child.matches('[data-dil-response]') ? child
+            : child.querySelector('[data-dil-response]');
+        if(!dil) {
+            out.push(child);
+            return;
+        }
+        Array.from(dil.children).forEach(function(b) {
+            if(!b.tagName || b.hidden || b.tagName === 'HR') return;
+            if(b.matches('[data-d-component="divider"]')) return;
+            if(b.classList.contains('gptpdf-img-sel-row')) return;
+            out.push(b);
+        });
+    });
+    return out;
+}
+
+// A picture that makes its block an image block (own "Select image block"
+// row): not a site's icon in a link or a source pill, not a small glyph. On
+// the live page its drawn width decides; unlaid-out, its own size.
+function gptpdfIsContentPicture(img) {
+    if(img.closest('a, [data-d-component="favicon"], [data-d-component="badge"], ' +
+                   '[data-d-component="icon"]')) {
+        return false;
+    }
+    const drawn = img.getBoundingClientRect ? img.getBoundingClientRect().width : 0;
+    const w = drawn > 0 ? drawn
+        : Math.max(img.naturalWidth || 0, parseInt(img.getAttribute('width') || '0', 10) || 0);
+    return w >= 64;
+}
+
 function gptpdfTurnBlocks(turn) {
     const result = [];
     const userEl = turn.querySelector(
@@ -119,14 +163,7 @@ function gptpdfTurnBlocks(turn) {
     // AI turn: drill into .markdown container
     const markdown = turn.querySelector('.markdown');
     if(markdown) {
-        Array.from(markdown.children).forEach(function(child) {
-            const tag = child.tagName;
-            if(!tag) return;
-            if(tag === 'HR' || tag === 'SCRIPT' || tag === 'STYLE') return;
-            // Skip our own injected UI elements
-            if(child.classList.contains('gptpdf-img-sel-row')) return;
-            result.push(child);
-        });
+        gptpdfTextBlocks(markdown).forEach(function(b) { result.push(b); });
     }
     // Generated/uploaded images (e.g. DALL-E) often live OUTSIDE .markdown
     // in their own container — make them selectable blocks too.
@@ -169,13 +206,7 @@ function gptpdfAnswerBlocks(unit) {
     const bodies = (unit.matches(TEXT) ? [unit] : []).concat(
         Array.from(unit.querySelectorAll(TEXT)));
     bodies.forEach(function(md) {
-        Array.from(md.children).forEach(function(child) {
-            const tag = child.tagName;
-            if(!tag) return;
-            if(tag === 'HR' || tag === 'SCRIPT' || tag === 'STYLE') return;
-            if(child.classList.contains('gptpdf-img-sel-row')) return;
-            result.push(child);
-        });
+        gptpdfTextBlocks(md).forEach(function(b) { result.push(b); });
     });
     const holdsText = function(el) {
         return bodies.some(function(md) { return el.contains(md); });
@@ -230,6 +261,8 @@ function gptpdfBlockKey(el) {
     const base = id ? 'msg:' + id
                     : (turn ? (turn.getAttribute('data-testid') || '') : '');
     if(msg === el) return base + '#u';        // the user message = one block
+    const dilPlace = gptpdfDilPlace(el);
+    if(dilPlace) return base + dilPlace;
     const parent = el.parentElement;
     const inText = !!(parent && parent.classList &&
                       parent.classList.contains('markdown'));
@@ -250,9 +283,21 @@ function gptpdfPairBlockKey(el, pair) {
         ? 'msg:' + part.getAttribute('data-chatgpt-selection-message-id')
         : 'pair:' + pairKey;
     const parent = el.parentElement;
+    const dil = gptpdfDilPlace(el);
+    if(dil) return base + dil;
     const inText = !!(parent && parent.matches &&
         parent.matches('[data-markdown-text-style="assistant-message"]'));
     return base + (inText ? '#' : '#t') + gptpdfPlaceAmongKids(el);
+}
+
+// A block of ChatGPT's renderer (gptpdfTextBlocks): its place among the
+// renderer's children, after the place of its wrapper in the text root — one
+// text root can hold several wrappers, each counting from 0.
+function gptpdfDilPlace(el) {
+    const parent = el.parentElement;
+    if(!parent || !parent.matches || !parent.matches('[data-dil-response]')) return '';
+    const wrap = el.closest('[data-markdown-text-style="assistant-message"] > *, .markdown > *');
+    return '#d' + (wrap ? gptpdfPlaceAmongKids(wrap) : '0') + '.' + gptpdfPlaceAmongKids(el);
 }
 
 function gptpdfPlaceAmongKids(el) {
@@ -531,11 +576,10 @@ function setupBlockMode() {
         }
         visualEl.classList.add('gptpdf-block-sel');
 
-        // Images inside <a> tags are citation favicons — not real content images
+        // Only a real picture makes an image block — not the site icons of a
+        // source pill or a link, not a small glyph (gptpdfIsContentPicture).
         const hasImages = !!(el.querySelector('canvas, video') ||
-            Array.from(el.querySelectorAll('img')).some(function(img) {
-                return !img.closest('a');
-            }));
+            Array.from(el.querySelectorAll('img')).some(gptpdfIsContentPicture));
         let selRow = null;
 
         if(hasImages) {
@@ -545,12 +589,10 @@ function setupBlockMode() {
             selRow.className = 'gptpdf-img-sel-row';
             selRow.setAttribute('data-gptpdf-sel-row', bid);
             selRow.innerHTML =
-                '<span style="font-size:13px;color:#EA4C3A;font-weight:500;' +
-                'user-select:none;pointer-events:none">' +
+                '<span class="gptpdf-sel-label">' +
                 (isRuLang ? 'Выбрать изображение' : 'Select image block') +
                 '</span>' +
-                '<input type="checkbox" style="width:16px;height:16px;' +
-                'accent-color:#EA4C3A;cursor:pointer;flex-shrink:0;margin-left:auto">';
+                '<input type="checkbox" class="gptpdf-sel-cb" style="margin-left:auto">';
             if(el.parentElement) {
                 el.parentElement.insertBefore(selRow, el);
             }
@@ -563,6 +605,7 @@ function setupBlockMode() {
             cbWrap.className = 'gptpdf-block-cb';
             cb = document.createElement('input');
             cb.type = 'checkbox';
+            cb.className = 'gptpdf-sel-cb';
             cbWrap.appendChild(cb);
             visualEl.appendChild(cbWrap);
 

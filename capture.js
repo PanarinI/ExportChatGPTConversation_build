@@ -534,8 +534,10 @@ const GPTPDF_HINT_STAY = 'Don\'t switch tabs or minimize the window yet: ' +
 const GPTPDF_HINT_AFTER_MS = 10000;
 const GPTPDF_FACT_AFTER_MS = 30000;
 const GPTPDF_FACT_READING_AFTER_MS = 10000;
-const GPTPDF_FACT_SCREEN = 'ChatGPT draws only the messages on screen, ' +
-    'so each one is scrolled into view to be copied.';
+// Author 17.11: «draws only the messages on screen» read as nonsense — say
+// what it means: only what fits on the screen is there, so the export scrolls.
+const GPTPDF_FACT_SCREEN = 'ChatGPT shows only the messages that fit on your screen, ' +
+    'so the export scrolls through the chat and copies each one.';
 // A step's facts take turns every 20 s, round and round (author's word 07.10:
 // one text that never changes for a minute reads as a frozen card).
 const GPTPDF_FACTS_LOADING = [GPTPDF_FACT_PARTS, GPTPDF_FACT_REQUEST];

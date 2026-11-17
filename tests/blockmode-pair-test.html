@@ -334,6 +334,44 @@ const keysOf = root => gptpdfFindBlocks(root).map(gptpdfBlockKey);
     check('ссылка → через фон расширения', box.querySelector('#u').getAttribute('src') === 'data:image/png;base64,FETCHED');
     check('data: не трогается', box.querySelector('#d').getAttribute('src') === PNG);
 
+    // ── F. новый ответ ChatGPT (11-2026): текст внутри его «рендерера» ──
+    // Корень текста › div[data-dil-source-message-id] › … › [data-dil-response] ›
+    // абзацы. Раньше блоком был единственный ребёнок корня — весь ответ, да ещё
+    // «картиночный» из-за значка источника (автор 17.11: «весь текст сплошняком
+    // распознаёт как image блок»).
+    out.push('');
+    out.push('— F. Новый ответ: блоки внутри рендерера ChatGPT —');
+    const dilBody = (id, inner) =>
+        '<div class="my-4" data-dil-source-message-id="' + id + '"><div><div hidden=""></div>' +
+        '<div class="relative PortalBoundary-x"><div dir="auto" data-dil-response="" data-d-direction="col">' +
+        inner + '</div></div></div></div>';
+    const fav = '<span data-d-component="badge"><img data-d-component="favicon" width="16" height="16" src="' + PNG + '">site</span>';
+    const dilPair = document.createElement('div');
+    dilPair.innerHTML =
+        '<div data-turn-key="ud1"><div class="block-x">' +
+          '<div data-chatgpt-search-unit-key="fallback-turn-9:0:user" data-chatgpt-search-message-ids="ud1">' +
+            '<div data-user-message-bubble="true"><div class="whitespace-pre-wrap">Вопрос</div></div></div></div>' +
+          '<div class="block-x"><div data-chatgpt-search-unit-key="fallback-turn-9:2:assistant" ' +
+              'data-chatgpt-search-message-ids="ad1">' +
+            '<h4 class="sr-only" data-conversation-role="assistant">ChatGPT said:</h4>' +
+            '<div data-chatgpt-selection-message-id="ad1"><div data-markdown-text-style="assistant-message">' +
+              dilBody('ad1', '<p>Первый абзац ' + fav + '</p><div data-d-component="divider"></div>' +
+                  '<ul data-d-component="list"><li>пункт</li></ul><p>Третий</p>') +
+              dilBody('ad1', '<p>Абзац второй обёртки</p>') +
+            '</div></div></div></div>' +
+        '</div>';
+    stage.appendChild(dilPair);
+    const dilGroups = gptpdfFindBlockGroups(dilPair);
+    const dilAns = dilGroups.filter(g => !g.el.matches('[data-chatgpt-search-unit-key$=":user"]'))[0];
+    const dilTexts = dilAns ? dilAns.blocks.map(b => b.textContent.trim().slice(0, 14)) : [];
+    check('ответ разбит на абзацы, список — тоже блок; разделитель не блок',
+          dilTexts.join(' | ') === 'Первый абзац s | пункт | Третий | Абзац второй о', dilTexts.join(' | '));
+    check('значок источника не делает абзац «картиночным»',
+          !dilAns.blocks.some(b => Array.from(b.querySelectorAll('img')).some(gptpdfIsContentPicture)));
+    const dilKeys = dilAns.blocks.map(gptpdfBlockKey);
+    check('у блоков двух обёрток разные ключи', new Set(dilKeys).size === dilKeys.length, dilKeys.join(', '));
+    stage.removeChild(dilPair);
+
     out.push('');
     out.push(failed ? '✗ ПРОВАЛОВ: ' + failed : '✓ ВСЁ ЗЕЛЁНОЕ');
     document.getElementById('log').textContent = out.join('\n');

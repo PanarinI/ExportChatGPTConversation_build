@@ -508,6 +508,22 @@ ${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(
  }
  ${GPTPDF_DARK} #gptpdf-blocks-cancel { border-color: #555; }
 
+ /* The selection colour of block mode (author 17.11: red reads as "delete",
+    while a frame here says "this goes into the PDF") — a calm blue, the usual
+    colour of "selected". Only block mode: the brand red stays on the buttons. */
+ html {
+     --gptpdf-sel: #2F6FED;
+     --gptpdf-sel-tint: rgba(47,111,237,0.07);
+     --gptpdf-sel-hover: rgba(47,111,237,0.30);
+     --gptpdf-sel-hover-bg: rgba(47,111,237,0.04);
+ }
+ ${GPTPDF_DARK} {
+     --gptpdf-sel: #6EA2FF;
+     --gptpdf-sel-tint: rgba(110,162,255,0.12);
+     --gptpdf-sel-hover: rgba(110,162,255,0.38);
+     --gptpdf-sel-hover-bg: rgba(110,162,255,0.06);
+ }
+
  /* Individual content blocks */
  .gptpdf-block-sel {
      position: relative;
@@ -518,12 +534,12 @@ ${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(
      overflow: visible !important; /* ensure checkbox not clipped by overflow:hidden */
  }
  .gptpdf-block-sel:hover {
-     background: rgba(234,76,58,0.05);
-     outline: 2px solid rgba(234,76,58,0.25);
+     background: var(--gptpdf-sel-hover-bg);
+     outline: 2px solid var(--gptpdf-sel-hover);
  }
  .gptpdf-block-sel.gptpdf-block-checked {
-     background: rgba(234,76,58,0.07);
-     outline: 2px solid #EA4C3A;
+     background: var(--gptpdf-sel-tint);
+     outline: 2px solid var(--gptpdf-sel);
  }
  .gptpdf-block-cb {
      position: absolute;
@@ -541,13 +557,51 @@ ${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(
  ${GPTPDF_DARK} .gptpdf-block-cb {
      background: rgba(40,40,40,0.85);
  }
- .gptpdf-block-cb input[type=checkbox] {
-     width: 18px;
-     height: 18px;
-     pointer-events: auto;
-     accent-color: #EA4C3A;
-     cursor: pointer;
-     display: block;
+ .gptpdf-block-cb .gptpdf-sel-cb { pointer-events: auto; }
+
+ /* Our own checkbox, drawn whole: box, fill and tick. The page's styles reach
+    a checkbox that sits inside an answer, and on the author's chats the
+    browser's own one showed no tick when ticked (17.11). The class twice
+    outweighs a page rule like .markdown input[type=checkbox]. */
+ input.gptpdf-sel-cb.gptpdf-sel-cb[type=checkbox] {
+     -webkit-appearance: none !important;
+     appearance: none !important;
+     width: 18px !important;
+     height: 18px !important;
+     min-width: 18px !important;
+     margin-top: 0 !important;
+     margin-bottom: 0 !important;
+     padding: 0 !important;
+     border: 1.5px solid #9aa1aa !important;
+     border-radius: 5px !important;
+     background: #fff !important;
+     box-shadow: none !important;
+     display: block !important;
+     flex-shrink: 0;
+     cursor: pointer !important;
+     opacity: 1 !important;
+ }
+ ${GPTPDF_DARK} input.gptpdf-sel-cb.gptpdf-sel-cb[type=checkbox] {
+     border-color: #8a8f96 !important;
+     background: #262626 !important;
+ }
+ input.gptpdf-sel-cb.gptpdf-sel-cb[type=checkbox]:checked,
+ ${GPTPDF_DARK} input.gptpdf-sel-cb.gptpdf-sel-cb[type=checkbox]:checked {
+     border-color: var(--gptpdf-sel) !important;
+     background: var(--gptpdf-sel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.4 6.3l2.4 2.4 4.8-5.2' fill='none' stroke='white' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 13px 13px no-repeat !important;
+ }
+ input.gptpdf-sel-cb.gptpdf-sel-cb[type=checkbox]:focus-visible {
+     outline: 2px solid var(--gptpdf-sel) !important;
+     outline-offset: 2px;
+ }
+ .gptpdf-img-sel-row .gptpdf-sel-cb,
+ .gptpdf-all-row .gptpdf-sel-cb { margin-left: auto !important; }
+ .gptpdf-sel-label {
+     font-size: 13px;
+     font-weight: 500;
+     color: var(--gptpdf-sel);
+     user-select: none;
+     pointer-events: none;
  }
 
  /* Selection row for image blocks */
@@ -557,31 +611,31 @@ ${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(
      gap: 8px;
      padding: 6px 10px;
      border-radius: 8px 8px 0 0;
-     background: rgba(234,76,58,0.07);
-     border: 2px solid rgba(234,76,58,0.2);
+     background: var(--gptpdf-sel-hover-bg);
+     border: 2px solid var(--gptpdf-sel-hover);
      border-bottom: none;
      cursor: pointer;
      transition: background 0.12s;
  }
  .gptpdf-img-sel-row:hover {
-     background: rgba(234,76,58,0.12);
+     background: var(--gptpdf-sel-tint);
  }
  .gptpdf-img-sel-row.gptpdf-img-sel-checked {
-     background: rgba(234,76,58,0.15);
-     border-color: #EA4C3A;
+     background: var(--gptpdf-sel-tint);
+     border-color: var(--gptpdf-sel);
  }
  /* "Select all" — the same selection row one level up: it stands above the
     first block and speaks for every block under it, so it closes on all four
     sides instead of sitting flush on top of one block. */
  .gptpdf-all-row {
      border-radius: 8px;
-     border-bottom: 2px dashed rgba(234,76,58,0.2);
+     border-bottom: 2px dashed var(--gptpdf-sel-hover);
      border-style: dashed;
      margin: 0 0 10px;
  }
  .gptpdf-all-row.gptpdf-img-sel-checked {
      border-style: solid;
-     border-bottom: 2px solid #EA4C3A;
+     border-bottom: 2px solid var(--gptpdf-sel);
  }
 
  /* ── Rate us stars ──────────────────────────────────────── */
@@ -1258,8 +1312,8 @@ ${GPTPDF_DARK} .gptpdf-dev-stamp { color: rgba(255,255,255,0.35); }
 // for every block under it. Ticking it does not tick a hundred boxes — it flips
 // the selection over, so the boxes below say what to LEAVE OUT.
 const SELECT_ALL_ROW_HTML = `
-    <span style="font-size:13px;color:#EA4C3A;font-weight:600;user-select:none;pointer-events:none">Select all</span>
-    <input type="checkbox" style="width:16px;height:16px;accent-color:#EA4C3A;cursor:pointer;flex-shrink:0;margin-left:auto">`;
+    <span class="gptpdf-sel-label" style="font-weight:600">Select all</span>
+    <input type="checkbox" class="gptpdf-sel-cb" style="margin-left:auto">`;
 
 // (defined in shared.js, loaded before this file).
 const EXPORT_BUTTON_HTML = `

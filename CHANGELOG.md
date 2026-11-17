@@ -33,6 +33,13 @@ history and working notes.
   ChatGPT's theme, so everyone on dark ChatGPT got black pages without asking
   for them. The sheet is now light unless you pick Dark in Settings, and the
   Auto option is gone.
+- **Selection is blue.** The frames and checkboxes of Select to export were
+  red, the colour of deleting; they are blue now, the usual colour of
+  "selected". The checkbox is drawn by the extension itself, so a ticked block
+  always shows its tick.
+- **A clearer line while the chat is read:** "ChatGPT shows only the messages
+  that fit on your screen, so the export scrolls through the chat and copies
+  each one."
 - **The preview uses the PDF's own fonts.** The page in the settings window and
   the thumbnail in the menu are drawn with the fonts the PDF uses (Noto Sans,
   Noto Serif, Noto Sans Mono, Carlito), which now come with the extension for
@@ -90,6 +97,11 @@ history and working notes.
   picture's box keeps the screen's height while the picture prints larger, so
   its lower part lay under the next paragraph or the next picture. The box now
   grows with its picture.
+- **Select to export works on newer answers again.** ChatGPT now wraps an
+  answer's text in one more layer, and the whole answer came up as a single
+  "image block": you could pick all of it or nothing. Paragraphs, lists and
+  tables are separate blocks again, and only a real picture makes an image
+  block, not a site's icon next to a source.
 - **The small copy of a picture you are editing stays small.** In a question it
   is a faded thumbnail 28 px tall, as on screen. Most of them printed at full
   size, half a page each.
