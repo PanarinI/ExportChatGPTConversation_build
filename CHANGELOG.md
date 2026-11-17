@@ -86,6 +86,13 @@ history and working notes.
   missing from the PDF.
 - **Arabic, Hebrew and Urdu paragraphs start at the right edge,** as on
   screen, even inside an answer written in another language.
+- **Pictures no longer run over the text or each other.** On the new page a
+  picture's box keeps the screen's height while the picture prints larger, so
+  its lower part lay under the next paragraph or the next picture. The box now
+  grows with its picture.
+- **The small copy of a picture you are editing stays small.** In a question it
+  is a faded thumbnail 28 px tall, as on screen. Most of them printed at full
+  size, half a page each.
 - **A file attached to a question** has its name inside its card again, not on
   the card's edge.
 

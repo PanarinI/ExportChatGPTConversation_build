@@ -257,6 +257,21 @@ function buildExportCss(theme, isDarkMode, look) {
                         // ── DALL-E image containers — remove aspect-ratio, ensure visible ──
                         '[style*="aspect-ratio"]{aspect-ratio:unset !important;height:auto !important}',
                         'img[src^="data:"]{display:block !important;max-width:100% !important;height:auto !important;visibility:visible !important;opacity:1 !important}',
+                        // ── Pictures made by ChatGPT (new page, 11-2026) ──
+                        // The gallery box and its row carry the screen's height
+                        // inline (320–400 px), the carousel may be shifted
+                        // (transform). The picture prints at the column's width,
+                        // taller than that box, and the rest ran over the next
+                        // text and the next picture («Художник_базовый», 17.11,
+                        // 74 pages). The box now grows with its picture.
+                        '[data-testid="generated-image-gallery"],[data-testid="generated-image-gallery"] div{height:auto !important;max-height:none !important;transform:none !important}',
+                        // The picture being edited, shown in the question as a small
+                        // faded reference ("Исходное изображение", h-7 · opacity-50:
+                        // 28 px tall on the screen). Only those on screen at the
+                        // export kept their size; the rest printed full size — 37 in
+                        // «Художник_базовый», half a page each.
+                        '[data-message-author-role] img.h-7{height:28px !important;width:auto !important;max-width:none !important;display:inline-block !important;vertical-align:middle}',
+                        '[data-message-author-role] img.h-7.opacity-50{opacity:.5 !important}',
                         // ── Links — inherit text color, underline, ensure clickable ──
                         'a{color:inherit !important;text-decoration:underline !important;pointer-events:auto !important}',
                         // ── Favicon/citation images inside links — limit size ──

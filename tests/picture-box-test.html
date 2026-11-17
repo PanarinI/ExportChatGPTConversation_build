@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Картинки ChatGPT в своих коробках — стенд</title>
+<!--
+  Зачем: на новой странице (11-2026) коробка сгенерированной картинки и её ряд несут высоту экрана
+  инлайн (`style="height: 400px"`), а картинка печатается шириной колонки — выше коробки, и остаток
+  ложился на следующий текст и следующую картинку («Художник_базовый», 17.11, 74 страницы внахлёст).
+  И значок исходной картинки в вопросе (`img.h-7` — 28 px на экране) без стилей ChatGPT печатался
+  в полный размер. Проверяет раскладку с CSS экспорта (buildExportCss), как её видит Chrome.
+
+  Запуск:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --allow-file-access-from-files \
+      --virtual-time-budget=5000 --dump-dom "file://$PWD/tests/picture-box-test.html"
+-->
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<div id="stage" style="width:640px"></div>
+<script src="../shared.js"></script>
+<script src="../theme.js"></script>
+<script src="../helpers.js"></script>
+<script src="../render.js"></script>
+<script>
+const out = [];
+let failed = 0;
+function check(name, cond, detail) {
+    out.push((cond ? '✓ ' : '✗ ') + name + (detail !== undefined ? '   → ' + detail : ''));
+    if(!cond) failed++;
+}
+// A square picture as large as the real ones (1024 × 1024).
+const c = document.createElement('canvas'); c.width = c.height = 1024;
+const g = c.getContext('2d'); g.fillStyle = '#1b2a44'; g.fillRect(0, 0, 1024, 1024);
+const PIC = c.toDataURL('image/png');
+
+const stage = document.getElementById('stage');
+stage.innerHTML =
+    '<div data-testid="conversation-turn-1"><div data-message-author-role="user">' +
+      '<div class="flex items-center justify-end gap-1"><img class="h-7 w-auto rounded-sm opacity-50" ' +
+        'alt="Исходное изображение" src="' + PIC + '"><span>Выделенная область</span></div>' +
+      '<div class="whitespace-pre-wrap">удали солнце</div>' +
+    '</div></div>' +
+    '<div data-testid="conversation-turn-2"><div data-message-author-role="assistant">' +
+      '<div data-response-body="a1"><div>' +
+        '<div data-testid="generated-image-gallery" style="height: 400px;">' +
+          '<div class="flex gap-2 transition-transform" style="height: 400px; transform: translateX(-120px);">' +
+            '<div class="group/generated-image-preview relative shrink-0" data-web-image-tile="true">' +
+              '<img id="pic1" width="1024" height="1024" alt="Сгенерированное изображение 1" ' +
+                'class="ImageTransparencyBackdrop-jTfEPD block h-full w-auto object-contain" src="' + PIC + '">' +
+            '</div></div></div>' +
+        '<div data-testid="generated-image-gallery" style="height: 400px;">' +
+          '<div class="flex gap-2" style="height: 400px;">' +
+            '<div class="group/generated-image-preview relative shrink-0" data-web-image-tile="true">' +
+              '<img id="pic2" width="1024" height="1024" alt="Сгенерированное изображение 1" src="' + PIC + '">' +
+            '</div></div></div>' +
+      '</div></div>' +
+      '<div class="markdown"><p id="after">Я удалил солнце из сцены, оставив фон.</p></div>' +
+    '</div></div>';
+const style = document.createElement('style');
+style.textContent = buildExportCss(EXPORT_THEMES['default'], false, gptpdfShared.look({}));
+document.head.appendChild(style);
+
+const imgs = [document.getElementById('pic1'), document.getElementById('pic2')];
+Promise.all(imgs.map(i => i.decode().catch(() => {}))).then(function() {
+    const r1 = imgs[0].getBoundingClientRect(), r2 = imgs[1].getBoundingClientRect();
+    const p = document.getElementById('after').getBoundingClientRect();
+    out.push('— Сгенерированные картинки —');
+    check('картинка печатается шириной колонки (выше коробки в 400 px)', r1.height > 400, Math.round(r1.height) + ' px');
+    check('вторая картинка не наезжает на первую', r2.top >= r1.bottom - 0.5,
+        'первая до ' + Math.round(r1.bottom) + ', вторая с ' + Math.round(r2.top));
+    check('текст после картинок — ниже второй', p.top >= r2.bottom - 0.5,
+        'картинка до ' + Math.round(r2.bottom) + ', текст с ' + Math.round(p.top));
+    check('сдвиг карусели снят (картинка не уехала влево)', r1.left >= stage.getBoundingClientRect().left - 0.5,
+        Math.round(r1.left) + ' px');
+    out.push('', '— Значок исходной картинки в вопросе —');
+    const th = document.querySelector('img.h-7').getBoundingClientRect();
+    check('высотой 28 px, как на экране', Math.round(th.height) === 28, Math.round(th.height) + ' px');
+    check('и полупрозрачный', getComputedStyle(document.querySelector('img.h-7')).opacity === '0.5',
+        getComputedStyle(document.querySelector('img.h-7')).opacity);
+
+    out.push('');
+    out.push(failed === 0 ? '✅ все проверки пройдены' : '❌ провалено проверок: ' + failed);
+    document.getElementById('log').textContent = out.join('\n');
+    stage.remove();
+});
+</script>
