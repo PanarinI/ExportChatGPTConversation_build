@@ -1,0 +1,113 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Анимация карточки — макет A v3</title>
+<!--
+  Макет для автора (17.11): v3 по его мысли — «он вверх крутит, а вниз он просто читает, а крутится само».
+  Четыре вида:
+    Подъём — крутит ручку (ChatGPT надо заставить отдать старые части), лента едет вниз — старое приходит сверху;
+    Чтение — ручка стоит, лента шагает сама; он читает экран (кивает на каждое сообщение) и переписывает
+             в блокнот, листок улетает в стопку;
+    Ждём картинки — лента стоит, в окне проявляется картинка, он смотрит на неё (это и были «40 секунд на
+             Reading 58» в «Художнике»: сбор ждал картинки, а карточка молчала);
+    Вкладка скрыта — повернулся к читателю, «…».
+  ?p=climb|read|pics|pause — вид; ?dark — тёмная тема; ?t=мс — кадр на этом месте (время вручную, для снимков).
+-->
+<style>
+:root { --surface-1:#f4f4f2; --surface-2:#ffffff; --border:rgba(0,0,0,.12); --border-strong:rgba(0,0,0,.28);
+        --text-primary:#1f1f1e; --text-secondary:#6b6a66; --text-muted:#9a9993; }
+:root.dark { --surface-1:#2a2a29; --surface-2:#1f1f1e; --border:rgba(255,255,255,.12); --border-strong:rgba(255,255,255,.3);
+             --text-primary:#ececea; --text-secondary:#a8a7a1; --text-muted:#7c7b76; }
+body { margin:0; padding:20px 16px; background:var(--surface-1); color:var(--text-primary);
+       font:14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:14px 16px;max-width:380px}
+.step{font-size:14px;font-weight:500;margin:0 0 6px}
+.cap{font-size:12px;color:var(--text-secondary);margin:6px 0 0;line-height:1.45;min-height:34px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.tabs button{font:inherit;padding:5px 10px;border-radius:8px;border:0.5px solid var(--border-strong);background:transparent;color:inherit;cursor:pointer}
+.tabs button.on{border-color:var(--text-primary);font-weight:500}
+</style>
+<div class="tabs">
+<button data-p="climb">Подъём</button><button data-p="read" class="on">Чтение</button><button data-p="pics">Ждём картинки</button><button data-p="pause">Вкладка скрыта</button>
+</div>
+<div class="card">
+<p class="step" id="line">Reading 42 of 61 messages…</p>
+<svg viewBox="0 0 320 110" width="100%" role="img" aria-label="The figure in the export card" style="display:block;overflow:hidden">
+<defs><clipPath id="w3"><rect x="104" y="14" width="86" height="84" rx="6"/></clipPath></defs>
+<g id="tA" fill="none" stroke="var(--border-strong)" stroke-dasharray="3 3"></g>
+<g clip-path="url(#w3)"><g id="tB" fill="var(--text-secondary)" opacity=".8"></g>
+<g id="pic" opacity="0"><rect x="118" y="46" width="58" height="34" rx="5" fill="var(--surface-1)" stroke="var(--text-secondary)"/><path d="M122 76 l12-13 9 8 7-6 13 11z" fill="var(--text-secondary)"/><circle cx="163" cy="55" r="3.5" fill="var(--text-secondary)"/></g></g>
+<rect x="104" y="14" width="86" height="84" rx="6" fill="none" stroke="var(--text-primary)" stroke-width="1.5"/>
+<circle cx="206" cy="56" r="9" fill="none" stroke="var(--text-primary)" stroke-width="1.5"/>
+<line id="sp" x1="206" y1="56" stroke="var(--text-primary)" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="190" y1="56" x2="197" y2="56" stroke="var(--text-primary)" stroke-width="1.5"/>
+<circle id="kn" r="2.6" fill="var(--text-primary)"/>
+<g id="stk"></g>
+<rect id="fl" width="14" height="7" rx="2" fill="var(--surface-2)" stroke="var(--text-primary)" stroke-width="1" opacity="0"/>
+<g stroke="var(--text-primary)" stroke-linecap="round" fill="none" stroke-width="3.5">
+<line id="bu"/><line id="bf"/>
+<line x1="229" y1="86" x2="226" y2="104"/><line x1="235" y1="86" x2="238" y2="104"/>
+</g>
+<rect id="bd" y="58" width="14" height="30" rx="7" fill="var(--text-primary)"/>
+<circle id="hd" cy="48" r="7.5" fill="var(--text-primary)"/>
+<circle id="ey" r="1.4" fill="var(--surface-2)"/>
+<rect id="pad" width="11" height="13" rx="1.5" fill="var(--surface-2)" stroke="var(--text-primary)" stroke-width="1.2" opacity="0"/>
+<line id="pen" stroke="var(--text-primary)" stroke-width="1.6" stroke-linecap="round" opacity="0"/>
+<g stroke="var(--text-primary)" stroke-linecap="round" fill="none" stroke-width="3.5"><line id="fu"/><line id="ff"/></g>
+<text id="dt" x="238" y="34" style="font-size:12px;fill:var(--text-secondary)" opacity="0">…</text>
+</svg>
+<p class="cap" id="cap">ChatGPT shows only the messages that fit on your screen, so the export scrolls through the chat and copies each one.</p>
+</div>
+<script>
+(function(){
+const q=new URLSearchParams(location.search);
+if(q.get('dark')!==null) document.documentElement.classList.add('dark');
+const NS='http://www.w3.org/2000/svg',$=i=>document.getElementById(i);
+const W=[46,40,52,36,44,48,42];
+function mk(g){for(let i=0;i<14;i++){const r=document.createElementNS(NS,'rect');const w=W[i%7];r.setAttribute('x',i%2===0?112:182-w);r.setAttribute('y',2+i*16);r.setAttribute('width',w);r.setAttribute('height',10);r.setAttribute('rx',5);g.appendChild(r);}}
+mk($('tA'));mk($('tB'));
+function set(id,a){const e=$(id);for(const k in a)e.setAttribute(k,a[k]);}
+const L1=15,L2=15;
+function ik(S,H){let d=Math.min(Math.max(Math.hypot(H.x-S.x,H.y-S.y),1),L1+L2-0.01);const a=Math.atan2(H.y-S.y,H.x-S.x),b=Math.acos((L1*L1+d*d-L2*L2)/(2*L1*d));const e1={x:S.x+L1*Math.cos(a+b),y:S.y+L1*Math.sin(a+b)},e2={x:S.x+L1*Math.cos(a-b),y:S.y+L1*Math.sin(a-b)};return e1.y>e2.y?e1:e2;}
+const LINES={climb:['Loading older messages… 12 parts','ChatGPT sends long chats in parts of about 10 messages.'],read:['Reading 42 of 61 messages…','ChatGPT shows only the messages that fit on your screen, so the export scrolls through the chat and copies each one.'],pics:['Reading 58 of 61 — waiting for pictures…','A picture loads a moment after its message; the export waits so it makes it into the PDF.'],pause:['Paused: switch back to this tab to continue','The export waited while this tab was hidden: ChatGPT loads messages only in a visible tab.']};
+let phase='read',theta=0,tape=0,last=null,stepT=0,count=42,stack=3,fly=null,mix={climb:0,read:1,pics:0,pause:0},picT=0;
+function addSheet(){if(stack>=9)return;const r=document.createElementNS(NS,'rect');r.setAttribute('x',270+(stack%2?1:-1));r.setAttribute('y',99-stack*5);r.setAttribute('width',30);r.setAttribute('height',4);r.setAttribute('rx',1);r.setAttribute('fill','var(--surface-2)');r.setAttribute('stroke','var(--text-primary)');r.setAttribute('stroke-width','1');$('stk').appendChild(r);stack++;}
+for(let i=0;i<3;i++){stack=i;addSheet();}
+function choose(p){phase=p;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x.dataset.p===p));$('line').textContent=LINES[p][0];$('cap').textContent=LINES[p][1];picT=0;}
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>choose(b.dataset.p)));
+function frame(ts,once){
+ if(last===null)last=ts;const dt=Math.min(.05,(ts-last)/1000);last=ts;
+ for(const k in mix)mix[k]+=((k===phase?1:0)-mix[k])*Math.min(1,dt*5);
+ const crank=mix.climb,read=mix.read,pics=mix.pics,pause=mix.pause;
+ if(phase==='climb'){theta-=dt*2*Math.PI/1.4;tape-=dt*16/1.4;}
+ if(phase==='read'){stepT+=dt;if(stepT>0.75){stepT=0;count=count>=61?42:count+1;$('line').textContent='Reading '+count+' of 61 messages…';if(!fly)fly={t:0,to:Math.min(stack,8)};}
+  tape+=dt*(stepT<0.25?16/0.25:0);}
+ if(phase==='pics')picT=Math.min(1,picT+dt/2.2);else picT=Math.max(0,picT-dt*2);
+ const K={x:206+8*Math.cos(theta),y:56+8*Math.sin(theta)};
+ set('sp',{x2:K.x,y2:K.y});set('kn',{cx:K.x,cy:K.y});
+ const lean=-Math.cos(theta)*1.6*crank+(-1.8)*pics;
+ const S={x:224+lean,y:62},SB={x:234+lean*0.6,y:63};
+ const write=Math.sin(ts/90)*1.6*read;
+ const padP={x:218+lean,y:73};
+ const restP={x:S.x-4,y:S.y+24};
+ const H={x:K.x*crank+padP.x*read+(S.x-6)*pics+restP.x*pause,y:K.y*crank+padP.y*read+(S.y+20)*pics+restP.y*pause};
+ const E=ik(S,H);set('fu',{x1:S.x,y1:S.y,x2:E.x,y2:E.y});set('ff',{x1:E.x,y1:E.y,x2:H.x,y2:H.y});
+ const HB={x:236*(1-read)+(222+write+lean)*read,y:80*(1-read)+(71+Math.cos(ts/70)*1.2)*read};
+ const EB=ik(SB,HB);set('bu',{x1:SB.x,y1:SB.y,x2:EB.x,y2:EB.y});set('bf',{x1:EB.x,y1:EB.y,x2:HB.x,y2:HB.y});
+ set('pad',{x:padP.x-6,y:padP.y-7,opacity:read});
+ set('pen',{x1:HB.x,y1:HB.y,x2:HB.x-3,y2:HB.y-5,opacity:read});
+ set('bd',{x:223+lean*0.6});const nod=read*Math.max(0,Math.sin(stepT/0.75*Math.PI))*1.2;
+ set('hd',{cx:230+lean,cy:48+nod});
+ const lookX=-3*(1-pause),blink=pause>0.5&&Math.floor(ts/1600)%3===0;
+ set('ey',{cx:230+lean+lookX,cy:47+nod+pause*0.5,r:blink?0.4:1.4});
+ $('dt').setAttribute('opacity',pause>0.6?1:0);
+ const sh='translate(0,'+(-(((tape%112)+112)%112))+')';$('tA').setAttribute('transform',sh);$('tB').setAttribute('transform',sh);
+ set('pic',{opacity:Math.min(1,picT*1.1)});
+ if(fly){fly.t+=dt/0.6;const t=Math.min(1,fly.t);set('fl',{x:padP.x-6+(271-padP.x+6)*t,y:padP.y-6+(99-fly.to*5-padP.y+6)*t-5*Math.sin(Math.PI*t),opacity:t<.95?1:0});if(t>=1){fly=null;addSheet();}}
+ if(!once)requestAnimationFrame(frame);
+}
+if(q.get('p')) choose(q.get('p'));
+if(q.get('t')!==null){ const T=+q.get('t')||3000; for(let t=0;t<=T;t+=16) frame(t,true); }
+else requestAnimationFrame(frame);
+})();
+</script>
