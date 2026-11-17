@@ -203,7 +203,18 @@ const gptpdfAnim = (function() {
     // "Reading 120 of 257", "Reading 12 messages…", "Filling in 5…"; a hidden
     // tab — "Paused: …", when the figure stays and waits. Any other line
     // (pictures, the PDF) ends the scene.
+    // Dev builds: "#gptpdf-noanim" in the page address turns the scene off —
+    // to export the same chat with and without it and compare (17.11).
+    function off() {
+        return typeof gptpdfShared !== 'undefined' && /-dev/.test(gptpdfShared.build || '') &&
+            /gptpdf-noanim/.test(location.hash || '');
+    }
+
     function fromText(text) {
+        if(off()) {
+            stop();
+            return;
+        }
         const m = /^(Loading conversation|Loading older messages|Reading|Filling in|Paused)\D*(\d+)?/
             .exec(String(text || ''));
         if(!m) {
@@ -221,6 +232,7 @@ const gptpdfAnim = (function() {
     return {
         fromText: fromText,
         stop: stop,
+        _off: off,
         // Stands and tests: time by hand (a hidden or headless page draws no
         // frames, and virtual time does not move frame timestamps).
         _manual: function(on) {

@@ -442,7 +442,15 @@ gptpdfChatGPT.init = function() {
                 // reproduced outside it (16.11: question over answer on the
                 // author's chat, not on the stands).
                 if(/-dev/.test(gptpdfShared.build)) {
-                    gptpdfDevDump(htmlContent, data, filename, devLive, devCopy, devHeader);
+                    // Plus the harvest's own summary (what it writes to the
+                    // console: turns, top loads, climb/down seconds) — 17.11:
+                    // a climb that gave up left a PDF of the last 11 pairs and
+                    // no word why.
+                    gptpdfDevDump(htmlContent, data, filename, devLive, devCopy,
+                        Object.assign({}, devHeader, {
+                            harvest: (turnCache && turnCache.gptpdfHarvest) || null,
+                            anim: typeof gptpdfAnim !== 'undefined' ? !gptpdfAnim._off() : false
+                        }));
                 }
 
                 gptpdfChatGPT.doRequest(
