@@ -720,6 +720,8 @@ ${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(
  .gptpdf-anim .a-eye { fill: var(--gptpdf-card-bg); stroke: none; }
  .gptpdf-anim .a-sheet { fill: var(--gptpdf-card-bg); stroke: currentColor; stroke-width: 1; }
  .gptpdf-anim .a-pen { stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+ .gptpdf-anim .a-cover { fill: var(--gptpdf-card-bg); stroke: currentColor; stroke-width: 1.6; }
+ .gptpdf-anim .a-title { font: 700 9px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: .5px; fill: currentColor; stroke: none; }
  .gptpdf-loading-text { font-weight: 600; line-height: 1.35; }
  .gptpdf-loading-fact { font-size: 13px; line-height: 1.4; opacity: .85; }
  .gptpdf-loading-hint { font-size: 12px; line-height: 1.4; opacity: .65; }

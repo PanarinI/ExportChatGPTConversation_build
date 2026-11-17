@@ -5,6 +5,13 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [Unreleased] — 1.2.7
+### Changed
+- **The figure stays until the file comes.** After the chat is read, while
+  pictures are added and the server makes the PDF, he steps over to his stack
+  of copies and binds it into a book with "PDF" on the cover. Before, he left
+  as soon as the reading ended, and the longest wait had no one in it.
+
 ## [1.2.6] — 2026-11-17
 ### Changed
 - **A cleaner page.** The PDF is now set in Noto Sans at 11 pt with more room

@@ -101,11 +101,14 @@ if(step === 'walk') {
     plan.push([4200, 'Reading 26 of 40 messages…']);   // pictures loading: he keeps writing
     for(let k = 27; k <= 40; k++) plan.push([380, 'Reading ' + k + ' of 40 messages…']);
     plan.push([1500, null]);
+    plan.push([2500, 'server']);
     let at = 0;
     plan.forEach(function(p) {
         at += p[0];
         setTimeout(function() {
-            if(p[1]) {
+            if(p[1] === 'server') {
+                gptpdfExportServer(40);
+            } else if(p[1]) {
                 setHarvestProgress(p[1]);
                 if(/^Reading/.test(p[1])) gptpdfSetFact(GPTPDF_FACT_SCREEN);
             } else {
