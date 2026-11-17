@@ -5,7 +5,7 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
-## [Unreleased] — 1.2.6
+## [1.2.6] — 2026-11-17
 ### Changed
 - **A cleaner page.** The PDF is now set in Noto Sans at 11 pt with more room
   between lines. Until now the print server fell back to an Arial look-alike
