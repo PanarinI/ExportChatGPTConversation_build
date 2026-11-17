@@ -705,6 +705,22 @@ ${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(
      border: 1px solid rgba(255, 255, 255, 0.08);
      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
  }
+ .gptpdf-loading-card { --gptpdf-card-bg: #fff; }
+ .gptpdf-loading-card.gptpdf-dark { --gptpdf-card-bg: #2a2a2a; }
+ /* The figure that acts out the reading (anim.js), in the card's text colour. */
+ .gptpdf-anim { display: none; width: 100%; margin: 2px 0 0; }
+ .gptpdf-anim.on { display: block; }
+ .gptpdf-anim svg { display: block; width: 100%; height: auto; overflow: hidden; }
+ .gptpdf-anim .a-out rect { fill: none; stroke: currentColor; stroke-opacity: .35; stroke-dasharray: 3 3; }
+ .gptpdf-anim .a-in rect { fill: currentColor; fill-opacity: .42; stroke: none; }
+ .gptpdf-anim .a-frame { fill: none; stroke: currentColor; stroke-width: 1.5; }
+ .gptpdf-anim .a-thin { stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
+ .gptpdf-anim .a-limb { fill: none; stroke: currentColor; stroke-width: 3.5; stroke-linecap: round; }
+ .gptpdf-anim .a-ink { fill: currentColor; stroke: none; }
+ .gptpdf-anim .a-eye { fill: var(--gptpdf-card-bg); stroke: none; }
+ .gptpdf-anim .a-fly { fill: currentColor; fill-opacity: .55; stroke: none; }
+ .gptpdf-anim .a-sheet { fill: var(--gptpdf-card-bg); stroke: currentColor; stroke-width: 1; }
+ .gptpdf-anim .a-dots { font-size: 12px; fill: currentColor; fill-opacity: .6; }
  .gptpdf-loading-text { font-weight: 600; line-height: 1.35; }
  .gptpdf-loading-fact { font-size: 13px; line-height: 1.4; opacity: .85; }
  .gptpdf-loading-hint { font-size: 12px; line-height: 1.4; opacity: .65; }
@@ -1484,6 +1500,7 @@ const EXPORT_BUTTON_HTML = `
     <div class="gptpdf-loading-overlay" id="gptpdf-loading-overlay"></div>
     <div class="gptpdf-loading-card" id="gptpdf-progress">
         <div class="gptpdf-loading-text">Loading conversation…</div>
+        <div class="gptpdf-anim" aria-hidden="true"></div>
         <div class="gptpdf-loading-fact"></div>
         <div class="gptpdf-loading-hint"></div>
         <button id="gptpdf-cancel-loading" class="gptpdf-loading-cancel">Cancel</button>

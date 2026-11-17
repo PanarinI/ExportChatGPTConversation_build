@@ -131,6 +131,8 @@ function setHarvestProgress(text) {
     if(t) {
         t.textContent = text;
     }
+    // The figure under the line acts out the step it names (anim.js).
+    if(typeof gptpdfAnim !== 'undefined') gptpdfAnim.fromText(text);
 }
 
 // Граница прохода — прогресс, а не часы: идём, пока позиция двигается или
@@ -619,6 +621,7 @@ function showLoadingOverlay() {
 }
 
 function hideLoadingOverlay() {
+    if(typeof gptpdfAnim !== 'undefined') gptpdfAnim.stop();
     const card = document.getElementById('gptpdf-progress');
     const ov = document.getElementById('gptpdf-loading-overlay');
     if(ov) {

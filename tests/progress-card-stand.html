@@ -10,6 +10,8 @@
     pages   — 41 с: «Loading older messages… 23 parts» + факт A и то же «не уходите»
     request — 58 с: «Loading older messages… 31 parts» + факт A2 (факты догрузки сменяются каждые 20 с)
     reading — проход по сообщениям: «Reading 214 of 513 messages…» + факт B и «не уходите»
+    walk    — живой прогон для человечка (anim.js): подъём частями, чтение, 4 с без нового (ждёт), картинки;
+              &manual — время вручную (для headless-кадров)
     paused  — вкладка скрыта: «Paused: …»
     back    — человек вернулся: чтение идёт, внизу — почему ждали
     images  — «Adding images… 12 of 48»
@@ -29,6 +31,7 @@
 <script src="../templates.js"></script>
 <script src="../helpers.js"></script>
 <script src="../capture.js"></script>
+<script src="../anim.js"></script>
 <div id="gptpdf-host" class="gptpdf-block gptpdf-text-right"></div>
 <script>
 const params = new URLSearchParams(location.search);
@@ -52,7 +55,7 @@ document.getElementById('gptpdf-host').innerHTML = EXPORT_BUTTON_HTML;
 // The one number of an export: the button's counter, as startExportSpinner
 // (common.js) draws it — dots for the first 8 s, then seconds since the click.
 (function() {
-    const secs = { stay: 12, pages: 41, request: 58, reading: 96, paused: 103, back: 118, images: 131,
+    const secs = { stay: 12, pages: 41, request: 58, reading: 96, paused: 103, back: 118, images: 131, walk: 20,
                    shrink: 136, server: 141, long: 163 }[params.get('step') || 'pages'];
     const spinner = document.getElementById('gptpdf-spinner');
     if(!spinner) return;
@@ -78,7 +81,37 @@ fake.innerHTML = Array.from({ length: 6 }, (_, i) =>
 document.body.appendChild(fake);
 
 const step = params.get('step') || 'pages';
-if(step === 'stay' || step === 'pages' || step === 'request' || step === 'reading' || step === 'paused' || step === 'back') {
+if(step === 'walk') {
+    // The whole scrolling, live, for the figure (anim.js): the climb in parts,
+    // the walk with a growing count, 4 s with nothing new (the figure waits),
+    // the walk again, then the pictures — the scene goes.
+    showLoadingOverlay();
+    gptpdfSetHint(GPTPDF_HINT_STAY);
+    // &manual — time by hand (headless frames: --virtual-time-budget does not
+    // move animation frames).
+    if(params.get('manual') !== null) {
+        gptpdfAnim._manual(true);
+        setInterval(function() { gptpdfAnim._tick(33); }, 33);
+    }
+    const plan = [];
+    for(let p = 1; p <= 4; p++) plan.push([900, 'Loading older messages… ' + p + (p === 1 ? ' part' : ' parts')]);
+    for(let k = 1; k <= 18; k++) plan.push([380, 'Reading ' + k + ' of 40 messages…']);
+    plan.push([4200, 'Reading 18 of 40 messages…']);
+    for(let k = 19; k <= 40; k++) plan.push([380, 'Reading ' + k + ' of 40 messages…']);
+    plan.push([1500, null]);
+    let at = 0;
+    plan.forEach(function(p) {
+        at += p[0];
+        setTimeout(function() {
+            if(p[1]) {
+                setHarvestProgress(p[1]);
+                if(/^Reading/.test(p[1])) gptpdfSetFact(GPTPDF_FACT_SCREEN);
+            } else {
+                gptpdfExportImages('Adding images', 3, 12);
+            }
+        }, at);
+    });
+} else if(step === 'stay' || step === 'pages' || step === 'request' || step === 'reading' || step === 'paused' || step === 'back') {
     showLoadingOverlay();
     if(step === 'stay') {
         setHarvestProgress('Loading older messages… 3 parts');

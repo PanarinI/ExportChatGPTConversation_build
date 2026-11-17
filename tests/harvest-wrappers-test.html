@@ -482,7 +482,7 @@ function mountScene(opts) {
           loading.map(f => Math.round(f[0])).join(', '));
     check('чтение: факт догрузки снят, факт чтения — на 10-й секунде чтения',
           reading.length >= 2 && reading[0][1] === '' && reading[0][0] - readFrom < 1.5 &&
-          near(reading[1], readFrom + 10, 'ChatGPT draws'),
+          near(reading[1], readFrom + 10, 'ChatGPT shows only'),
           reading.map(f => Math.round(f[0] - readFrom) + ' с').join(', '));
     check('и вся лента при этом снята', k.size === scene.expected.length, 'поймано ' + k.size);
 
