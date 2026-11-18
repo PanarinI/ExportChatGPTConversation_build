@@ -521,8 +521,10 @@ function requestHarvestCancel() {
 // (CHATGPT-DOM.md §10, 07.10): in a hidden tab ChatGPT stops putting messages
 // on the page, so the scrolling waits; after the scrolling the export finishes
 // in a hidden tab too, a third slower.
+// The facts are his lines in the scene (18.11): said by the clerk, in his own
+// person where he is the one who does it.
 const GPTPDF_FACT_PARTS =
-    'ChatGPT sends long chats in parts of about 10 messages.';
+    'ChatGPT sends long chats in parts of about 10 messages. I wind them in, one by one.';
 const GPTPDF_FACT_REQUEST = 'Each part is a separate request to ChatGPT\'s ' +
     'server and takes a few seconds.';
 // The first thing said, at 10 s of scrolling, is what the person must do —
@@ -531,7 +533,9 @@ const GPTPDF_FACT_REQUEST = 'Each part is a separate request to ChatGPT\'s ' +
 // thing at a time, when the wait has become a long one. Reading starts with
 // that hint already up, so its fact comes at its 10th second — on a chat of a
 // hundred messages the reading is over before 30 s.
-const GPTPDF_HINT_STAY = 'Don\'t switch tabs or minimize the window yet: ' +
+// A hint is the sign on the scene's wall (18.11): its first line the sign's
+// title, the rest under it; read on, the two make the old single line.
+const GPTPDF_HINT_STAY = 'Don\'t switch tabs\nor minimize the window yet: ' +
     'the export pauses while this tab is hidden.';
 const GPTPDF_HINT_AFTER_MS = 10000;
 const GPTPDF_FACT_AFTER_MS = 30000;
@@ -539,7 +543,7 @@ const GPTPDF_FACT_READING_AFTER_MS = 10000;
 // Author 17.11: «draws only the messages on screen» read as nonsense — say
 // what it means: only what fits on the screen is there, so the export scrolls.
 const GPTPDF_FACT_SCREEN = 'ChatGPT shows only the messages that fit on your screen, ' +
-    'so the export scrolls through the chat and copies each one.';
+    'so I scroll through the chat and copy each one.';
 // A step's facts take turns every 20 s, round and round (author's word 07.10:
 // one text that never changes for a minute reads as a frozen card).
 const GPTPDF_FACTS_LOADING = [GPTPDF_FACT_PARTS, GPTPDF_FACT_REQUEST];
@@ -549,10 +553,10 @@ const GPTPDF_FACT_EVERY_MS = 20000;
 // is one more thing to read). Said once it explains something that happened:
 // the tab was hidden, the reading stopped, the person is back. It takes the
 // place of GPTPDF_HINT_STAY, and STAY never replaces it.
-const GPTPDF_HINT_WAS_HIDDEN = 'The export waited while this tab was hidden: ' +
+const GPTPDF_HINT_WAS_HIDDEN = 'The export waited\nwhile this tab was hidden: ' +
     'ChatGPT loads messages only in a visible tab.';
-const GPTPDF_HINT_LEAVE = 'You can keep using ChatGPT or switch tabs — the ' +
-    'file will download by itself. Don\'t close or reload this tab.';
+const GPTPDF_HINT_LEAVE = 'You can switch tabs\nThe file will download by ' +
+    'itself. Don\'t close or reload this tab.';
 const GPTPDF_FACT_LONG = 'Long chats take longer.';
 
 function gptpdfCardLine(cls, text) {
@@ -575,7 +579,36 @@ function gptpdfFactAt(facts, ms, after) {
 }
 
 function gptpdfSetHint(text) {
-    gptpdfCardLine('gptpdf-loading-hint', text);
+    const el = document.querySelector('#gptpdf-progress .gptpdf-loading-hint');
+    if(!el) {
+        return;
+    }
+    const t = text || '';
+    const nl = t.indexOf('\n');
+    const head = nl === -1 ? t : t.slice(0, nl), rest = nl === -1 ? '' : t.slice(nl + 1);
+    // Read on as one line, a title before a capital ends with a full stop.
+    const dot = /^[A-Z]/.test(rest) ? '.' : '';
+    const plain = nl === -1 ? t : head + dot + ' ' + rest;
+    if(el.textContent === plain) {
+        return;
+    }
+    el.textContent = '';
+    if(nl === -1) {
+        el.textContent = t;
+    } else {
+        const title = document.createElement('b');
+        title.textContent = head;
+        if(dot) {
+            const d = document.createElement('span');
+            d.className = 'gptpdf-sign-dot';
+            d.textContent = dot;
+            title.appendChild(d);
+        }
+        el.appendChild(title);
+        el.appendChild(document.createTextNode(' ' + rest));
+    }
+    // Once the page is the person's again the sign says so, calm (18.11).
+    el.classList.toggle('gptpdf-calm', t === GPTPDF_HINT_LEAVE);
 }
 
 // The panel under the Export button, and the dimming of the page under it.
@@ -599,6 +632,12 @@ function gptpdfShowCard(withCancel, passive) {
     if(ov) {
         ov.classList.toggle('gptpdf-dark', dark);
         ov.style.display = passive ? 'none' : 'block';
+        // The light falls on the stage (18.11): the hall is darker away from it.
+        const r = card.getBoundingClientRect();
+        if(r.width > 0) {
+            ov.style.setProperty('--gptpdf-spot-x', Math.round(r.left + r.width / 2) + 'px');
+            ov.style.setProperty('--gptpdf-spot-y', Math.round(r.top + r.height / 2) + 'px');
+        }
     }
     // Cancel stops the scrolling only; after it there is nothing to stop.
     const cancel = document.getElementById('gptpdf-cancel-loading');
@@ -1162,7 +1201,8 @@ async function loadOlderPages(scroller, ax, budget) {
              stalled: !!scroller.querySelector(GPTPDF_PAGE_SENTINEL) };
 }
 
-async function harvestByWrappers(scroller, cache, budget) {
+async function harvestByWrappers(scroller, cache, budget, wantPictures) {
+    wantPictures = wantPictures !== false;   // Markdown says false (harvestVirtualizedTurns)
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
     const gallerySeen = new Map();   // turn key → gallery wait (gallerySettled)
     const keyOf = new Map();    // wrapper id → turn key, once held
@@ -1271,11 +1311,12 @@ async function harvestByWrappers(scroller, cache, budget) {
             }
             let pictures = 0;
             if(t) {
-                const galleryReady = gallerySettled(t, gallerySeen);
+                // Markdown carries no pictures: none to wait for (18.11).
+                const galleryReady = !wantPictures || gallerySettled(t, gallerySeen);
                 if(!turnPending(t) && galleryReady) {
                     break;
                 }
-                pictures = t.querySelectorAll(GPTPDF_PENDING_PICTURE).length +
+                pictures = (wantPictures ? t.querySelectorAll(GPTPDF_PENDING_PICTURE).length : 0) +
                     (galleryReady ? 0 : 1);
                 const now = t.querySelectorAll('a.decorated-link[href], img').length;
                 if(resolved >= 0 && now > resolved) {
@@ -1336,7 +1377,12 @@ async function harvestByWrappers(scroller, cache, budget) {
              mountMs: mountMs, linkMs: linkMs };
 }
 
-async function harvestVirtualizedTurns() {
+// opts.pictures === false (a Markdown export, common.js): the pictures are not
+// waited for — the file names them and carries none. «Художник_базовый» read
+// 95 s, 73 of them on the way down waiting for its pictures (author, 18.11:
+// «долго читает… потому что там картинки. Почему-то он их не отбрасывает»).
+async function harvestVirtualizedTurns(opts) {
+    const wantPictures = !(opts && opts.pictures === false);
     const cache = new Map();
     const scroller = findVirtualizedScroller();
     if(!scroller) {
@@ -1383,7 +1429,7 @@ async function harvestVirtualizedTurns() {
             return cache;
         }
         if(turnWrappers(scroller).length) {
-            const w = await harvestByWrappers(scroller, cache, budget);
+            const w = await harvestByWrappers(scroller, cache, budget, wantPictures);
             cache.gptpdfOrder = w.order;
             cache.gptpdfHarvest = {
                 mode: 'wrappers',
@@ -1456,7 +1502,7 @@ async function harvestVirtualizedTurns() {
                 ax.set(scroller.scrollHeight);
                 await wait(250);
                 captureRenderedTurns(cache);
-                if(await waitGalleries(gallerySeen, galleryDone, budget)) {
+                if(wantPictures && await waitGalleries(gallerySeen, galleryDone, budget)) {
                     captureRenderedTurns(cache);
                 }
                 showCount();
@@ -1475,7 +1521,7 @@ async function harvestVirtualizedTurns() {
             ax.set(next);
             await wait(220);
             captureRenderedTurns(cache);
-            if(await waitGalleries(gallerySeen, galleryDone, budget)) {
+            if(wantPictures && await waitGalleries(gallerySeen, galleryDone, budget)) {
                 captureRenderedTurns(cache);
             }
             if(cache.size > seen) {

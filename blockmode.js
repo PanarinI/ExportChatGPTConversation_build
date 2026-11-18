@@ -748,6 +748,22 @@ function setupBlockMode() {
         updateMainBtnLabel();
     };
 
+    // "What goes in" (18.11): Whole chat, or Pick blocks… while the blocks
+    // are being picked on the page. Whole chat leaves the picking, as ✕ does.
+    const wholeBtn = document.getElementById('gptpdf-scope-whole');
+    function paintScope() {
+        [[wholeBtn, !inBlockMode], [blocksBtn, inBlockMode]].forEach(function(p) {
+            if(!p[0]) return;
+            p[0].classList.toggle('on', p[1]);
+            p[0].setAttribute('aria-checked', p[1] ? 'true' : 'false');
+        });
+    }
+    if(wholeBtn) wholeBtn.addEventListener('click', function() {
+        if(!inBlockMode) return;
+        exitBlockMode();
+        document.getElementById('gptpdf-extra-btns').classList.add('gptpdf-hidden');
+    });
+
     blocksBtn.addEventListener('click', async function() {
         if(inBlockMode) return;
 
@@ -762,6 +778,7 @@ function setupBlockMode() {
         if(harvestCancelled) return;
 
         inBlockMode = true;
+        paintScope();
         bidCounter = 0;
         blockMap.clear();
         turnSnapshots.clear();
@@ -805,6 +822,7 @@ function setupBlockMode() {
         bar.classList.remove('gptpdf-active');
         if(exitSelBtn) exitSelBtn.style.display = 'none';
         updateMainBtnLabel();
+        paintScope();
     }
 
     // ✕ exits selection mode
@@ -814,6 +832,11 @@ function setupBlockMode() {
     if(mainBtn) {
         mainBtn.addEventListener('click', function(e) {
             if(!inBlockMode) return; // normal convert handled elsewhere
+            // The menu's arrow sits inside the Export button: a click on it
+            // opens the menu (What goes in › Pick blocks… is lit there), it is
+            // not Export. Until 18.11 it ended the picking, or with blocks
+            // ticked exported them.
+            if(e.target && e.target.closest && e.target.closest('#gptpdf-more')) return;
             // An export is running (the one this mode started, or a full one
             // started before the mode was opened): neither a second block
             // export nor the "Select all" handover below may start. The click

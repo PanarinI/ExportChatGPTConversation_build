@@ -76,6 +76,7 @@
   <div data-testid="generated-image-gallery"><div><img alt="Generated image 1" data-gptpdf-pic="" width="1024" height="1024" src="https://files.oaiusercontent.com/file-abc?sig=1"></div></div>
   <img alt="" src="https://chatgpt.com/backend-api/estuary/content?id=icon" style="width:20px;height:20px">
   <img alt="GPT icon" src="https://files.oaiusercontent.com/file-icon">
+  <div data-testid="generated-image-gallery"><div class="flex gap-2"></div></div>
   <div class="markdown prose"><p>You can download it <span data-file-reference="true" data-markdown-copy-text="Photon_Sprite.png" role="button" aria-label="Open file preview Photon_Sprite.png"><span><span><svg></svg></span><span>here</span></span></span>.</p>
    <p>The name <span title="notes.txt">notes.txt</span> inside a sentence stays.</p></div>
   <div class="rounded-2xl border"><div><span><button aria-label="Open file preview Photon_Sprite.png" type="button"></button><span><svg></svg><span><span title="Photon_Sprite.png">Photon_Sprite.png</span><span><span>Image</span><span data-markdown-copy="exclude">Open file</span></span></span></span></span></div></div>
@@ -199,7 +200,8 @@ function sameMath(a, b) {
     };
     const mp = gptpdfToMarkdown(gptpdfFmtRead(pics(), O), O, 'Pics');
     check('markdown: a picture ChatGPT made is named in its place', mp.includes('*[Generated image 1]*'), mp);
-    check('markdown: an icon and an unmarked ChatGPT thumbnail stay out', !mp.includes('GPT icon') && (mp.match(/\*\[/g) || []).length === 1, mp);
+    check('markdown: an icon and an unmarked ChatGPT thumbnail stay out', !mp.includes('GPT icon') && (mp.match(/\*\[/g) || []).length === 2, mp);
+    check('markdown: a gallery whose pictures had not come is still noted', mp.includes('*[Generated image 1]*\n\n*[Picture]*'), mp);
     check('markdown: the picture being edited is not named again in the question (it is, a line above)', mp.includes('**You:** Make it darker') && !mp.includes('Исходное'), mp.slice(0, 120));
     check('a file an answer made: its name once, the card\'s words out',
         mp.includes('*File: Photon_Sprite.png*') && !mp.includes('Photon_Sprite.pngImage') && !mp.includes('Open file'), mp);

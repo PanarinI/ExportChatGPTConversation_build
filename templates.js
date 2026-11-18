@@ -667,14 +667,21 @@ ${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(
  .gptpdf-stars:hover .gptpdf-star { color: #EA4C3A !important; }
  .gptpdf-stars .gptpdf-star:hover ~ .gptpdf-star { color: #ddd !important; }
 
+ /* 1.2.9 — the stage (author 18.11, mockup dizajn/scena/): the dimmed page is
+    the hall, the card a stage in its light — the hall is darker away from it
+    (capture.js, gptpdfShowCard, says where the light falls). */
  .gptpdf-loading-overlay {
      z-index: 10001;
      display: none;
      position: fixed;
      inset: 0;
-     background: rgba(0, 0, 0, 0.45);
+     background: radial-gradient(ellipse 560px 420px at var(--gptpdf-spot-x, calc(100% - 240px)) var(--gptpdf-spot-y, 200px),
+         rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0.52) 60%, rgba(0, 0, 0, 0.6) 100%);
  }
- .gptpdf-loading-overlay.gptpdf-dark { background: rgba(0, 0, 0, 0.62); }
+ .gptpdf-loading-overlay.gptpdf-dark {
+     background: radial-gradient(ellipse 560px 420px at var(--gptpdf-spot-x, calc(100% - 240px)) var(--gptpdf-spot-y, 200px),
+         rgba(0, 0, 0, 0.46), rgba(0, 0, 0, 0.66) 60%, rgba(0, 0, 0, 0.74) 100%);
+ }
  /* The progress panel sits under the Export button — one place for every step
     of an export, where the button's own menu opens. The one number (time since
     the click) is the button's counter; the panel has words only (07.10). While
@@ -690,9 +697,11 @@ ${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(
      flex-direction: column;
      align-items: flex-start;
      gap: 6px;
-     width: 300px;
+     width: 440px;
+     max-width: calc(100vw - 56px);
      padding: 14px 16px;
-     background: #fff;
+     /* a touch warm, as if lit by the projector — barely (author: «очень тонкий намёк») */
+     background: radial-gradient(ellipse 58% 62% at 44% 66%, rgba(255, 190, 110, 0.13), transparent 72%), #fffdf9;
      color: #222;
      border-radius: 12px;
      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
@@ -700,13 +709,13 @@ ${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(
      text-align: left;
  }
  .gptpdf-loading-card.gptpdf-dark {
-     background: #2a2a2a;
+     background: radial-gradient(ellipse 58% 62% at 44% 66%, rgba(255, 180, 100, 0.075), transparent 72%), #2b2927;
      color: #ededed;
      border: 1px solid rgba(255, 255, 255, 0.08);
      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
  }
- .gptpdf-loading-card { --gptpdf-card-bg: #fff; }
- .gptpdf-loading-card.gptpdf-dark { --gptpdf-card-bg: #2a2a2a; }
+ .gptpdf-loading-card { --gptpdf-card-bg: #fffdf9; }
+ .gptpdf-loading-card.gptpdf-dark { --gptpdf-card-bg: #2b2927; }
  /* The figure that acts out the reading (anim.js), in the card's text colour:
     a lean clerk in a bowler hat (1.2.8). */
  .gptpdf-anim { display: none; width: 100%; margin: 2px 0 0; }
@@ -738,6 +747,50 @@ ${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(
  .gptpdf-loading-fact { font-size: 13px; line-height: 1.4; opacity: .85; }
  .gptpdf-loading-hint { font-size: 12px; line-height: 1.4; opacity: .65; }
  .gptpdf-loading-fact:empty, .gptpdf-loading-hint:empty { display: none; }
+ .gptpdf-loading-hint b { font-weight: 600; }
+ .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-sign-dot { display: none; }   /* the title's full stop, for the plain line only */
+ /* The scene, once the figure is on: his line above him — what the card
+    explains, said by him; the warning a sign on the wall left of the screen
+    (author 18.11: «это бабл от человечка, это он говорит»; «на стене… слева от
+    проектора… серьёзное предупреждение»). Air above the stage keeps its place,
+    so nothing moves when he starts to speak. Without the figure the two are
+    plain lines, as before. */
+ .gptpdf-scene { align-self: stretch; }
+ .gptpdf-scene .gptpdf-anim { margin: 0; }
+ .gptpdf-scene:has(.gptpdf-anim.on) { position: relative; padding-top: 78px; }
+ .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-loading-fact {
+     position: absolute; top: 4px; right: 14px; width: 262px; box-sizing: border-box;
+     padding: 8px 11px; border-radius: 12px; background: #fff; border: 1px solid rgba(0, 0, 0, 0.13);
+     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); color: #2b2b2b; opacity: 1;
+     font-size: 12.5px; line-height: 1.38; animation: gptpdf-scene-in .35s ease-out;
+ }
+ .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-loading-fact::after {
+     content: ""; position: absolute; bottom: -7px; right: 96px; width: 12px; height: 12px; background: inherit;
+     border-right: 1px solid rgba(0, 0, 0, 0.13); border-bottom: 1px solid rgba(0, 0, 0, 0.13); transform: rotate(45deg);
+ }
+ .gptpdf-dark .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-loading-fact { background: #3a3734; color: #eee; border-color: rgba(255, 255, 255, 0.13); }
+ .gptpdf-dark .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-loading-fact::after { border-color: rgba(255, 255, 255, 0.13); }
+ .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-loading-hint {
+     position: absolute; left: 2px; top: 96px; width: 112px;
+     padding: 6px 7px 7px; border-radius: 2px; border: 1px solid rgba(192, 57, 43, 0.55);
+     background: var(--gptpdf-card-bg); color: rgba(0, 0, 0, 0.6); opacity: 1;
+     font-size: 10px; line-height: 1.32; animation: gptpdf-scene-in .35s ease-out;
+ }
+ .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-loading-hint b {
+     display: block; margin-bottom: 3px; color: #c0392b; font-size: 9.5px; font-weight: 700;
+     letter-spacing: .08em; text-transform: uppercase;
+ }
+ .gptpdf-dark .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-loading-hint { border-color: rgba(255, 128, 110, 0.5); color: rgba(255, 255, 255, 0.62); }
+ .gptpdf-dark .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-loading-hint b { color: #ff8f80; }
+ /* the same sign, calm, once the page is yours again */
+ .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-loading-hint.gptpdf-calm { border-color: rgba(0, 0, 0, 0.2); }
+ .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-loading-hint.gptpdf-calm b { color: rgba(0, 0, 0, 0.66); }
+ .gptpdf-dark .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-loading-hint.gptpdf-calm { border-color: rgba(255, 255, 255, 0.22); }
+ .gptpdf-dark .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-loading-hint.gptpdf-calm b { color: rgba(255, 255, 255, 0.75); }
+ @keyframes gptpdf-scene-in { from { opacity: 0; } }
+ @media (prefers-reduced-motion: reduce) {
+     .gptpdf-scene .gptpdf-loading-fact, .gptpdf-scene .gptpdf-loading-hint { animation: none !important; }
+ }
  .gptpdf-loading-cancel {
      align-self: flex-end;
      margin-top: 4px;
@@ -1245,8 +1298,18 @@ ${GPTPDF_DARK} .gptpdf-fmt-ico .pg { fill: #3a3a3a; stroke: rgba(255,255,255,.45
 ${GPTPDF_DARK} .gptpdf-fmt-ico .fd { stroke: rgba(255,255,255,.45); }
 .gptpdf-fmt-hint { text-align: left; font-size: 12px; line-height: 1.35; color: rgba(0,0,0,.45); padding: 7px 6px 2px; min-height: 32px; }
 ${GPTPDF_DARK} .gptpdf-fmt-hint { color: rgba(255,255,255,.42); }
-.gptpdf-fmt-sep { height: 1px; margin: 6px 4px; background: rgba(0,0,0,.08); }
-${GPTPDF_DARK} .gptpdf-fmt-sep { background: rgba(255,255,255,.08); }
+/* ── 18.11: what goes in — the whole chat or the blocks picked on the page ── */
+.gptpdf-fmt-label.gptpdf-scope-label { padding-top: 10px; }
+.gptpdf-scope { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 2px 2px; }
+.gptpdf-scope-opt {
+    border: 1.5px solid rgba(0,0,0,.10); border-radius: 10px; background: transparent; color: rgba(0,0,0,.85);
+    font: inherit; font-size: 13px; font-weight: 500; line-height: 1.2; padding: 9px 6px; cursor: pointer; transition: background .15s;
+}
+.gptpdf-scope-opt:hover { background: rgba(0,0,0,.04); }
+.gptpdf-scope-opt.on { border-color: #EA4C3A; background: rgba(234,76,58,.07); color: #c93a2a; }
+${GPTPDF_DARK} .gptpdf-scope-opt { border-color: rgba(255,255,255,.14); color: rgba(255,255,255,.92); }
+${GPTPDF_DARK} .gptpdf-scope-opt:hover { background: rgba(255,255,255,.06); }
+${GPTPDF_DARK} .gptpdf-scope-opt.on { border-color: #EA4C3A; background: rgba(234,76,58,.18); color: #ff9b8f; }
 /* the Markdown sheet: the file's first lines */
 .gptpdf-md-sheet { position: absolute; inset: 0; background: #fff; overflow: hidden; border-radius: 2px; text-align: left; }
 /* Settings, when the file is Markdown or Word: what does not apply is dimmed */
@@ -1457,23 +1520,16 @@ const EXPORT_BUTTON_HTML = `
                 <button type="button" class="gptpdf-fmt-tile" data-format="md" role="radio" title="Markdown (.md) — plain text for Obsidian, Notion or another AI">${gptpdfFileIcon('md', 28, 33)}<span>Markdown</span></button>
             </div>
             <div class="gptpdf-fmt-hint" id="gptpdf-fmt-hint"></div>
-            <div class="gptpdf-fmt-sep"></div>
-        <button
-            id="gptpdf-blocks"
-            type="button"
-            title="Pick the blocks you want in the file — the rest stays out"
-            class="gptpdf-extra-btn gptpdf-oneline">
-            <span class="gptpdf-menu-icon">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="1.5" y="4" width="7" height="7" rx="1.5"/>
-                    <path d="M3 7.5l2 2 3-3" stroke-width="1.5"/>
-                    <path d="M11 5.5h5.5M11 8h4M11 10.5h5.5" stroke-width="1.5"/>
-                </svg>
-            </span>
-            <span class="gptpdf-menu-text">
-                <span class="gptpdf-menu-title">Select to export</span>
-            </span>
-        </button>
+            <!-- 18.11: what goes in — a choice like "Save as", the whole chat already chosen. A lone
+                 "Select to export" row under the tiles read as the next step, "click here to export"
+                 (author). blockmode.js keeps the choice true while blocks are being picked. -->
+            <div class="gptpdf-fmt-label gptpdf-scope-label">What goes in</div>
+            <div class="gptpdf-scope" id="gptpdf-scope" role="radiogroup" aria-label="What goes in">
+                <button type="button" class="gptpdf-scope-opt on" id="gptpdf-scope-whole" role="radio" aria-checked="true"
+                    title="The whole chat: every question and answer">Whole chat</button>
+                <button type="button" class="gptpdf-scope-opt" id="gptpdf-blocks" role="radio" aria-checked="false"
+                    title="Tick the blocks you want on the page — the rest stays out">Pick blocks…</button>
+            </div>
         </div>
       </div>
 
@@ -1537,9 +1593,13 @@ const EXPORT_BUTTON_HTML = `
     <div class="gptpdf-loading-overlay" id="gptpdf-loading-overlay"></div>
     <div class="gptpdf-loading-card" id="gptpdf-progress">
         <div class="gptpdf-loading-text">Loading conversation…</div>
-        <div class="gptpdf-anim" aria-hidden="true"></div>
-        <div class="gptpdf-loading-fact"></div>
-        <div class="gptpdf-loading-hint"></div>
+        <!-- The scene (18.11): his line and the sign on the wall are the card's
+             fact and hint, placed in the scene once the figure is on. -->
+        <div class="gptpdf-scene">
+            <div class="gptpdf-loading-fact"></div>
+            <div class="gptpdf-loading-hint"></div>
+            <div class="gptpdf-anim" aria-hidden="true"></div>
+        </div>
         <button id="gptpdf-cancel-loading" class="gptpdf-loading-cancel">Cancel</button>
     </div>
 

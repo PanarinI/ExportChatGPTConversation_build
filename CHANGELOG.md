@@ -23,10 +23,22 @@ history and working notes.
 ### Changed
 - **"AI answers only" moved to Settings**, as a third way to show questions:
   Questions › Bubble, Heading or Hidden. "Select all" left the menu: Export
-  always takes the whole chat. "Select to export" is one line now; its
-  explanation is in its tooltip.
+  always takes the whole chat.
+- **"Select to export" is now "What goes in"**, a second choice under the file
+  type: Whole chat (chosen) or Pick blocks…. Alone under the file types, the
+  old line read as the step that does the export.
+- **The export card is a small stage.** The scene is larger; the clerk says
+  what is going on in a speech bubble; "Don't switch tabs" hangs as a sign on
+  the wall, and turns calm ("You can switch tabs") once the page is yours
+  again. The page dims around the card like a hall around a lit stage.
+- **Markdown reads chats with pictures faster**: it no longer waits for
+  pictures to load while scrolling — it notes where they are, it does not
+  carry them.
 
 ### Fixed
+- **The menu's arrow opens the menu while you pick blocks.** It sat inside the
+  Export button and acted as Export: it ended the picking, or exported the
+  ticked blocks at once.
 - **The figure starts every export at an empty desk.** The stack of sheets
   from the last export stayed on his desk until the page was reloaded, so the
   next export began with sheets already there.

@@ -171,9 +171,13 @@ gptpdfChatGPT.init = function() {
         // картинками → ужатие картинок → наш сервер. «Долго» без них — догадка,
         // а подсказку «это займёт до …» не на чем строить (вопрос автора 07.10).
         gptpdfChatGPT._t = { start: Date.now() };
+        // The file this export makes, read once: Markdown's reading does not
+        // wait for pictures (capture.js), and the same choice writes the file.
+        let fmtAtStart = null;
         if(!turnCache && !hasSelection) {
             try {
-                turnCache = await harvestVirtualizedTurns();
+                fmtAtStart = gptpdfFormat(await new Promise(function(r) { gptpdfShared.getOptions(r); }));
+                turnCache = await harvestVirtualizedTurns({ pictures: fmtAtStart !== 'md' });
                 gptpdfChatGPT._t.harvested = Date.now();
             } catch(e) {
                 turnCache = null;
@@ -220,7 +224,7 @@ gptpdfChatGPT.init = function() {
             // The open chat, not the hidden previous one (helpers.js).
             let main = gptpdfChatRoot();
             // Markdown carries no pictures' bytes (formats.js): nothing to fetch.
-            const fmt = gptpdfFormat(options);
+            const fmt = fmtAtStart || gptpdfFormat(options);
             const noPictures = fmt === 'md';
 
             // Lock computed image sizes and convert external images to base64
@@ -1083,7 +1087,7 @@ gptpdfChatGPT.showError = function(status, text, hideContact) {
       html.push('Current usage is over the limit. Please wait a while before trying again.');
   } else if (isTimeout) {
       html.push('<strong>This conversation is too large to render in time.</strong>');
-      html.push('Try exporting fewer messages (use the "Select to export" option) or a shorter chat.');
+      html.push('Try exporting fewer messages (Export menu › What goes in › Pick blocks…) or a shorter chat.');
   } else if (status == 'network-error') {
       html.push('Network error while connecting to the conversion service.');
       html.push('Please check your connection and try again.');

@@ -422,6 +422,12 @@ function gptpdfFmtBlocks(el, fmt) {
         const tag = n.tagName;
         if(n.matches(GPTPDF_FMT_PILL)) { gptpdfFmtPill(n, fmt).forEach(function(x) { inl.push(x); }); return; }
         if(n.hasAttribute('data-gptpdf-file')) { flush(); out.push(gptpdfFmtFileNote([n.getAttribute('data-gptpdf-file')])); return; }
+        // A gallery of pictures ChatGPT made whose pictures had not come when
+        // the turn was read — Markdown's reading does not wait for them
+        // (capture.js, 18.11): still noted where it was.
+        if(n.matches('[data-testid="generated-image-gallery"]') && !n.querySelector('img')) {
+            flush(); out.push({ t: 'img', src: '', alt: '', w: 0, h: 0, ref: false }); return;
+        }
         if(gptpdfFmtIsMath(n)) {
             const m = gptpdfFmtMath(n);
             if(m.display) { flush(); out.push({ t: 'math', tex: m.tex, mathml: m.mathml, display: true }); }
