@@ -5,7 +5,7 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
-## [Unreleased] — 1.2.9
+## [1.2.9] — 2026-11-18
 ### Added
 - **Word and Markdown.** The Export menu now asks which file to make: PDF,
   Word or Markdown. The Export button makes the one you picked, and its
