@@ -155,7 +155,9 @@ const errorText = () => document.getElementById('gptpdf-error-message').textCont
 function closeError() { document.getElementById('gptpdf-error-overlay').style.display = 'none'; }
 function releaseImages() { holdImages = false; imgHeld.splice(0).forEach(f => f()); }
 async function enterBlockMode() {
+    // 1.3.0: «Pick blocks…» is only a choice; the menu's red button starts the picking.
     document.getElementById('gptpdf-blocks').click();
+    document.getElementById('gptpdf-go').click();
     return until(inBlockMode, 3000);
 }
 function tick(n) { document.querySelectorAll('.gptpdf-block-cb input')[n].click(); }

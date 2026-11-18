@@ -748,27 +748,67 @@ function setupBlockMode() {
         updateMainBtnLabel();
     };
 
-    // "What goes in" (18.11): Whole chat, or Pick blocks… while the blocks
-    // are being picked on the page. Whole chat leaves the picking, as ✕ does.
+    // "What goes in" (18.11, 1.3.0): Whole chat | Pick blocks… is only a
+    // choice — nothing starts on it (author: «нажал Pick blocks… и сразу в
+    // загрузку режима по блокам… запутался»). The red button under it does
+    // the chosen thing: "Export to Google Docs", or "Pick blocks for Google
+    // Docs →", which starts the picking. The choice is not kept: the next
+    // time, the menu and the Export button take the whole chat again (a
+    // one-click Export that once started picking blocks by itself would be
+    // the same fright). While blocks are picked, Pick blocks… is lit and
+    // Whole chat leaves the picking, as ✕ does.
     const wholeBtn = document.getElementById('gptpdf-scope-whole');
+    const goBtn = document.getElementById('gptpdf-go');
+    let pickChosen = false;
     function paintScope() {
-        [[wholeBtn, !inBlockMode], [blocksBtn, inBlockMode]].forEach(function(p) {
+        const pick = inBlockMode || pickChosen;
+        [[wholeBtn, !pick], [blocksBtn, pick]].forEach(function(p) {
             if(!p[0]) return;
             p[0].classList.toggle('on', p[1]);
             p[0].setAttribute('aria-checked', p[1] ? 'true' : 'false');
         });
+        if(goBtn) {
+            const F = (typeof GPTPDF_FORMATS !== 'undefined' && typeof gptpdfFormatNow !== 'undefined' &&
+                       GPTPDF_FORMATS[gptpdfFormatNow]) || { name: 'PDF' };
+            goBtn.textContent = inBlockMode ? 'Export the picked blocks'
+                : pickChosen ? 'Pick blocks for ' + F.name + ' →' : 'Export to ' + F.name;
+        }
     }
-    if(wholeBtn) wholeBtn.addEventListener('click', function() {
-        if(!inBlockMode) return;
-        exitBlockMode();
+    // The format's painting (common.js) calls it too: the button names the place.
+    window.gptpdfPaintGo = paintScope;
+    const hideMenu = function() {
         document.getElementById('gptpdf-extra-btns').classList.add('gptpdf-hidden');
+    };
+    if(wholeBtn) wholeBtn.addEventListener('click', function() {
+        if(inBlockMode) {
+            exitBlockMode();
+            hideMenu();
+            return;
+        }
+        pickChosen = false;
+        paintScope();
     });
-
-    blocksBtn.addEventListener('click', async function() {
+    blocksBtn.addEventListener('click', function() {
         if(inBlockMode) return;
+        pickChosen = true;
+        paintScope();
+    });
+    if(goBtn) goBtn.addEventListener('click', function() {
+        hideMenu();
+        if(!inBlockMode && pickChosen) {
+            pickChosen = false;
+            paintScope();
+            enterBlockMode();
+            return;
+        }
+        // The whole chat to the chosen place — or, while picking, the picked
+        // blocks: what the Export button itself does (its own listeners).
+        if(mainBtn) mainBtn.click();
+    });
+    paintScope();
 
-        document.getElementById('gptpdf-extra-btns')
-            .classList.add('gptpdf-hidden');
+    async function enterBlockMode() {
+        if(inBlockMode) return;
 
         // 1. Harvest. The cache is KEPT now: in "Select all" mode the export
         // is the whole conversation, and handing this over spares the user a
@@ -807,11 +847,12 @@ function setupBlockMode() {
         blockModeObserver.observe(document.body, {
             childList: true, subtree: true
         });
-    });
+    }
 
     function exitBlockMode() {
         if(!inBlockMode) return;
         inBlockMode = false;
+        pickChosen = false;
         clearTimeout(debounceTimer);
         debounceTimer = null;
         if(blockModeObserver) {

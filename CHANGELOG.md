@@ -20,8 +20,10 @@ history and working notes.
   When the chat is ready, the card offers one button — "Copy and open …": the
   click copies the chat and opens the place. The extension sends the chat
   nowhere itself and asks for no new permission.
-  After you pick a place, the Export button rings once — the next step is
-  there.
+- **One button in the menu does what you chose:** "Export to Google Docs",
+  or — with "Pick blocks…" chosen — "Pick blocks for Google Docs →". Picking
+  in the menu starts nothing by itself; the Export button above keeps your
+  place for the next time and always takes the whole chat.
 
 ## [1.2.9] — 2026-11-18
 ### Added

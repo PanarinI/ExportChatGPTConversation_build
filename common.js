@@ -1053,19 +1053,18 @@ function gptpdfPaintFormat(f, o) {
     if(hint) hint.textContent = gptpdfPasteKey(F.hint);
     const btn = document.getElementById('gptpdf-convert-main');
     if(btn) btn.title = F.tip || ('Export as ' + F.name + ' (' + F.ext + ')');
+    // The menu's own button names the place (blockmode.js, 1.3.0).
+    if(typeof gptpdfPaintGo === 'function') gptpdfPaintGo();
     if(typeof gptpdfRenderMenuSheet === 'function') gptpdfRenderMenuSheet();
 }
 
 function gptpdfSetFormat(f) {
     gptpdfShared.getOptions(function(options) {
-        const changed = gptpdfFormat(options) !== f;
         options.export_format = f;
         const group = GPTPDF_FORMATS[f] && GPTPDF_FORMATS[f].group;
         if(group) options['export_' + group] = f;   // the tile keeps showing it after PDF is picked
         chrome.storage.sync.set({ options: options });
         gptpdfPaintFormat(f, options);
-        // the next step is Export (formats.js, 1.3.0)
-        if(changed && typeof gptpdfPointExport === 'function') gptpdfPointExport();
     });
 }
 

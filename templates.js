@@ -32,9 +32,6 @@ const UI_CSS = `
  }
  .gptpdf-ring:nth-child(2) { animation-delay: 0.9s; }
  .gptpdf-ring:nth-child(3) { animation-delay: 1.8s; }
- /* 1.3.0: the same rings, once, after a new place is picked — the next step is Export (formats.js) */
- .gptpdf-ring.gptpdf-ring-once { animation-iteration-count: 1; }
- @media (prefers-reduced-motion: reduce) { .gptpdf-ring.gptpdf-ring-once { display: none; } }
 
  /* ── No-chat (home page) state ───────────────────────────── */
  .gptpdf-no-chat {
@@ -1291,6 +1288,13 @@ ${GPTPDF_DARK} #gptpdf-preview-label { color: rgba(255,255,255,0.28); }
 #gptpdf-extra-btns { min-width: 0; width: 440px; }
 .gptpdf-menu-main { display: flex; gap: 4px; align-items: stretch; }
 .gptpdf-menu-actions { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+/* 1.3.0: the one button that does what is chosen in the menu */
+.gptpdf-go {
+    display: block; width: calc(100% - 4px); margin: 10px 2px 2px; padding: 10px 12px; border: 0; border-radius: 10px;
+    background: #EA4C3A; color: #fff; font: inherit; font-size: 14px; font-weight: 600; line-height: 1.2; text-align: center;
+    cursor: pointer; transition: background .15s;
+}
+.gptpdf-go:hover { background: #d63f2e; }
 /* ── 1.2.9: the file Export makes — PDF · Word · Markdown ── */
 .gptpdf-fmt-label { font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: rgba(0,0,0,.4); padding: 8px 6px 6px; text-align: left; }
 ${GPTPDF_DARK} .gptpdf-fmt-label { color: rgba(255,255,255,.38); }
@@ -1623,6 +1627,9 @@ const EXPORT_BUTTON_HTML = `
                 <button type="button" class="gptpdf-scope-opt" id="gptpdf-blocks" role="radio" aria-checked="false"
                     title="Tick the blocks you want on the page — the rest stays out">Pick blocks…</button>
             </div>
+            <!-- 1.3.0 (author 18.11): the one button that does what is chosen above — «Export to Google Docs»,
+                 or «Pick blocks for Google Docs →». The choices themselves start nothing (blockmode.js). -->
+            <button type="button" class="gptpdf-go" id="gptpdf-go">Export to PDF</button>
         </div>
       </div>
 
