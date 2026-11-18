@@ -33,7 +33,7 @@ const GPTPDF_XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 
 function gptpdfX(s) {
     return String(s == null ? '' : s)
-        .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f￾￿]/g, '')
+        .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '')
         .replace(/[\ud800-\udbff](?![\udc00-\udfff])|(^|[^\ud800-\udbff])[\udc00-\udfff]/g, '$1')
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

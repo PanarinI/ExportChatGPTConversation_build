@@ -107,6 +107,35 @@ if missing:
 print(f'манифест сверен: {len(need)} обещанных файла на месте')
 PY
 
+# Chrome грузит скрипт содержания, только если он «UTF-8» в его строгом смысле: без несимволов
+# (U+FFFE, U+FFFF, U+FDD0–FDEF) и одиноких суррогатов. Один такой знак в docx.js 18.11 — и расширение
+# не загрузилось вовсе («Кодировка отличается от UTF-8. Не удалось загрузить манифест»), а стенд
+# в браузере работал. Проверяем каждый текстовый файл пакета.
+python3 - "$STAGE" <<'PY'
+import os, sys
+stage = sys.argv[1]
+bad = []
+for dirpath, _, files in os.walk(stage):
+    for name in files:
+        if not name.endswith(('.js', '.json', '.css', '.html')):
+            continue
+        path = os.path.join(dirpath, name)
+        try:
+            text = open(path, 'rb').read().decode('utf-8', 'strict')
+        except UnicodeDecodeError as e:
+            bad.append((path, 'не UTF-8: ' + str(e)[:60])); continue
+        for i, c in enumerate(text):
+            o = ord(c)
+            if 0xFDD0 <= o <= 0xFDEF or (o & 0xFFFE) == 0xFFFE or 0xD800 <= o <= 0xDFFF:
+                bad.append((path, 'строка %d: знак U+%04X' % (text.count('\n', 0, i) + 1, o))); break
+if bad:
+    print('СТОП: Chrome не загрузит эти файлы (пишите такие знаки экранированными, \\uFFFE):')
+    for path, why in bad:
+        print('   ', os.path.relpath(path, stage), '—', why)
+    sys.exit(1)
+print('кодировка сверена: Chrome примет все текстовые файлы')
+PY
+
 # Старый архив УБИРАЕМ: `zip -r` дописывает в существующий, а не заменяет — иначе файл, выпавший
 # из пакета между сборками, тихо выживает в нём (поймано 08-10: пустая dist/ дожила до дев-пакета).
 rm -f "$OUT"
