@@ -57,6 +57,27 @@ function gptpdfFormat(o) {
     return o && GPTPDF_FORMATS[o.export_format] ? o.export_format : 'pdf';
 }
 
+// A new place picked in the menu → the Export button rings twice, once: the
+// welcome hint's rings, saying the next step is there (author 18.11: «выбрал
+// Docs, и непонятно, куда дальше жать… подсвечивается кнопка экспорт, как бы
+// обучающая»). The menu stays open — "What goes in" may still be picked.
+// A click on a tile does not export: a choice is not the act, and a long chat
+// takes minutes to read.
+function gptpdfPointExport() {
+    const block = document.querySelector('.gptpdf-block');
+    if(!block) return;
+    block.querySelectorAll('.gptpdf-ring-once').forEach(function(r) { r.remove(); });
+    for(let i = 0; i < 2; i++) {
+        const r = document.createElement('span');
+        r.className = 'gptpdf-ring gptpdf-ring-once';
+        r.style.animationDelay = (i * 0.7) + 's';
+        block.appendChild(r);
+    }
+    setTimeout(function() {
+        block.querySelectorAll('.gptpdf-ring-once').forEach(function(r) { r.remove(); });
+    }, 3800);
+}
+
 // The file the menu shows as chosen (common.js keeps it); an export reads its
 // options, this is for the card's words before they are read.
 let gptpdfFormatNow = 'pdf';

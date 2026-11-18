@@ -32,6 +32,9 @@ const UI_CSS = `
  }
  .gptpdf-ring:nth-child(2) { animation-delay: 0.9s; }
  .gptpdf-ring:nth-child(3) { animation-delay: 1.8s; }
+ /* 1.3.0: the same rings, once, after a new place is picked — the next step is Export (formats.js) */
+ .gptpdf-ring.gptpdf-ring-once { animation-iteration-count: 1; }
+ @media (prefers-reduced-motion: reduce) { .gptpdf-ring.gptpdf-ring-once { display: none; } }
 
  /* ── No-chat (home page) state ───────────────────────────── */
  .gptpdf-no-chat {

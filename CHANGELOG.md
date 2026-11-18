@@ -20,6 +20,8 @@ history and working notes.
   When the chat is ready, the card offers one button — "Copy and open …": the
   click copies the chat and opens the place. The extension sends the chat
   nowhere itself and asks for no new permission.
+  After you pick a place, the Export button rings once — the next step is
+  there.
 
 ## [1.2.9] — 2026-11-18
 ### Added
