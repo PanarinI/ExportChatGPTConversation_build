@@ -30,9 +30,11 @@ const GPTPDF_FORMATS = {
                 item: 'A .docx to edit in Word or Pages',
                 hint: 'A document to edit — opens in Word, Google Docs or Pages.' },
     // On the tile "Docs" (as Google names the app on a phone): "Google Docs" does not fit a third of the menu.
-    gdocs:    { name: 'Google Docs', tile: 'Docs',        ext: '.html', book: 'DOC', what: 'the chat for Google Docs', group: 'doc',
+    // Google Docs takes the formatting of a paste but not its pictures (the author's test 18.11: «картинку я не
+    // обнаружил»): they go as notes, as in Markdown, and nothing waits for them.
+    gdocs:    { name: 'Google Docs', tile: 'Docs',        ext: '.html', book: 'DOC', what: 'the chat for Google Docs', group: 'doc', text: true,
                 tip: 'Copy the chat for Google Docs', item: 'Opens a new Google Doc — paste with ⌘V',
-                hint: 'Copies the chat with its formatting and opens a new Google Doc — paste it there with ⌘V.' },
+                hint: 'Opens a new Google Doc with the chat and its formatting — paste with ⌘V. Pictures stay in the Word file.' },
     claude:   { name: 'Claude',      tile: 'Claude',      ext: '.md',   book: 'MD',  what: 'the chat for Claude', group: 'dest', text: true,
                 tip: 'Copy the chat for Claude', item: 'Opens Claude — paste with ⌘V',
                 hint: 'Copies the chat and opens Claude — paste it there with ⌘V to go on.' },
@@ -81,10 +83,8 @@ function gptpdfMakeFile(format, clone, options, title, filename, done) {
             }
             if(format === 'gdocs') {
                 const m = gptpdfFmtRead(clone, options);
-                return gptpdfHtmlPictures(m).then(function() {
-                    return { text: gptpdfToMarkdown(m, options, title), html: gptpdfToHtml(m, options, title),
-                             turns: m.turns.length, handoff: true };
-                });
+                return { text: gptpdfToMarkdown(m, options, title), html: gptpdfToHtml(m, options, title),
+                         turns: m.turns.length, handoff: true };
             }
             const model = gptpdfFmtRead(clone, options);
             if(format === 'md') {
@@ -1040,9 +1040,18 @@ function gptpdfHandoff(format, file, title) {
                 gptpdfSetFact('The chat could not be copied. Try again — or choose Markdown file and save it.');
                 return;
             }
-            gptpdfOpenExternal(H.url(title));
-            if(typeof gptpdfChatGPT !== 'undefined' && gptpdfChatGPT.handOff) gptpdfChatGPT.handOff(format);
-            end();
+            // The card ends whatever happens after the copy: a new tab takes the
+            // focus, and a step after it that fails (the count, an extension
+            // reloaded under the page) once left the card in this state for
+            // the next export (18.11).
+            try {
+                gptpdfOpenExternal(H.url(title));
+                if(typeof gptpdfChatGPT !== 'undefined' && gptpdfChatGPT.handOff) gptpdfChatGPT.handOff(format);
+            } catch(e) {
+                console.log('[gptpdf] hand-off', e);
+            } finally {
+                end();
+            }
         });
     };
     close.onclick = end;
@@ -1055,8 +1064,9 @@ function gptpdfClaudeHandoff(text, turns) {
 
 // ── HTML (1.3.0): the chat as formatted text for Google Docs and Notion ────
 // Pasted, it keeps headings, lists, tables, code, links and bold. Questions as
-// the Questions setting has them; pictures that came in as data: go in (made
-// lighter first, gptpdfHtmlPictures); the rest is a note where one was.
+// the Questions setting has them. Pictures are notes where each was: both
+// places read chats as text, and Google Docs does not take a pasted picture
+// (the author's test 18.11) — a data: picture would still go in as it is.
 function gptpdfH(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -1081,8 +1091,8 @@ function gptpdfHtmlInline(inl) {
 
 function gptpdfHtmlImg(img) {
     if(img.ref) return '';
-    if(/^data:image\//.test(img.html || img.src || '')) {
-        return '<img src="' + (img.html || img.src) + '" alt="' + gptpdfH(img.alt || '') + '" style="max-width:100%">';
+    if(/^data:image\//.test(img.src || '')) {
+        return '<img src="' + img.src + '" alt="' + gptpdfH(img.alt || '') + '" style="max-width:100%">';
     }
     const what = img.alt && !/^(image|picture)$/i.test(img.alt) ? img.alt : 'Picture';
     return '<i>[' + gptpdfH(what) + ']</i>';
@@ -1162,39 +1172,6 @@ function gptpdfToHtml(model, options, title) {
     return '<meta charset="utf-8">' + out.join('\n');
 }
 
-// Pictures for the formatted copy: each data: picture made lighter as for Word
-// (docx.js) — a clipboard of 59 full PNGs would be ~90 MB.
-async function gptpdfHtmlPictures(model) {
-    const imgs = [];
-    const walk = function(blocks) {
-        (blocks || []).forEach(function(b) {
-            if(b.t === 'img') imgs.push(b);
-            (b.inl || []).forEach(function(x) { if(x.t === 'img') imgs.push(x); });
-            if(b.blocks) walk(b.blocks);
-            if(b.items) b.items.forEach(function(it) { walk(it.blocks); });
-            if(b.rows) b.rows.forEach(function(r) { r.cells.forEach(function(c) { walk(c.blocks); }); });
-        });
-    };
-    model.turns.forEach(function(t) { walk(t.blocks); });
-    const done = {};
-    for(const img of imgs) {
-        if(img.ref || !/^data:image\//.test(img.src || '')) continue;
-        if(done[img.src] === undefined) {
-            done[img.src] = '';
-            try {
-                const pic = typeof gptpdfDocxPicture === 'function' ? await gptpdfDocxPicture(img.src) : null;
-                if(pic) {
-                    let bin = '';
-                    for(let i = 0; i < pic.bytes.length; i += 8192) bin += String.fromCharCode.apply(null, pic.bytes.subarray(i, i + 8192));
-                    done[img.src] = 'data:image/' + pic.ext + ';base64,' + btoa(bin);
-                }
-            } catch(e) {
-                console.log('[gptpdf] html picture', e);
-            }
-        }
-        if(done[img.src]) img.html = done[img.src];
-    }
-}
 
 function gptpdfFmtSave(data, type, filename, format) {
     const url = URL.createObjectURL(new Blob([data], { type: type }));

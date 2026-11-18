@@ -15,8 +15,9 @@ history and working notes.
     with ⌘V or into the Claude app), **Obsidian** (a new note with the chat
     appears in your Obsidian by itself), **Notion** (a new Notion page opens,
     paste with ⌘V), **Markdown file**.
-  - Word ▾ — **Word file**, **Google Docs** (the chat with its formatting and
-    pictures; a new Google Doc opens, paste with ⌘V).
+  - Word ▾ — **Word file**, **Google Docs** (the chat with its formatting; a new
+    Google Doc opens, paste with ⌘V; pictures stay in the Word file — a paste
+    into Google Docs does not carry them, a note marks where each was).
   When the chat is ready, the card offers one button — "Copy and open …": the
   click copies the chat and opens the place. The extension sends the chat
   nowhere itself and asks for no new permission.

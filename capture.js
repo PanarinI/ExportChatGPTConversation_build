@@ -651,8 +651,22 @@ function gptpdfCardVisible() {
     return !!card && card.style.display === 'flex';
 }
 
+// A hand-off waiting for its click (formats.js) is over once the card closes
+// or another export starts: a new export must not show the last one's "Copy
+// and open …" over its progress (author 18.11: Google Docs, then Obsidian —
+// «Copy and open Google Docs… это бред… подставил от прошлого экспорта»).
+function gptpdfHandoffClear() {
+    const card = document.getElementById('gptpdf-progress');
+    if(card) card.classList.remove('gptpdf-handoff-on');
+    const go = document.getElementById('gptpdf-handoff-go');
+    const close = document.getElementById('gptpdf-handoff-close');
+    if(go) { go.onclick = null; go.disabled = false; }
+    if(close) close.onclick = null;
+}
+
 function showLoadingOverlay() {
     harvestCancelled = false;
+    gptpdfHandoffClear();
     gptpdfExportCard.shown = true;
     gptpdfShowCard(true, false);
     gptpdfSetFact('');
@@ -667,6 +681,7 @@ function hideLoadingOverlay() {
         ov.style.display = 'none';
     }
     if(card) {
+        gptpdfHandoffClear();
         card.style.display = 'none';
         const block = card.closest('.gptpdf-block');
         if(block) {

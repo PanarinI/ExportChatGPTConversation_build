@@ -43,7 +43,8 @@ var gptpdfChatGPT = { handOff: function(f) { handed.push(f); } };
 const card = document.getElementById('gptpdf-progress');
 const go = document.getElementById('gptpdf-handoff-go');
 const close = document.getElementById('gptpdf-handoff-close');
-const shown = el => !!el && getComputedStyle(el).display !== 'none';
+// Seen on the page: a hidden parent hides it too (its own display does not say so).
+const shown = el => !!el && el.getClientRects().length > 0;
 
 (async function() {
     // ── the text for Claude ──
@@ -105,6 +106,25 @@ const shown = el => !!el && getComputedStyle(el).display !== 'none';
     check('Notion opens a new page, Google Docs a new document', sent[0] === 'https://notion.new' && sent[1] === 'https://docs.new', sent.join(' · '));
     check('Obsidian: its own link, the note named after the chat, the text from the clipboard',
         sent[2] === 'obsidian://new?name=' + encodeURIComponent('Trip Lisbon day 1') + '&clipboard', sent[2]);
+
+    // ── 18.11: a step after the copy fails — the card still ends, and the next export starts clean ──
+    // (the author: Google Docs, then Obsidian — «Copy and open Google Docs» over the new export's progress)
+    gptpdfChatGPT.handOff = function() { throw new Error('Extension context invalidated'); };
+    gptpdfHandoff('gdocs', { text: 'T', html: '<p>H</p>', turns: 2 }, 'Chat');
+    go.click();
+    await sleep(50);
+    check('a failing step after the copy: the card ends anyway', card.style.display === 'none' && !card.classList.contains('gptpdf-handoff-on'));
+    gptpdfChatGPT.handOff = function(f) { handed.push(f); };
+    gptpdfHandoff('gdocs', { text: 'T', html: '<p>H</p>', turns: 2 }, 'Chat');   // waits for its click…
+    showLoadingOverlay();                                                         // …and another export starts
+    setHarvestProgress('Loading conversation…');
+    check('a new export over a waiting hand-off: no "Copy and open Google Docs", Cancel back',
+        !card.classList.contains('gptpdf-handoff-on') && !shown(go) && shown(document.getElementById('gptpdf-cancel-loading')),
+        'on=' + card.classList.contains('gptpdf-handoff-on') + ' go=' + shown(go) + ' cancel=' + shown(document.getElementById('gptpdf-cancel-loading')) +
+        ' cancelInline=' + document.getElementById('gptpdf-cancel-loading').style.display + ' card=' + card.style.display);
+    hideLoadingOverlay();
+    check('Google Docs reads as text: no waiting for pictures, a note where each was',
+        gptpdfFormatText('gdocs') && gptpdfHtmlImg({ src: 'https://files.oaiusercontent.com/x', alt: '' }) === '<i>[Picture]</i>');
 
     log.textContent += fails ? '\nFAIL: ' + fails + '\n' : '\nall passed\n';
 })().catch(function(e) { log.textContent += '✗ crashed: ' + e + '\n' + (e.stack || '') + '\n'; });
