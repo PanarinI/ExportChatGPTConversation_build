@@ -62,9 +62,9 @@ const PNG_SMALL = (function() {
 const memory = { sync: {}, local: {} };
 // ?pdftheme=dark — тёмный лист, как у человека, чей ChatGPT в тёмной теме (выгрузка 04.10 вышла пустой)
 if(/pdftheme=dark/.test(location.search)) memory.sync.options = { theme: 'dark' };
-// ?fmt=word|md|claude — файл, который делает Export (1.2.9, formats.js; claude — 1.2.10); ?noq — Questions › Hidden
+// ?fmt=word|md|claude|gdocs|obsidian|notion — куда Export (1.2.9–1.3.0, formats.js); ?noq — Questions › Hidden
 (function() {
-    const f = /fmt=(pdf|word|md|claude)/.exec(location.search);
+    const f = /fmt=(pdf|word|md|claude|gdocs|obsidian|notion)/.exec(location.search);
     if(f) memory.sync.options = Object.assign({}, memory.sync.options, { export_format: f[1] });
     if(/[?&]noq\b/.test(location.search)) memory.sync.options = Object.assign({}, memory.sync.options, { no_questions: true });
 })();
@@ -504,6 +504,13 @@ if(/auto=export/.test(location.search)) {
         await wait(300);
         if(m[1] === 'menu') {
             document.getElementById('gptpdf-more').click();
+            // &list=dest|doc — 1.3.0: the tile's list open (frames only)
+            const l = /list=(dest|doc)/.exec(location.search);
+            if(l) {
+                await wait(200);
+                const a = document.querySelector('.gptpdf-split[data-group="' + l[1] + '"] .gptpdf-split-arrow');
+                if(a) a.click();
+            }
             return;
         }
         gptpdfOpenSettings();

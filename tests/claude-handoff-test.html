@@ -1,5 +1,5 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>Claude — the hand-off card (1.2.10)</title>
+<html><head><meta charset="utf-8"><title>Claude, Notion, Google Docs, Obsidian — the hand-off card (1.2.10–1.3.0)</title>
 <!--
   1.2.10 (author 18.11: «чтобы наш спрос… на Claude… удовлетворялся»): the chat goes to Claude as text. No new
   permission — the person's click puts the text on the clipboard and opens claude.ai in a new tab (formats.js,
@@ -47,9 +47,11 @@ const shown = el => !!el && getComputedStyle(el).display !== 'none';
 
 (async function() {
     // ── the text for Claude ──
-    check('a Claude tile in the menu, under "Export to"',
-        !!document.querySelector('#gptpdf-formats .gptpdf-fmt-tile[data-format="claude"]') &&
-        /Export to/.test(document.querySelector('.gptpdf-fmt-label').textContent));
+    check('the menu: "Export to" · PDF · Word ▾ · Claude ▾, and in the lists Google Docs, Obsidian, Notion, Markdown file',
+        /Export to/.test(document.querySelector('.gptpdf-fmt-label').textContent) &&
+        document.querySelectorAll('#gptpdf-formats > .gptpdf-fmt-tile').length === 3 &&
+        !!document.querySelector('#gptpdf-formats .gptpdf-split[data-group="dest"] .gptpdf-split-main[data-format="claude"]') &&
+        ['gdocs', 'obsidian', 'notion', 'md'].every(function(f) { return !!document.querySelector('.gptpdf-split-item[data-format="' + f + '"]'); }));
     check('Claude is a text format: nothing waits for pictures', gptpdfFormatText('claude') && gptpdfFormatText('md') && !gptpdfFormatText('word'));
 
     // ── the card waits for the click ──
@@ -85,6 +87,24 @@ const shown = el => !!el && getComputedStyle(el).display !== 'none';
     close.click();
     check('Close ends it: the card goes, nothing opened', card.style.display === 'none' && opened.length === 0);
     refuse = false;
+
+    // ── 1.3.0: Notion, Google Docs, Obsidian ──
+    const sent = [];
+    gptpdfOpenExternal = function(url) { sent.push(url); };
+    for(const f of ['notion', 'gdocs', 'obsidian']) {
+        copied = null; handed = [];
+        gptpdfHandoff(f, { text: 'TEXT ' + f, html: f === 'obsidian' ? '' : '<p>HTML</p>', turns: 3 }, 'Trip: Lisbon / day 1?');
+        const line = card.querySelector('.gptpdf-loading-fact').textContent;
+        check(f + ': the card says what happens', go.textContent === GPTPDF_HANDOFF[f].button &&
+            new RegExp('^Ready for ' + GPTPDF_FORMATS[f].name + ': 3 messages').test(card.querySelector('.gptpdf-loading-text').textContent) &&
+            line.length > 20, go.textContent + ' · ' + line);
+        go.click();
+        await sleep(50);
+        check(f + ': copied, opened, counted', copied === 'TEXT ' + f && handed.join() === f, String(copied) + ' · ' + handed.join());
+    }
+    check('Notion opens a new page, Google Docs a new document', sent[0] === 'https://notion.new' && sent[1] === 'https://docs.new', sent.join(' · '));
+    check('Obsidian: its own link, the note named after the chat, the text from the clipboard',
+        sent[2] === 'obsidian://new?name=' + encodeURIComponent('Trip Lisbon day 1') + '&clipboard', sent[2]);
 
     log.textContent += fails ? '\nFAIL: ' + fails + '\n' : '\nall passed\n';
 })().catch(function(e) { log.textContent += '✗ crashed: ' + e + '\n' + (e.stack || '') + '\n'; });

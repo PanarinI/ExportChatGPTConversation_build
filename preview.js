@@ -366,8 +366,10 @@ function gptpdfRenderMenuSheet() {
         const style = gptpdfShared.lookStyle(o);
         const fmt = typeof gptpdfFormat === 'function' ? gptpdfFormat(o) : 'pdf';
         const name = document.getElementById('gptpdf-menu-style');
-        const text = typeof gptpdfFormatText === 'function' && gptpdfFormatText(fmt);
-        if(name) name.textContent = fmt === 'claude' ? 'Text for Claude' : text ? 'Plain text' : (style ? gptpdfShared.LOOK_NAMES[style] : 'Custom');
+        const text = typeof gptpdfFormatText === 'function' && (gptpdfFormatText(fmt) || fmt === 'gdocs');
+        const CAP = { claude: 'Text for Claude', obsidian: 'Note for Obsidian', notion: 'Page for Notion',
+                      gdocs: 'Google Docs', md: 'Plain text' };
+        if(name) name.textContent = CAP[fmt] || (style ? gptpdfShared.LOOK_NAMES[style] : 'Custom');
         const paper = document.getElementById('gptpdf-menu-paper');
         if(paper) paper.textContent = text ? '' : (o.page_size === 'letter' ? 'Letter' : 'A4') +
             (o.theme === 'dark' && fmt === 'pdf' ? ' · dark' : '') + ' · ';

@@ -1008,16 +1008,49 @@ if (singlePageBtn) {
 // its tooltip names the file. "Select all" and "AI answers only" left the menu:
 // Export takes everything anyway, and hiding questions is Settings › Questions ›
 // Hidden now (the same `no_questions`).
-function gptpdfPaintFormat(f) {
+// ⌘V on a Mac, Ctrl+V elsewhere — in the hint, the lists and the card.
+function gptpdfPasteKey(text) {
+    return /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '') ? text : String(text).replace(/⌘V/g, 'Ctrl+V');
+}
+
+// What a split tile shows (1.3.0): the format of its group that is on, or the
+// one picked there last (export_doc · export_dest), or its first.
+function gptpdfGroupChoice(group, f, o) {
+    const list = GPTPDF_FORMAT_GROUPS[group];
+    if(list.indexOf(f) !== -1) return f;
+    const kept = o && o['export_' + group];
+    return list.indexOf(kept) !== -1 ? kept : list[0];
+}
+
+function gptpdfPaintFormat(f, o) {
     gptpdfFormatNow = GPTPDF_FORMATS[f] ? f : 'pdf';
     document.querySelectorAll('#gptpdf-formats .gptpdf-fmt-tile').forEach(function(t) {
-        const on = t.dataset.format === gptpdfFormatNow;
+        let shows = t.dataset.format;
+        if(t.classList.contains('gptpdf-split')) {
+            shows = gptpdfGroupChoice(t.dataset.group, gptpdfFormatNow, o || gptpdfPaintFormat.kept);
+            const main = t.querySelector('.gptpdf-split-main');
+            if(main.dataset.format !== shows) {
+                main.dataset.format = shows;
+                main.innerHTML = gptpdfFileIcon(shows, 28, 33) + '<span></span>';
+                main.querySelector('span').textContent = GPTPDF_FORMATS[shows].tile;
+                main.querySelector('span').classList.toggle('gptpdf-long', GPTPDF_FORMATS[shows].tile.length > 8);
+            }
+            main.title = gptpdfPasteKey(GPTPDF_FORMATS[shows].hint);
+            t.querySelectorAll('.gptpdf-split-item').forEach(function(it) {
+                it.classList.toggle('cur', it.dataset.format === shows);
+                it.setAttribute('aria-checked', it.dataset.format === shows ? 'true' : 'false');
+                const what = it.querySelector('.gptpdf-split-txt span');
+                if(what) what.textContent = gptpdfPasteKey(GPTPDF_FORMATS[it.dataset.format].item || '');
+            });
+        }
+        const on = shows === gptpdfFormatNow;
         t.classList.toggle('on', on);
         t.setAttribute('aria-checked', on ? 'true' : 'false');
     });
+    if(o) gptpdfPaintFormat.kept = o;
     const F = GPTPDF_FORMATS[gptpdfFormatNow];
     const hint = document.getElementById('gptpdf-fmt-hint');
-    if(hint) hint.textContent = F.hint;
+    if(hint) hint.textContent = gptpdfPasteKey(F.hint);
     const btn = document.getElementById('gptpdf-convert-main');
     if(btn) btn.title = F.tip || ('Export as ' + F.name + ' (' + F.ext + ')');
     if(typeof gptpdfRenderMenuSheet === 'function') gptpdfRenderMenuSheet();
@@ -1026,17 +1059,53 @@ function gptpdfPaintFormat(f) {
 function gptpdfSetFormat(f) {
     gptpdfShared.getOptions(function(options) {
         options.export_format = f;
+        const group = GPTPDF_FORMATS[f] && GPTPDF_FORMATS[f].group;
+        if(group) options['export_' + group] = f;   // the tile keeps showing it after PDF is picked
         chrome.storage.sync.set({ options: options });
-        gptpdfPaintFormat(f);
+        gptpdfPaintFormat(f, options);
+    });
+}
+
+function gptpdfCloseSplits(except) {
+    document.querySelectorAll('#gptpdf-formats .gptpdf-split.open').forEach(function(t) {
+        if(t === except) return;
+        t.classList.remove('open');
+        const a = t.querySelector('.gptpdf-split-arrow');
+        if(a) a.setAttribute('aria-expanded', 'false');
     });
 }
 
 gptpdfShared.getOptions(function(options) {
-    gptpdfPaintFormat(gptpdfFormat(options));
+    gptpdfPaintFormat(gptpdfFormat(options), options);
 });
 document.querySelectorAll('#gptpdf-formats .gptpdf-fmt-tile').forEach(function(t) {
-    t.addEventListener('click', function() { gptpdfSetFormat(t.dataset.format); });
+    if(!t.classList.contains('gptpdf-split')) {
+        t.addEventListener('click', function() { gptpdfCloseSplits(); gptpdfSetFormat(t.dataset.format); });
+        return;
+    }
+    const main = t.querySelector('.gptpdf-split-main');
+    const arrow = t.querySelector('.gptpdf-split-arrow');
+    main.addEventListener('click', function() { gptpdfCloseSplits(); gptpdfSetFormat(main.dataset.format); });
+    arrow.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const open = !t.classList.contains('open');
+        gptpdfCloseSplits(t);
+        t.classList.toggle('open', open);
+        arrow.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    t.querySelectorAll('.gptpdf-split-item').forEach(function(it) {
+        it.addEventListener('click', function(e) {
+            e.stopPropagation();
+            gptpdfCloseSplits();
+            gptpdfSetFormat(it.dataset.format);
+        });
+    });
 });
+// A list closes on a click anywhere else, and on Escape.
+document.addEventListener('click', function(e) {
+    if(!e.target.closest || !e.target.closest('.gptpdf-split.open')) gptpdfCloseSplits();
+});
+document.addEventListener('keydown', function(e) { if(e.key === 'Escape') gptpdfCloseSplits(); });
     const options_el = document.getElementById('gptpdf-options');
     if(gptpdfShared.hasOptions) {
         options_el.addEventListener('click', function(e) {

@@ -1291,7 +1291,7 @@ ${GPTPDF_DARK} #gptpdf-preview-label { color: rgba(255,255,255,0.28); }
 /* ── 1.2.9: the file Export makes — PDF · Word · Markdown ── */
 .gptpdf-fmt-label { font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: rgba(0,0,0,.4); padding: 8px 6px 6px; text-align: left; }
 ${GPTPDF_DARK} .gptpdf-fmt-label { color: rgba(255,255,255,.38); }
-.gptpdf-fmt-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 0 2px; }
+.gptpdf-fmt-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 0 2px; }
 .gptpdf-fmt-tile {
     display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 4px 8px;
     border: 1.5px solid rgba(0,0,0,.10); border-radius: 10px; background: transparent; color: rgba(0,0,0,.85);
@@ -1303,6 +1303,49 @@ ${GPTPDF_DARK} .gptpdf-fmt-tile { border-color: rgba(255,255,255,.14); color: rg
 ${GPTPDF_DARK} .gptpdf-fmt-tile:hover { background: rgba(255,255,255,.06); }
 ${GPTPDF_DARK} .gptpdf-fmt-tile.on { border-color: #EA4C3A; background: rgba(234,76,58,.18); color: #ff9b8f; }
 .gptpdf-fmt-ico { display: block; flex: none; }
+/* ── 1.3.0: a tile with a list behind its arrow (Word ▾, Claude ▾) ── */
+.gptpdf-fmt-tile.gptpdf-split { position: relative; flex-direction: row; align-items: stretch; padding: 0; overflow: visible; }
+.gptpdf-split-main {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 2px 8px;
+    border: 0; background: none; color: inherit; font: inherit; cursor: pointer;
+}
+.gptpdf-split-main span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gptpdf-split-main span.gptpdf-long { font-size: 11px; letter-spacing: -.1px; }   /* "Google Docs" in a third of the menu */
+.gptpdf-split-arrow {
+    flex: none; width: 20px; border: 0; border-left: 1.5px solid rgba(0,0,0,.10); background: none; color: rgba(0,0,0,.45);
+    font-size: 11px; cursor: pointer; border-radius: 0 9px 9px 0;
+}
+.gptpdf-split-arrow:hover, .gptpdf-split.open .gptpdf-split-arrow { background: rgba(0,0,0,.05); }
+.gptpdf-fmt-tile.on .gptpdf-split-arrow { border-left-color: rgba(234,76,58,.45); color: #c93a2a; }
+.gptpdf-split-list {
+    display: none; position: absolute; top: calc(100% + 6px); right: -2px; z-index: 5; width: 252px; box-sizing: border-box;
+    padding: 6px; border: 1px solid rgba(0,0,0,.12); border-radius: 12px; background: #fff; box-shadow: 0 8px 28px rgba(0,0,0,.16);
+    text-align: left;
+}
+.gptpdf-split.open .gptpdf-split-list { display: block; }
+#gptpdf-extra-btns:has(.gptpdf-split.open) { overflow: visible; }   /* the list hangs below the panel's edge */
+.gptpdf-split-item {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 8px; border: 0; border-radius: 8px;
+    background: none; color: rgba(0,0,0,.85); font: inherit; text-align: left; cursor: pointer;
+}
+.gptpdf-split-item:hover { background: rgba(0,0,0,.04); }
+.gptpdf-split-item.cur { background: rgba(234,76,58,.07); }
+.gptpdf-split-txt { flex: 1; min-width: 0; }
+.gptpdf-split-txt b { display: block; font-size: 13px; font-weight: 600; }
+.gptpdf-split-txt span { display: block; font-size: 11.5px; line-height: 1.3; color: rgba(0,0,0,.5); }
+.gptpdf-split-ck { visibility: hidden; color: #c93a2a; font-weight: 700; }
+.gptpdf-split-item.cur .gptpdf-split-ck { visibility: visible; }
+.gptpdf-split-sep { height: 1px; margin: 4px 6px; background: rgba(0,0,0,.08); }
+${GPTPDF_DARK} .gptpdf-split-arrow { border-left-color: rgba(255,255,255,.14); color: rgba(255,255,255,.5); }
+${GPTPDF_DARK} .gptpdf-split-arrow:hover, ${GPTPDF_DARK} .gptpdf-split.open .gptpdf-split-arrow { background: rgba(255,255,255,.06); }
+${GPTPDF_DARK} .gptpdf-fmt-tile.on .gptpdf-split-arrow { border-left-color: rgba(234,76,58,.5); color: #ff9b8f; }
+${GPTPDF_DARK} .gptpdf-split-list { background: #2f2f2f; border-color: rgba(255,255,255,.12); box-shadow: 0 8px 28px rgba(0,0,0,.5); }
+${GPTPDF_DARK} .gptpdf-split-item { color: rgba(255,255,255,.92); }
+${GPTPDF_DARK} .gptpdf-split-item:hover { background: rgba(255,255,255,.06); }
+${GPTPDF_DARK} .gptpdf-split-item.cur { background: rgba(234,76,58,.18); }
+${GPTPDF_DARK} .gptpdf-split-txt span { color: rgba(255,255,255,.5); }
+${GPTPDF_DARK} .gptpdf-split-ck { color: #ff9b8f; }
+${GPTPDF_DARK} .gptpdf-split-sep { background: rgba(255,255,255,.08); }
 .gptpdf-fmt-ico .pg { fill: #fff; stroke: rgba(0,0,0,.32); }
 .gptpdf-fmt-ico .fd { fill: none; stroke: rgba(0,0,0,.32); }
 ${GPTPDF_DARK} .gptpdf-fmt-ico .pg { fill: #3a3a3a; stroke: rgba(255,255,255,.45); }
@@ -1457,9 +1500,19 @@ const GPTPDF_FILE_ICONS = {
     word:   { color: '#2B5797', label: 'W',   fs: 9 },
     md:     { color: '#3D444D', label: 'MD',  fs: 7.4 },
     // Claude (1.2.10): the page goes to another chat — a speech bubble with
-    // three dots instead of a file badge; no one's logo.
-    claude: { color: '#B5573B', bubble: true }
+    // three dots instead of a file badge; no one's logo (DECISIONS 18.11: a
+    // trademark needs its owner's approval). The same for the rest: a badge.
+    claude:   { color: '#B5573B', bubble: true },
+    gdocs:    { color: '#2F6FDB', label: 'DOCS', fs: 5.6 },
+    obsidian: { color: '#6C4BC4', label: 'OBS',  fs: 6.6 },
+    notion:   { color: '#232323', label: 'N',    fs: 9 }
 };
+// A row of a split tile's list (1.3.0): a small icon, the name, what it does.
+function gptpdfSplitItem(f, name, what) {
+    return '<button type="button" class="gptpdf-split-item" data-format="' + f + '" role="menuitemradio">' +
+        gptpdfFileIcon(f, 20, 24) + '<span class="gptpdf-split-txt"><b>' + name + '</b><span>' + what + '</span></span>' +
+        '<span class="gptpdf-split-ck" aria-hidden="true">✓</span></button>';
+}
 function gptpdfFileIcon(f, w, h) {
     const F = GPTPDF_FILE_ICONS[f];
     const badge = F.bubble
@@ -1532,11 +1585,29 @@ const EXPORT_BUTTON_HTML = `
                  "AI answers only" moved to Settings as Questions · Hidden. common.js wires the tiles. -->
             <!-- 1.2.10: a fourth way out — Claude (not a file), so "Export to" (the mock the author agreed to, 18.11). -->
             <div class="gptpdf-fmt-label">Export to</div>
+            <!-- 1.3.0 (author 18.11): PDF · Word ▾ · Claude ▾ — a tile with a list behind its arrow, like the
+                 Export button's own; it shows what was picked last. common.js paints and wires them. -->
             <div class="gptpdf-fmt-tiles" id="gptpdf-formats" role="radiogroup" aria-label="Export to">
                 <button type="button" class="gptpdf-fmt-tile" data-format="pdf" role="radio" title="PDF (.pdf) — pages to keep, send or print">${gptpdfFileIcon('pdf', 28, 33)}<span>PDF</span></button>
-                <button type="button" class="gptpdf-fmt-tile" data-format="word" role="radio" title="Word (.docx) — a document to edit in Word, Google Docs or Pages">${gptpdfFileIcon('word', 28, 33)}<span>Word</span></button>
-                <button type="button" class="gptpdf-fmt-tile" data-format="md" role="radio" title="Markdown (.md) — plain text for Obsidian, Notion or another AI">${gptpdfFileIcon('md', 28, 33)}<span>Markdown</span></button>
-                <button type="button" class="gptpdf-fmt-tile" data-format="claude" role="radio" title="Claude — copies the chat as text and opens Claude in a new tab, to go on there">${gptpdfFileIcon('claude', 28, 33)}<span>Claude</span></button>
+                <div class="gptpdf-fmt-tile gptpdf-split" data-group="doc">
+                    <button type="button" class="gptpdf-split-main" data-format="word" role="radio">${gptpdfFileIcon('word', 28, 33)}<span>Word</span></button>
+                    <button type="button" class="gptpdf-split-arrow" aria-haspopup="true" aria-expanded="false" title="A Word file or Google Docs">▾</button>
+                    <div class="gptpdf-split-list" role="menu">
+                        ${gptpdfSplitItem('word', 'Word file', 'A .docx to edit in Word or Pages')}
+                        ${gptpdfSplitItem('gdocs', 'Google Docs', 'Opens a new Google Doc — paste with ⌘V')}
+                    </div>
+                </div>
+                <div class="gptpdf-fmt-tile gptpdf-split" data-group="dest">
+                    <button type="button" class="gptpdf-split-main" data-format="claude" role="radio">${gptpdfFileIcon('claude', 28, 33)}<span>Claude</span></button>
+                    <button type="button" class="gptpdf-split-arrow" aria-haspopup="true" aria-expanded="false" title="Claude, Obsidian, Notion or a Markdown file">▾</button>
+                    <div class="gptpdf-split-list" role="menu">
+                        ${gptpdfSplitItem('claude', 'Claude', 'Opens Claude — paste with ⌘V')}
+                        ${gptpdfSplitItem('obsidian', 'Obsidian', 'A new note in your Obsidian, by itself')}
+                        ${gptpdfSplitItem('notion', 'Notion', 'Opens a new Notion page — paste with ⌘V')}
+                        <div class="gptpdf-split-sep"></div>
+                        ${gptpdfSplitItem('md', 'Markdown file', 'A .md file for anything else')}
+                    </div>
+                </div>
             </div>
             <div class="gptpdf-fmt-hint" id="gptpdf-fmt-hint"></div>
             <!-- 18.11: what goes in — a choice like "Save as", the whole chat already chosen. A lone

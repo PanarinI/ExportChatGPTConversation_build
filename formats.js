@@ -20,19 +20,34 @@
 //          { t: 'math', tex, mathml } · { t: 'img', src, alt, w, h }
 
 // text: carries no pictures (named in their place), so nothing waits for them.
-// Claude (1.2.10, author 18.11: «чтобы наш спрос… на Claude… удовлетворялся»):
-// no file — the chat as text on the clipboard and claude.ai in a new tab.
+// group: the split tile it lives in (1.3.0, author 18.11: «в основном виде это кнопка Клода, но можно вызвать
+// сегментиком… Claude, Obsidian, Notion»; Google Docs — второй пункт у Word). tile: its name on the tile.
+// Claude, Obsidian, Notion, Google Docs make no file: the chat goes on the clipboard and the place opens (a hand-off).
 const GPTPDF_FORMATS = {
-    pdf:    { name: 'PDF',      ext: '.pdf',  book: 'PDF', what: 'the PDF',
-              hint: 'Pages as they print — to keep, send or print.' },
-    word:   { name: 'Word',     ext: '.docx', book: 'DOC', what: 'the Word file',
-              hint: 'A document to edit — opens in Word, Google Docs or Pages.' },
-    md:     { name: 'Markdown', ext: '.md',   book: 'MD',  what: 'the Markdown file', text: true,
-              hint: 'Plain text with headings — for Obsidian, Notion or another AI.' },
-    claude: { name: 'Claude',   ext: '.md',   book: 'MD',  what: 'the chat for Claude', text: true,
-              tip: 'Copy the chat for Claude',
-              hint: 'Copies the chat and opens Claude — paste it there with ⌘V to go on.' }
+    pdf:      { name: 'PDF',         tile: 'PDF',         ext: '.pdf',  book: 'PDF', what: 'the PDF',
+                hint: 'Pages as they print — to keep, send or print.' },
+    word:     { name: 'Word',        tile: 'Word',        ext: '.docx', book: 'DOC', what: 'the Word file', group: 'doc',
+                item: 'A .docx to edit in Word or Pages',
+                hint: 'A document to edit — opens in Word, Google Docs or Pages.' },
+    // On the tile "Docs" (as Google names the app on a phone): "Google Docs" does not fit a third of the menu.
+    gdocs:    { name: 'Google Docs', tile: 'Docs',        ext: '.html', book: 'DOC', what: 'the chat for Google Docs', group: 'doc',
+                tip: 'Copy the chat for Google Docs', item: 'Opens a new Google Doc — paste with ⌘V',
+                hint: 'Copies the chat with its formatting and opens a new Google Doc — paste it there with ⌘V.' },
+    claude:   { name: 'Claude',      tile: 'Claude',      ext: '.md',   book: 'MD',  what: 'the chat for Claude', group: 'dest', text: true,
+                tip: 'Copy the chat for Claude', item: 'Opens Claude — paste with ⌘V',
+                hint: 'Copies the chat and opens Claude — paste it there with ⌘V to go on.' },
+    obsidian: { name: 'Obsidian',    tile: 'Obsidian',    ext: '.md',   book: 'MD',  what: 'the note for Obsidian', group: 'dest', text: true,
+                tip: 'Copy the chat into a new Obsidian note', item: 'A new note in your Obsidian, by itself',
+                hint: 'Copies the chat and opens Obsidian — a new note with it appears by itself. Needs the Obsidian app.' },
+    notion:   { name: 'Notion',      tile: 'Notion',      ext: '.md',   book: 'MD',  what: 'the chat for Notion', group: 'dest', text: true,
+                tip: 'Copy the chat for Notion', item: 'Opens a new Notion page — paste with ⌘V',
+                hint: 'Copies the chat and opens a new Notion page — paste it there with ⌘V.' },
+    md:       { name: 'Markdown',    tile: 'Markdown',    ext: '.md',   book: 'MD',  what: 'the Markdown file', group: 'dest', text: true,
+                item: 'A .md file for anything else',
+                hint: 'Plain text with headings — for Obsidian, Notion or another AI.' }
 };
+// A split tile's options, in the order its list shows them; the first is the default.
+const GPTPDF_FORMAT_GROUPS = { doc: ['word', 'gdocs'], dest: ['claude', 'obsidian', 'notion', 'md'] };
 
 function gptpdfFormatText(f) {
     return !!(GPTPDF_FORMATS[f] && GPTPDF_FORMATS[f].text);
@@ -57,7 +72,19 @@ function gptpdfMakeFile(format, clone, options, title, filename, done) {
             if(format === 'claude') {
                 const o = gptpdfClaudeOptions(options);
                 const m = gptpdfFmtRead(clone, o);
-                return { text: gptpdfToClaude(m, o, title), turns: m.turns.length };
+                return { text: gptpdfToClaude(m, o, title), turns: m.turns.length, handoff: true };
+            }
+            if(format === 'obsidian' || format === 'notion') {
+                const m = gptpdfFmtRead(clone, options);
+                return { text: gptpdfToMarkdown(m, options, title), html: format === 'notion' ? gptpdfToHtml(m, options, title) : '',
+                         turns: m.turns.length, handoff: true };
+            }
+            if(format === 'gdocs') {
+                const m = gptpdfFmtRead(clone, options);
+                return gptpdfHtmlPictures(m).then(function() {
+                    return { text: gptpdfToMarkdown(m, options, title), html: gptpdfToHtml(m, options, title),
+                             turns: m.turns.length, handoff: true };
+                });
             }
             const model = gptpdfFmtRead(clone, options);
             if(format === 'md') {
@@ -71,8 +98,8 @@ function gptpdfMakeFile(format, clone, options, title, filename, done) {
             console.log('[gptpdf] ' + F.name + ': ' + file.turns + ' messages, ' +
                 Math.round(((file.data || file.text).length || 0) / 1024) + ' KB in ' + (Date.now() - t0) + ' ms');
             done();
-            if(format === 'claude') {
-                gptpdfClaudeHandoff(file.text, file.turns);
+            if(file.handoff) {
+                gptpdfHandoff(format, file, title);
                 return;
             }
             gptpdfFmtSave(file.data, file.type, gptpdfFmtFilename(filename || title, format), format);
@@ -910,10 +937,11 @@ function gptpdfToClaude(model, options, title) {
     return GPTPDF_CLAUDE_LEAD + '\n\n' + gptpdfToMarkdown(model, options, title);
 }
 
-// The clipboard, on the person's click: the Clipboard API first; ChatGPT's own
-// copy handlers cannot touch it. If it is refused, the old copy command, still
-// within the click.
-function gptpdfCopyText(text) {
+// The clipboard, on the person's click: the Clipboard API first — ChatGPT's own
+// copy handlers cannot touch it — with the formatted copy beside the text when
+// there is one (Google Docs and Notion take the formatting); if refused, the
+// old copy command, still within the click.
+function gptpdfCopyText(text, html) {
     const byCommand = function() {
         const ta = document.createElement('textarea');
         ta.value = text;
@@ -926,30 +954,77 @@ function gptpdfCopyText(text) {
         ta.remove();
         return ok;
     };
-    if(navigator.clipboard && navigator.clipboard.writeText) {
-        return navigator.clipboard.writeText(text).then(function() { return true; }, function() { return byCommand(); });
+    const plain = function() {
+        if(navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text).then(function() { return true; }, function() { return byCommand(); });
+        }
+        return Promise.resolve(byCommand());
+    };
+    if(html && navigator.clipboard && navigator.clipboard.write && typeof ClipboardItem !== 'undefined') {
+        let item;
+        try {
+            item = new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }),
+                                       'text/plain': new Blob([text], { type: 'text/plain' }) });
+        } catch(e) {
+            return plain();
+        }
+        return navigator.clipboard.write([item]).then(function() { return true; }, plain);
     }
-    return Promise.resolve(byCommand());
+    return plain();
 }
 
+// Opening the place: a site in a new tab; an app by its own link (obsidian://),
+// which leaves this page where it is. Tests put their own in.
+let gptpdfOpenExternal = function(url) {
+    if(/^https:/.test(url)) {
+        window.open(url, '_blank', 'noopener');
+        return;
+    }
+    const a = document.createElement('a');
+    a.href = url;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+};
+
+// The note's name in Obsidian: the chat's title, without what a file name cannot hold.
+function gptpdfObsidianName(title) {
+    return String(title || '').replace(/[\\/:*?"<>|#^\[\]]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100) || 'ChatGPT chat';
+}
+
+// Where each hand-off goes and what the clerk says before it (1.2.10–1.3.0).
+const GPTPDF_HANDOFF = {
+    claude:   { url: function() { return 'https://claude.ai/new'; }, button: 'Copy and open Claude',
+                line: function(k) { return 'I\'ll copy the chat and open Claude in a new tab. Press ' + k + ' there to paste it, then go on.'; } },
+    notion:   { url: function() { return 'https://notion.new'; }, button: 'Copy and open Notion',
+                line: function(k) { return 'I\'ll copy the chat and open a new Notion page. Press ' + k + ' on it to paste the chat.'; } },
+    gdocs:    { url: function() { return 'https://docs.new'; }, button: 'Copy and open Google Docs',
+                line: function(k) { return 'I\'ll copy the chat and open a new Google Doc. Press ' + k + ' in it to paste the chat.'; } },
+    obsidian: { url: function(title) { return 'obsidian://new?name=' + encodeURIComponent(gptpdfObsidianName(title)) + '&clipboard'; },
+                button: 'Copy and open Obsidian',
+                line: function() { return 'I\'ll copy the chat and open Obsidian: a new note with it appears by itself. It needs the Obsidian app.'; } }
+};
 const GPTPDF_CLAUDE_URL = 'https://claude.ai/new';
 
 // The chat is ready: the card waits for the person's click — only a click lets
-// the page write to the clipboard and open a tab without a new permission (a new
-// permission would turn the extension off for everyone until they agree again).
-// The click copies the text and opens claude.ai in a new tab; ⌘V there brings the
-// chat into Claude's message box (or into the Claude app — the clipboard is the
-// computer's). The extension itself sends the chat nowhere.
-function gptpdfClaudeHandoff(text, turns) {
+// the page write to the clipboard and open a tab or an app without a new
+// permission (a new one with a warning would turn the extension off for
+// everyone until they agree again). The click copies the chat and opens the
+// place; the extension itself sends the chat nowhere.
+function gptpdfHandoff(format, file, title) {
+    const H = GPTPDF_HANDOFF[format];
     const card = document.getElementById('gptpdf-progress');
     const go = document.getElementById('gptpdf-handoff-go');
     const close = document.getElementById('gptpdf-handoff-close');
-    if(!card || !go || !close) return;
+    if(!H || !card || !go || !close) return;
     const paste = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '') ? '⌘V' : 'Ctrl+V';
+    const turns = file.turns;
     gptpdfShowCard(false, true);
     card.classList.add('gptpdf-handoff-on');
-    setHarvestProgress('Ready for Claude: ' + turns + (turns === 1 ? ' message' : ' messages'));
-    gptpdfSetFact('I\'ll copy the chat and open Claude in a new tab. Press ' + paste + ' there to paste it, then go on.');
+    go.textContent = H.button;
+    setHarvestProgress('Ready for ' + GPTPDF_FORMATS[format].name + ': ' + turns + (turns === 1 ? ' message' : ' messages'));
+    gptpdfSetFact(H.line(paste));
     gptpdfSetHint('');
     const end = function() {
         card.classList.remove('gptpdf-handoff-on');
@@ -959,18 +1034,166 @@ function gptpdfClaudeHandoff(text, turns) {
     };
     go.onclick = function() {
         go.disabled = true;
-        gptpdfCopyText(text).then(function(ok) {
+        gptpdfCopyText(file.text, file.html).then(function(ok) {
             if(!ok) {
                 go.disabled = false;
-                gptpdfSetFact('The chat could not be copied. Try again — or choose Markdown and save it as a file.');
+                gptpdfSetFact('The chat could not be copied. Try again — or choose Markdown file and save it.');
                 return;
             }
-            window.open(GPTPDF_CLAUDE_URL, '_blank', 'noopener');
-            if(typeof gptpdfChatGPT !== 'undefined' && gptpdfChatGPT.handOff) gptpdfChatGPT.handOff('claude');
+            gptpdfOpenExternal(H.url(title));
+            if(typeof gptpdfChatGPT !== 'undefined' && gptpdfChatGPT.handOff) gptpdfChatGPT.handOff(format);
             end();
         });
     };
     close.onclick = end;
+}
+
+// 1.2.10's name for the Claude hand-off (tests, stands).
+function gptpdfClaudeHandoff(text, turns) {
+    gptpdfHandoff('claude', { text: text, turns: turns }, '');
+}
+
+// ── HTML (1.3.0): the chat as formatted text for Google Docs and Notion ────
+// Pasted, it keeps headings, lists, tables, code, links and bold. Questions as
+// the Questions setting has them; pictures that came in as data: go in (made
+// lighter first, gptpdfHtmlPictures); the rest is a note where one was.
+function gptpdfH(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function gptpdfHtmlInline(inl) {
+    return (inl || []).map(function(x) {
+        if(x.t === 'br') return '<br>';
+        if(x.t === 'math') return gptpdfH('$' + (x.tex || '') + '$');
+        if(x.t === 'img') return gptpdfHtmlImg(x);
+        if(x.t !== 'text') return '';
+        let v = gptpdfH(x.v);
+        if(x.code) v = '<code>' + v + '</code>';
+        if(x.sup) v = '<sup>' + v + '</sup>';
+        if(x.sub) v = '<sub>' + v + '</sub>';
+        if(x.s) v = '<s>' + v + '</s>';
+        if(x.i) v = '<i>' + v + '</i>';
+        if(x.b) v = '<b>' + v + '</b>';
+        if(x.href) v = '<a href="' + gptpdfH(x.href) + '">' + v + '</a>';
+        return v;
+    }).join('');
+}
+
+function gptpdfHtmlImg(img) {
+    if(img.ref) return '';
+    if(/^data:image\//.test(img.html || img.src || '')) {
+        return '<img src="' + (img.html || img.src) + '" alt="' + gptpdfH(img.alt || '') + '" style="max-width:100%">';
+    }
+    const what = img.alt && !/^(image|picture)$/i.test(img.alt) ? img.alt : 'Picture';
+    return '<i>[' + gptpdfH(what) + ']</i>';
+}
+
+function gptpdfHtmlBlock(b, shift) {
+    switch(b.t) {
+    case 'h': {
+        const n = Math.min(6, b.level + (shift || 0));
+        return '<h' + n + '>' + gptpdfHtmlInline(b.inl.map(function(x) { return x.t === 'text' ? Object.assign({}, x, { b: false }) : x; })) + '</h' + n + '>';
+    }
+    case 'p':
+        return '<p>' + gptpdfHtmlInline(b.inl) + '</p>';
+    case 'code':
+        return '<pre><code>' + gptpdfH(b.text) + '</code></pre>';
+    case 'list': {
+        const tag = b.ordered ? 'ol' : 'ul';
+        return '<' + tag + (b.ordered && b.start > 1 ? ' start="' + b.start + '"' : '') + '>' + b.items.map(function(it) {
+            const box = it.check === null || it.check === undefined ? '' : (it.check ? '☑ ' : '☐ ');
+            const inner = it.blocks.map(function(ib, k) {
+                const h = gptpdfHtmlBlock(ib, shift);
+                return k === 0 && ib.t === 'p' ? h.replace(/^<p>|<\/p>$/g, '') : h;
+            }).join('');
+            return '<li>' + box + inner + '</li>';
+        }).join('') + '</' + tag + '>';
+    }
+    case 'table':
+        return '<table border="1" cellpadding="4" style="border-collapse:collapse">' + b.rows.map(function(r, ri) {
+            return '<tr>' + r.cells.map(function(c) {
+                const t = ri === 0 ? 'th' : 'td';
+                const al = c.align === 'right' || c.align === 'center' ? ' style="text-align:' + c.align + '"' : '';
+                return '<' + t + al + '>' + c.blocks.map(function(x) {
+                    return x.t === 'p' ? gptpdfHtmlInline(x.inl) : gptpdfHtmlBlock(x, 0);
+                }).join('<br>') + '</' + t + '>';
+            }).join('') + '</tr>';
+        }).join('') + '</table>';
+    case 'quote':
+        return '<blockquote>' + b.blocks.map(function(x) { return gptpdfHtmlBlock(x, shift); }).join('') + '</blockquote>';
+    case 'hr':
+        return '<hr>';
+    case 'img':
+        return '<p>' + gptpdfHtmlImg(b) + '</p>';
+    case 'math':
+        return '<p>' + gptpdfH('$$ ' + (b.tex || '') + ' $$') + '</p>';
+    }
+    return '';
+}
+
+function gptpdfToHtml(model, options, title) {
+    const look = gptpdfShared.look(options);
+    const asHeading = look.qLook === 'heading';
+    const head = gptpdfFmtHeader(options, title);
+    const out = [];
+    if(head.title) out.push('<h1>' + gptpdfH(head.title.replace(/\s+/g, ' ').trim()) + '</h1>');
+    const meta = [gptpdfH(head.date), head.url ? '<a href="' + gptpdfH(head.url) + '">' + gptpdfH(head.url) + '</a>' : ''].filter(Boolean).join(' · ');
+    if(meta) out.push('<p>' + meta + '</p>');
+    const shift = asHeading ? 1 : 0;
+    model.turns.forEach(function(t) {
+        if(t.role === 'user') {
+            const qb = t.blocks.filter(function(b) { return !(b.t === 'img' && b.ref); });
+            if(asHeading) {
+                const first = qb.findIndex(function(b) { return b.t === 'p' && !b.file; });
+                const words = first === -1 ? '' : gptpdfFmtPlain(qb[first]);
+                if(words) out.push('<h2>' + gptpdfH(words.length > 200 ? words.slice(0, 199) + '…' : words) + '</h2>');
+                qb.forEach(function(b, k) { if(k !== first) out.push(gptpdfHtmlBlock(b, 0)); });
+            } else {
+                qb.forEach(function(b, k) {
+                    const h = gptpdfHtmlBlock(b, 0);
+                    out.push(k === 0 && b.t === 'p' ? h.replace(/^<p>/, '<p><b>You:</b> ') : (k === 0 ? '<p><b>You:</b></p>' + h : h));
+                });
+            }
+        } else {
+            if(!asHeading && !options.no_questions) out.push('<p><b>ChatGPT:</b></p>');
+            t.blocks.forEach(function(b) { out.push(gptpdfHtmlBlock(b, shift)); });
+        }
+    });
+    return '<meta charset="utf-8">' + out.join('\n');
+}
+
+// Pictures for the formatted copy: each data: picture made lighter as for Word
+// (docx.js) — a clipboard of 59 full PNGs would be ~90 MB.
+async function gptpdfHtmlPictures(model) {
+    const imgs = [];
+    const walk = function(blocks) {
+        (blocks || []).forEach(function(b) {
+            if(b.t === 'img') imgs.push(b);
+            (b.inl || []).forEach(function(x) { if(x.t === 'img') imgs.push(x); });
+            if(b.blocks) walk(b.blocks);
+            if(b.items) b.items.forEach(function(it) { walk(it.blocks); });
+            if(b.rows) b.rows.forEach(function(r) { r.cells.forEach(function(c) { walk(c.blocks); }); });
+        });
+    };
+    model.turns.forEach(function(t) { walk(t.blocks); });
+    const done = {};
+    for(const img of imgs) {
+        if(img.ref || !/^data:image\//.test(img.src || '')) continue;
+        if(done[img.src] === undefined) {
+            done[img.src] = '';
+            try {
+                const pic = typeof gptpdfDocxPicture === 'function' ? await gptpdfDocxPicture(img.src) : null;
+                if(pic) {
+                    let bin = '';
+                    for(let i = 0; i < pic.bytes.length; i += 8192) bin += String.fromCharCode.apply(null, pic.bytes.subarray(i, i + 8192));
+                    done[img.src] = 'data:image/' + pic.ext + ';base64,' + btoa(bin);
+                }
+            } catch(e) {
+                console.log('[gptpdf] html picture', e);
+            }
+        }
+        if(done[img.src]) img.html = done[img.src];
+    }
 }
 
 function gptpdfFmtSave(data, type, filename, format) {

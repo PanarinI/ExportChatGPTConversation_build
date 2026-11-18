@@ -188,6 +188,23 @@ function sameMath(a, b) {
         /\*\*You:\*\*/.test(ct) && ct.includes('Plan a trip.') && ct.includes('**ChatGPT:**'), ct.slice(0, 300));
     check('claude: no contents list', !ct.includes('**Contents**'));
 
+    // ── HTML for Google Docs and Notion (1.3.0) ──
+    const hm = gptpdfFmtRead(copyOf('classic'), O);
+    const html = gptpdfToHtml(hm, O, 'Lisbon trip');
+    check('html: title, question with its label, answer label', html.includes('<h1>Lisbon trip</h1>') &&
+        /<p><b>You:<\/b> /.test(html) && html.includes('<p><b>ChatGPT:</b></p>'), html.slice(0, 300));
+    check('html: heading without bold, bold, italic, code, link', html.includes('<h3>Your 3-day plan</h3>') &&
+        html.includes('<b>relaxed</b>') && html.includes('<i>one</i>') && html.includes('<code>split_budget()</code>') &&
+        html.includes('<a href="https://example.com/a">a link</a>'));
+    check('html: nested list, task box, ordered list from 3', /<ul><li>Alfama<ul><li>castle<\/li><\/ul><\/li>/.test(html) &&
+        html.includes('☑ ') && html.includes('<ol start="3">'), (html.match(/<ul>[\s\S]{0,120}/) || [''])[0]);
+    check('html: table with a header row and a right column, code block, quote, rule',
+        html.includes('<th>Day</th><th style="text-align:right">Cost</th>') && html.includes('<pre><code>def f(x):') &&
+        html.includes('<blockquote><p>quoted</p></blockquote>') && html.includes('<hr>'));
+    check('html: nothing of the page\'s own markup or scripts', !/<script|<style|data-testid/.test(html));
+    check('obsidian: a note name without what a file name cannot hold', gptpdfObsidianName('Plan: a/b? <c> #1') === 'Plan a b c 1' &&
+        gptpdfObsidianName('') === 'ChatGPT chat');
+
     // ── pictures and files (18.11, the author's «Художник_базовый» and «мудрец») ──
     const pngOf = function(w, h, alpha) {
         const c = document.createElement('canvas');

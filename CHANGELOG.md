@@ -5,15 +5,21 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
-## [Unreleased] — 1.2.10
+## [Unreleased] — 1.3.0
 ### Added
-- **Claude.** A fourth way out of the Export menu, now "Export to": PDF ·
-  Word · Markdown · Claude. Claude gets the chat as text, with every question
-  and one line on top saying it is a ChatGPT conversation to go on with. When
-  it is ready, the card offers "Copy and open Claude": one click copies the
-  chat and opens Claude in a new tab; ⌘V (Ctrl+V) there pastes it — or paste
-  it into the Claude app. The extension sends the chat nowhere itself and asks
-  for no new permission.
+- **Claude, Obsidian, Notion and Google Docs.** The Export menu is now
+  "Export to · PDF · Word ▾ · Claude ▾": the Word and Claude tiles open a list
+  from their arrow and show what you picked last.
+  - Claude ▾ — **Claude** (the chat as text, every question, one line on top
+    saying it is a ChatGPT conversation to go on with; claude.ai opens, paste
+    with ⌘V or into the Claude app), **Obsidian** (a new note with the chat
+    appears in your Obsidian by itself), **Notion** (a new Notion page opens,
+    paste with ⌘V), **Markdown file**.
+  - Word ▾ — **Word file**, **Google Docs** (the chat with its formatting and
+    pictures; a new Google Doc opens, paste with ⌘V).
+  When the chat is ready, the card offers one button — "Copy and open …": the
+  click copies the chat and opens the place. The extension sends the chat
+  nowhere itself and asks for no new permission.
 
 ## [1.2.9] — 2026-11-18
 ### Added

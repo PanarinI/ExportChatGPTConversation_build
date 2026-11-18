@@ -83,8 +83,12 @@ gptpdfShared.defaultOptions = {
     orientation: '',
     single_page: false,
     look_base: 'chat',
-    // The file Export makes: 'pdf', 'word' or 'md' (1.2.9; formats.js).
-    export_format: 'pdf'
+    // Where Export sends the chat (formats.js): 'pdf', 'word', 'md' (1.2.9), 'claude' (1.2.10), 'gdocs',
+    // 'obsidian', 'notion' (1.3.0). export_doc / export_dest — what the Word ▾ and Claude ▾ tiles show
+    // when another is on: the one picked there last.
+    export_format: 'pdf',
+    export_doc: 'word',
+    export_dest: 'claude'
 }
 
 // ── The look of the page (1.2.6): three styles and the knobs under them ──
