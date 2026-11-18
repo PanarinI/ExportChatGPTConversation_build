@@ -5,7 +5,7 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
-## [Unreleased] — 1.3.0
+## [1.3.0] — 2026-11-18
 ### Added
 - **Claude, Obsidian, Notion and Google Docs.** The Export menu is now
   "Export to · PDF · Word ▾ · Claude ▾": the Word and Claude tiles open a list
