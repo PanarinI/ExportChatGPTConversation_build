@@ -178,9 +178,11 @@ function gptpdfSwRender() {
             (o.orientation === 'landscape' ? 'landscape' : 'portrait');
         if(src && src.empty) {
             t = 'Open a chat to see its first page here.';
-        } else if(typeof gptpdfFormat === 'function' && gptpdfFormat(o) === 'md') {
-            // Markdown has no pages: the sheet is the start of the file.
-            t = 'The start of the .md file' + (src && !src.startLoaded ? ' — from the part of the chat on your screen' : '');
+        } else if(typeof gptpdfFormatText === 'function' && gptpdfFormatText(gptpdfFormat(o))) {
+            // Markdown has no pages: the sheet is the start of the file (for
+            // Claude, of the text copied for it).
+            t = (gptpdfFormat(o) === 'claude' ? 'The start of the text for Claude' : 'The start of the .md file') +
+                (src && !src.startLoaded ? ' — from the part of the chat on your screen' : '');
         } else if(src && !src.startLoaded) {
             // A long chat loads from the end: the beginning is not on the page
             // yet. Say so rather than pass a middle page off as page 1.
@@ -208,7 +210,8 @@ function gptpdfSwRender() {
 // back for a PDF.
 function gptpdfSwFormat(o) {
     const fmt = typeof gptpdfFormat === 'function' ? gptpdfFormat(o) : 'pdf';
-    const md = fmt === 'md', word = fmt === 'word';
+    // Claude (1.2.10) is Markdown text too, and always with the questions.
+    const claude = fmt === 'claude', md = fmt === 'md' || claude, word = fmt === 'word';
     const off = function(el, yes, why) {
         if(!el) return;
         el.classList.toggle('gptpdf-fmt-off', !!yes);
@@ -218,19 +221,23 @@ function gptpdfSwFormat(o) {
     const row = function(id) { const e = document.getElementById(id); return e && keep(e.closest('.gptpdf-sw-row')); };
     const note = document.getElementById('gptpdf-sw-fmt-note');
     if(note) {
-        note.textContent = md ? 'Markdown is plain text: the font, size, spacing, colour and paper do not apply. ' +
+        note.textContent = claude ? 'Claude gets the chat as plain text with every question: the font, size, spacing, ' +
+            'colour, paper and the way questions look do not apply. The Header tab does.'
+            : md ? 'Markdown is plain text: the font, size, spacing, colour and paper do not apply. ' +
             'Questions and the Header tab do.' : '';
         note.classList.toggle('on', md);
     }
-    const plain = 'Markdown is plain text';
+    const plain = claude ? 'Claude gets plain text' : 'Markdown is plain text';
     off(keep(document.getElementById('gptpdf-sw-tiles')), md, plain);
     off(row('gptpdf-look-font'), md, plain);
     off(row('gptpdf-look-size'), md, plain);
     off(row('gptpdf-look-spacing'), md, plain);
     const colors = row('gptpdf-q-colors');
     off(colors, md || !!o.no_questions, o.no_questions ? 'Questions are hidden — there is nothing to colour' : plain);
-    off(keep(document.querySelector('#gptpdf-settings-modal .gptpdf-sw-tab[data-tab="paper"]')), md, 'Markdown has no paper');
-    off(keep(document.querySelector('#gptpdf-settings-modal .gptpdf-sw-pane[data-pane="paper"]')), md, 'Markdown has no paper');
+    off(row('gptpdf-q-look'), claude, 'Claude always gets every question, as "You:"');
+    const noPaper = claude ? 'Text for Claude has no paper' : 'Markdown has no paper';
+    off(keep(document.querySelector('#gptpdf-settings-modal .gptpdf-sw-tab[data-tab="paper"]')), md, noPaper);
+    off(keep(document.querySelector('#gptpdf-settings-modal .gptpdf-sw-pane[data-pane="paper"]')), md, noPaper);
     off(keep(document.querySelector('#gptpdf-theme .gptpdf-theme-card[data-value="dark"]')), word, 'A Word document is always white');
     off(keep(document.querySelector('#gptpdf-page-break .gptpdf-seg-btn[data-value="long"]')), word, 'A Word document has pages');
 }

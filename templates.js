@@ -788,6 +788,17 @@ ${GPTPDF_DARK} #gptpdf-rateus-dropdown .gptpdf-rateus-later:hover { color: rgba(
  .gptpdf-dark .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-loading-hint.gptpdf-calm { border-color: rgba(255, 255, 255, 0.22); }
  .gptpdf-dark .gptpdf-scene:has(.gptpdf-anim.on) .gptpdf-loading-hint.gptpdf-calm b { color: rgba(255, 255, 255, 0.75); }
  @keyframes gptpdf-scene-in { from { opacity: 0; } }
+ /* 1.2.10: the hand-off to Claude — the card waits for the person's click */
+ .gptpdf-handoff { display: none; align-self: flex-end; gap: 8px; margin-top: 4px; }
+ .gptpdf-loading-card.gptpdf-handoff-on .gptpdf-handoff { display: flex; }
+ .gptpdf-loading-card.gptpdf-handoff-on #gptpdf-cancel-loading { display: none !important; }
+ .gptpdf-handoff .gptpdf-loading-cancel { margin-top: 0; }
+ .gptpdf-handoff-go {
+     padding: 6px 16px; border: 0; border-radius: 8px; background: #EA4C3A; color: #fff;
+     font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+ }
+ .gptpdf-handoff-go:hover { background: #d63f2e; }
+ .gptpdf-handoff-go:disabled { opacity: .6; cursor: default; }
  @media (prefers-reduced-motion: reduce) {
      .gptpdf-scene .gptpdf-loading-fact, .gptpdf-scene .gptpdf-loading-hint { animation: none !important; }
  }
@@ -1280,7 +1291,7 @@ ${GPTPDF_DARK} #gptpdf-preview-label { color: rgba(255,255,255,0.28); }
 /* ── 1.2.9: the file Export makes — PDF · Word · Markdown ── */
 .gptpdf-fmt-label { font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: rgba(0,0,0,.4); padding: 8px 6px 6px; text-align: left; }
 ${GPTPDF_DARK} .gptpdf-fmt-label { color: rgba(255,255,255,.38); }
-.gptpdf-fmt-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0 2px; }
+.gptpdf-fmt-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 0 2px; }
 .gptpdf-fmt-tile {
     display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 4px 8px;
     border: 1.5px solid rgba(0,0,0,.10); border-radius: 10px; background: transparent; color: rgba(0,0,0,.85);
@@ -1442,18 +1453,24 @@ const SELECT_ALL_ROW_HTML = `
 // File icons for the format tiles (1.2.9): a page with a folded corner and a
 // coloured band with the format's letters. Not any company's logo.
 const GPTPDF_FILE_ICONS = {
-    pdf:  { color: '#E5322D', label: 'PDF', fs: 7.2 },
-    word: { color: '#2B5797', label: 'W',   fs: 9 },
-    md:   { color: '#3D444D', label: 'MD',  fs: 7.4 }
+    pdf:    { color: '#E5322D', label: 'PDF', fs: 7.2 },
+    word:   { color: '#2B5797', label: 'W',   fs: 9 },
+    md:     { color: '#3D444D', label: 'MD',  fs: 7.4 },
+    // Claude (1.2.10): the page goes to another chat — a speech bubble with
+    // three dots instead of a file badge; no one's logo.
+    claude: { color: '#B5573B', bubble: true }
 };
 function gptpdfFileIcon(f, w, h) {
     const F = GPTPDF_FILE_ICONS[f];
+    const badge = F.bubble
+        ? '<path d="M2.6 13.2h13.8a2 2 0 0 1 2 2v5.4a2 2 0 0 1-2 2H8.2l-3.6 3v-3H2.6a2 2 0 0 1-2-2v-5.4a2 2 0 0 1 2-2z" fill="' + F.color + '"/>' +
+          '<circle cx="5.4" cy="17.9" r="1.15" fill="#fff"/><circle cx="9.5" cy="17.9" r="1.15" fill="#fff"/><circle cx="13.6" cy="17.9" r="1.15" fill="#fff"/>'
+        : '<rect x="0.6" y="13.2" width="18" height="9.4" rx="2" fill="' + F.color + '"/>' +
+          '<text x="9.6" y="20.5" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="' + F.fs +
+          '" font-weight="700" fill="#fff">' + F.label + '</text>';
     return '<svg class="gptpdf-fmt-ico" width="' + w + '" height="' + h + '" viewBox="0 0 24 28" aria-hidden="true">' +
         '<path class="pg" d="M5.5 1.5h9.5l6.5 6.5v16.5a2 2 0 0 1-2 2h-14a2 2 0 0 1-2-2v-21a2 2 0 0 1 2-2z" stroke-width="1.2"/>' +
-        '<path class="fd" d="M15 1.5v4.5a2 2 0 0 0 2 2h4.5" stroke-width="1.2"/>' +
-        '<rect x="0.6" y="13.2" width="18" height="9.4" rx="2" fill="' + F.color + '"/>' +
-        '<text x="9.6" y="20.5" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="' + F.fs +
-        '" font-weight="700" fill="#fff">' + F.label + '</text></svg>';
+        '<path class="fd" d="M15 1.5v4.5a2 2 0 0 0 2 2h4.5" stroke-width="1.2"/>' + badge + '</svg>';
 }
 
 const EXPORT_BUTTON_HTML = `
@@ -1513,11 +1530,13 @@ const EXPORT_BUTTON_HTML = `
         <div class="gptpdf-menu-actions">
             <!-- 1.2.9: which file Export makes. "Select all" went (Export takes everything anyway),
                  "AI answers only" moved to Settings as Questions · Hidden. common.js wires the tiles. -->
-            <div class="gptpdf-fmt-label">Save as</div>
-            <div class="gptpdf-fmt-tiles" id="gptpdf-formats" role="radiogroup" aria-label="File type">
+            <!-- 1.2.10: a fourth way out — Claude (not a file), so "Export to" (the mock the author agreed to, 18.11). -->
+            <div class="gptpdf-fmt-label">Export to</div>
+            <div class="gptpdf-fmt-tiles" id="gptpdf-formats" role="radiogroup" aria-label="Export to">
                 <button type="button" class="gptpdf-fmt-tile" data-format="pdf" role="radio" title="PDF (.pdf) — pages to keep, send or print">${gptpdfFileIcon('pdf', 28, 33)}<span>PDF</span></button>
                 <button type="button" class="gptpdf-fmt-tile" data-format="word" role="radio" title="Word (.docx) — a document to edit in Word, Google Docs or Pages">${gptpdfFileIcon('word', 28, 33)}<span>Word</span></button>
                 <button type="button" class="gptpdf-fmt-tile" data-format="md" role="radio" title="Markdown (.md) — plain text for Obsidian, Notion or another AI">${gptpdfFileIcon('md', 28, 33)}<span>Markdown</span></button>
+                <button type="button" class="gptpdf-fmt-tile" data-format="claude" role="radio" title="Claude — copies the chat as text and opens Claude in a new tab, to go on there">${gptpdfFileIcon('claude', 28, 33)}<span>Claude</span></button>
             </div>
             <div class="gptpdf-fmt-hint" id="gptpdf-fmt-hint"></div>
             <!-- 18.11: what goes in — a choice like "Save as", the whole chat already chosen. A lone
@@ -1601,6 +1620,11 @@ const EXPORT_BUTTON_HTML = `
             <div class="gptpdf-anim" aria-hidden="true"></div>
         </div>
         <button id="gptpdf-cancel-loading" class="gptpdf-loading-cancel">Cancel</button>
+        <!-- 1.2.10: the chat for Claude is ready — copied and handed over on this click (formats.js). -->
+        <div class="gptpdf-handoff">
+            <button type="button" id="gptpdf-handoff-close" class="gptpdf-loading-cancel">Close</button>
+            <button type="button" id="gptpdf-handoff-go" class="gptpdf-handoff-go">Copy and open Claude</button>
+        </div>
     </div>
 
     <div class="gptpdf-overlay" id="gptpdf-title-overlay">

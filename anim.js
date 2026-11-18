@@ -384,7 +384,7 @@ const gptpdfAnim = (function() {
             stop();
             return;
         }
-        const m = /^(Loading conversation|Loading older messages|Reading|Filling in|Paused|Preparing the|Writing the|Adding images|Compressing images|Creating the PDF)\D*(\d+)?/
+        const m = /^(Loading conversation|Loading older messages|Reading|Filling in|Paused|Preparing the|Writing the|Adding images|Compressing images|Creating the PDF|Ready for)\D*(\d+)?/
             .exec(String(text || ''));
         if(!m) {
             stop();

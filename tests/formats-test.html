@@ -179,6 +179,15 @@ function sameMath(a, b) {
         /w:name="gptpdf_q0"/.test(d) && /footerReference/.test(d) && /<w:pgSz w:w="11906" w:h="16838"\/>/.test(d));
     check('word: ordered list starts at 3', /<w:startOverride w:val="3"\/>/.test(files['word/numbering.xml'] || ''));
 
+    // ── Claude (1.2.10): one line on top, the questions always in, no contents list ──
+    const CH = Object.assign({}, O, { no_questions: true, q_look: 'heading' });
+    const co = gptpdfClaudeOptions(CH);
+    const ct = gptpdfToClaude(gptpdfFmtRead(copyOf('classic'), co), co, 'Lisbon trip');
+    check('claude: one line on top says what the text is', ct.startsWith(GPTPDF_CLAUDE_LEAD + '\n\n# Lisbon trip'), ct.slice(0, 120));
+    check('claude: the questions go in even when Settings hide them, as "You:"',
+        /\*\*You:\*\*/.test(ct) && ct.includes('Plan a trip.') && ct.includes('**ChatGPT:**'), ct.slice(0, 300));
+    check('claude: no contents list', !ct.includes('**Contents**'));
+
     // ── pictures and files (18.11, the author's «Художник_базовый» and «мудрец») ──
     const pngOf = function(w, h, alpha) {
         const c = document.createElement('canvas');

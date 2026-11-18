@@ -160,7 +160,13 @@ function gptpdfDrawMdSheet(frame, o, opt) {
     frame.style.height = Math.round(H * scale) + 'px';
     let md = '';
     try {
-        md = gptpdfToMarkdown(gptpdfFmtRead(src.clone.cloneNode(true), o), o, src.title);
+        // Claude (1.2.10): the start of the text that goes to it, its one line on top.
+        if(gptpdfFormat(o) === 'claude') {
+            const c = gptpdfClaudeOptions(o);
+            md = gptpdfToClaude(gptpdfFmtRead(src.clone.cloneNode(true), c), c, src.title);
+        } else {
+            md = gptpdfToMarkdown(gptpdfFmtRead(src.clone.cloneNode(true), o), o, src.title);
+        }
     } catch(e) {
         console.log('[gptpdf] markdown sheet', e);
     }
@@ -183,7 +189,7 @@ function gptpdfDrawMdSheet(frame, o, opt) {
 
 function gptpdfDrawSheet(frame, o, opt) {
     opt = opt || {};
-    if(typeof gptpdfFormat === 'function' && gptpdfFormat(o) === 'md') return gptpdfDrawMdSheet(frame, o, opt);
+    if(typeof gptpdfFormatText === 'function' && gptpdfFormatText(gptpdfFormat(o))) return gptpdfDrawMdSheet(frame, o, opt);
     const src = gptpdfSheetSource(false);
     const paper = gptpdfPaperPx(o);
     // Word has pages and a white sheet (1.2.9): its page 1 is drawn so.
@@ -360,9 +366,10 @@ function gptpdfRenderMenuSheet() {
         const style = gptpdfShared.lookStyle(o);
         const fmt = typeof gptpdfFormat === 'function' ? gptpdfFormat(o) : 'pdf';
         const name = document.getElementById('gptpdf-menu-style');
-        if(name) name.textContent = fmt === 'md' ? 'Plain text' : (style ? gptpdfShared.LOOK_NAMES[style] : 'Custom');
+        const text = typeof gptpdfFormatText === 'function' && gptpdfFormatText(fmt);
+        if(name) name.textContent = fmt === 'claude' ? 'Text for Claude' : text ? 'Plain text' : (style ? gptpdfShared.LOOK_NAMES[style] : 'Custom');
         const paper = document.getElementById('gptpdf-menu-paper');
-        if(paper) paper.textContent = fmt === 'md' ? '' : (o.page_size === 'letter' ? 'Letter' : 'A4') +
+        if(paper) paper.textContent = text ? '' : (o.page_size === 'letter' ? 'Letter' : 'A4') +
             (o.theme === 'dark' && fmt === 'pdf' ? ' · dark' : '') + ' · ';
     });
     gptpdfSheetFonts();

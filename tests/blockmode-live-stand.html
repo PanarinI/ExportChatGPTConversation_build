@@ -62,9 +62,9 @@ const PNG_SMALL = (function() {
 const memory = { sync: {}, local: {} };
 // ?pdftheme=dark — тёмный лист, как у человека, чей ChatGPT в тёмной теме (выгрузка 04.10 вышла пустой)
 if(/pdftheme=dark/.test(location.search)) memory.sync.options = { theme: 'dark' };
-// ?fmt=word|md — файл, который делает Export (1.2.9, formats.js); ?noq — Questions › Hidden
+// ?fmt=word|md|claude — файл, который делает Export (1.2.9, formats.js; claude — 1.2.10); ?noq — Questions › Hidden
 (function() {
-    const f = /fmt=(pdf|word|md)/.exec(location.search);
+    const f = /fmt=(pdf|word|md|claude)/.exec(location.search);
     if(f) memory.sync.options = Object.assign({}, memory.sync.options, { export_format: f[1] });
     if(/[?&]noq\b/.test(location.search)) memory.sync.options = Object.assign({}, memory.sync.options, { no_questions: true });
 })();
@@ -453,6 +453,16 @@ gptpdfFmtSave = function(data, type, filename, format) {
         (text || 'Word: ' + Math.round(size / 1024) + ' КБ').replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</pre>';
     document.getElementById('side-head').textContent = 'Файл: «' + filename + '», ' + Math.round(size / 1024) + ' КБ';
 };
+
+// Claude (1.2.10): что ушло в буфер по щелчку «Copy and open Claude» — window.__copied (длина и начало), сам буфер настоящий.
+(function() {
+    if(!navigator.clipboard || !navigator.clipboard.writeText) return;
+    const real = navigator.clipboard.writeText.bind(navigator.clipboard);
+    navigator.clipboard.writeText = function(t) {
+        window.__copied = { length: t.length, start: t.slice(0, 160) };
+        return real(t);
+    };
+})();
 
 // ?partial=1 — сбор «прочёл 9 из 269» (как у человека 10.11): экспорт должен спросить
 // «Only 9 of 269 messages could be read», а не отдать огрызок молча. Сам сбор настоящий,

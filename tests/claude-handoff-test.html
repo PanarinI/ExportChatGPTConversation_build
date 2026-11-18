@@ -1,0 +1,92 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Claude — the hand-off card (1.2.10)</title>
+<!--
+  1.2.10 (author 18.11: «чтобы наш спрос… на Claude… удовлетворялся»): the chat goes to Claude as text. No new
+  permission — the person's click puts the text on the clipboard and opens claude.ai in a new tab (formats.js,
+  gptpdfClaudeHandoff). Checks the real card (templates.js + capture.js): it waits for the click; the click copies
+  the text, opens https://claude.ai/new and counts the export; a refused copy says so and opens nothing; Close ends it.
+  The clipboard and window.open are stubbed: what matters is what is asked of them.
+  Run: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu \
+       --allow-file-access-from-files --virtual-time-budget=20000 --dump-dom "file://$PWD/tests/claude-handoff-test.html"
+-->
+<script>window.chrome = window.chrome || {}; chrome.runtime = chrome.runtime || { getManifest: function() { return { version: '1.2.10' }; } };</script>
+<script src="../shared.js"></script>
+<script src="../templates.js"></script>
+<script src="../helpers.js"></script>
+<script src="../capture.js"></script>
+<script src="../anim.js"></script>
+<script src="../formats.js"></script>
+</head><body>
+<div id="log" style="font:13px/1.6 ui-monospace,monospace;white-space:pre;padding:16px"></div>
+<div id="gptpdf-host" class="gptpdf-block gptpdf-text-right"></div>
+<script>
+const log = document.getElementById('log');
+let fails = 0;
+function check(name, cond, detail) {
+    if(!cond) fails++;
+    log.textContent += (cond ? '✓ ' : '✗ ') + name + (cond ? '' : '   ' + (detail || '')) + '\n';
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+document.head.insertAdjacentHTML('beforeend', '<style>' + UI_CSS + '</style>');
+document.getElementById('gptpdf-host').innerHTML = EXPORT_BUTTON_HTML;
+
+// stubs: the clipboard, the new tab, the export counter (common.js is not loaded here)
+let copied = null, refuse = false, opened = [], handed = [];
+Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+    writeText: function(t) { return refuse ? Promise.reject(new Error('not allowed')) : (copied = t, Promise.resolve()); }
+} });
+const realExec = document.execCommand.bind(document);
+document.execCommand = function(c) { return c === 'copy' ? !refuse : realExec.apply(null, arguments); };
+window.open = function(url, target, features) { opened.push([url, target, features]); return null; };
+var gptpdfChatGPT = { handOff: function(f) { handed.push(f); } };
+
+const card = document.getElementById('gptpdf-progress');
+const go = document.getElementById('gptpdf-handoff-go');
+const close = document.getElementById('gptpdf-handoff-close');
+const shown = el => !!el && getComputedStyle(el).display !== 'none';
+
+(async function() {
+    // ── the text for Claude ──
+    check('a Claude tile in the menu, under "Export to"',
+        !!document.querySelector('#gptpdf-formats .gptpdf-fmt-tile[data-format="claude"]') &&
+        /Export to/.test(document.querySelector('.gptpdf-fmt-label').textContent));
+    check('Claude is a text format: nothing waits for pictures', gptpdfFormatText('claude') && gptpdfFormatText('md') && !gptpdfFormatText('word'));
+
+    // ── the card waits for the click ──
+    gptpdfClaudeHandoff('Below is my conversation with ChatGPT.\n\n# Trip', 12);
+    check('the card is up, the page not dimmed', card.style.display === 'flex' &&
+        getComputedStyle(document.getElementById('gptpdf-loading-overlay')).display === 'none');
+    check('it says the chat is ready for Claude', /^Ready for Claude: 12 messages/.test(card.querySelector('.gptpdf-loading-text').textContent),
+        card.querySelector('.gptpdf-loading-text').textContent);
+    check('his line says what happens and how to paste', /open Claude in a new tab/.test(card.querySelector('.gptpdf-loading-fact').textContent) &&
+        /(⌘V|Ctrl\+V)/.test(card.querySelector('.gptpdf-loading-fact').textContent));
+    check('"Copy and open Claude" and "Close" shown, no Cancel', shown(go) && shown(close) && !shown(document.getElementById('gptpdf-cancel-loading')));
+    check('nothing copied or opened before the click', copied === null && opened.length === 0);
+
+    // ── the click: copied, Claude opened, counted, card gone ──
+    go.click();
+    await sleep(50);
+    check('the click copies the text', copied === 'Below is my conversation with ChatGPT.\n\n# Trip', String(copied).slice(0, 40));
+    check('…and opens claude.ai/new in a new tab, nothing in the address', opened.length === 1 &&
+        opened[0][0] === 'https://claude.ai/new' && opened[0][1] === '_blank', JSON.stringify(opened));
+    check('…and counts as an export done (format claude)', handed.join() === 'claude', handed.join());
+    check('…and the card goes', card.style.display === 'none' && !card.classList.contains('gptpdf-handoff-on'));
+
+    // ── a refused copy: said, nothing opened ──
+    refuse = true; copied = null; opened = []; handed = [];
+    gptpdfClaudeHandoff('text', 1);
+    go.click();
+    await sleep(50);
+    check('a copy refused twice (Clipboard API and the old command): nothing opened, nothing counted', opened.length === 0 && handed.length === 0);
+    check('…the card stays and says so', card.style.display === 'flex' && /could not be copied/.test(card.querySelector('.gptpdf-loading-fact').textContent));
+    check('…the button can be pressed again', !go.disabled);
+
+    // ── Close ends it ──
+    close.click();
+    check('Close ends it: the card goes, nothing opened', card.style.display === 'none' && opened.length === 0);
+    refuse = false;
+
+    log.textContent += fails ? '\nFAIL: ' + fails + '\n' : '\nall passed\n';
+})().catch(function(e) { log.textContent += '✗ crashed: ' + e + '\n' + (e.stack || '') + '\n'; });
+</script>
+</body></html>

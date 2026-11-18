@@ -19,14 +19,24 @@
 //   inline { t: 'text', v, b, i, s, code, href, sup, sub } · { t: 'br' }
 //          { t: 'math', tex, mathml } · { t: 'img', src, alt, w, h }
 
+// text: carries no pictures (named in their place), so nothing waits for them.
+// Claude (1.2.10, author 18.11: «чтобы наш спрос… на Claude… удовлетворялся»):
+// no file — the chat as text on the clipboard and claude.ai in a new tab.
 const GPTPDF_FORMATS = {
-    pdf:  { name: 'PDF',      ext: '.pdf',  book: 'PDF', what: 'the PDF',
-            hint: 'Pages as they print — to keep, send or print.' },
-    word: { name: 'Word',     ext: '.docx', book: 'DOC', what: 'the Word file',
-            hint: 'A document to edit — opens in Word, Google Docs or Pages.' },
-    md:   { name: 'Markdown', ext: '.md',   book: 'MD',  what: 'the Markdown file',
-            hint: 'Plain text with headings — for Obsidian, Notion or another AI.' }
+    pdf:    { name: 'PDF',      ext: '.pdf',  book: 'PDF', what: 'the PDF',
+              hint: 'Pages as they print — to keep, send or print.' },
+    word:   { name: 'Word',     ext: '.docx', book: 'DOC', what: 'the Word file',
+              hint: 'A document to edit — opens in Word, Google Docs or Pages.' },
+    md:     { name: 'Markdown', ext: '.md',   book: 'MD',  what: 'the Markdown file', text: true,
+              hint: 'Plain text with headings — for Obsidian, Notion or another AI.' },
+    claude: { name: 'Claude',   ext: '.md',   book: 'MD',  what: 'the chat for Claude', text: true,
+              tip: 'Copy the chat for Claude',
+              hint: 'Copies the chat and opens Claude — paste it there with ⌘V to go on.' }
 };
+
+function gptpdfFormatText(f) {
+    return !!(GPTPDF_FORMATS[f] && GPTPDF_FORMATS[f].text);
+}
 
 function gptpdfFormat(o) {
     return o && GPTPDF_FORMATS[o.export_format] ? o.export_format : 'pdf';
@@ -44,6 +54,11 @@ function gptpdfMakeFile(format, clone, options, title, filename, done) {
     if(typeof gptpdfExportCard !== 'undefined' && gptpdfExportCard.shown) gptpdfExportStep('Writing ' + F.what + '…', '', true);
     setTimeout(function() {
         Promise.resolve().then(function() {
+            if(format === 'claude') {
+                const o = gptpdfClaudeOptions(options);
+                const m = gptpdfFmtRead(clone, o);
+                return { text: gptpdfToClaude(m, o, title), turns: m.turns.length };
+            }
             const model = gptpdfFmtRead(clone, options);
             if(format === 'md') {
                 return { data: gptpdfToMarkdown(model, options, title), type: 'text/markdown;charset=utf-8', turns: model.turns.length };
@@ -54,8 +69,12 @@ function gptpdfMakeFile(format, clone, options, title, filename, done) {
             });
         }).then(function(file) {
             console.log('[gptpdf] ' + F.name + ': ' + file.turns + ' messages, ' +
-                Math.round((file.data.length || 0) / 1024) + ' KB in ' + (Date.now() - t0) + ' ms');
+                Math.round(((file.data || file.text).length || 0) / 1024) + ' KB in ' + (Date.now() - t0) + ' ms');
             done();
+            if(format === 'claude') {
+                gptpdfClaudeHandoff(file.text, file.turns);
+                return;
+            }
             gptpdfFmtSave(file.data, file.type, gptpdfFmtFilename(filename || title, format), format);
         }).catch(function(e) {
             console.log('[gptpdf] ' + F.name + ' failed', e);
@@ -877,6 +896,83 @@ function gptpdfMdBlock(b, shift) {
 }
 
 // A file of text or bytes, saved like the PDF (Rate us counts it too).
+// ── Claude (1.2.10) ───────────────────────────────────────────────────────
+// For another AI the questions are half of what it needs: they go in whatever
+// Settings say, as "You:" and "ChatGPT:"; no contents list. One line on top
+// says what the text is.
+function gptpdfClaudeOptions(options) {
+    return Object.assign({}, options, { no_questions: false, q_look: 'bubble', toc: '' });
+}
+
+const GPTPDF_CLAUDE_LEAD = 'Below is my conversation with ChatGPT. Please read it — I want to continue it here.';
+
+function gptpdfToClaude(model, options, title) {
+    return GPTPDF_CLAUDE_LEAD + '\n\n' + gptpdfToMarkdown(model, options, title);
+}
+
+// The clipboard, on the person's click: the Clipboard API first; ChatGPT's own
+// copy handlers cannot touch it. If it is refused, the old copy command, still
+// within the click.
+function gptpdfCopyText(text) {
+    const byCommand = function() {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none';
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch(e) { ok = false; }
+        ta.remove();
+        return ok;
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).then(function() { return true; }, function() { return byCommand(); });
+    }
+    return Promise.resolve(byCommand());
+}
+
+const GPTPDF_CLAUDE_URL = 'https://claude.ai/new';
+
+// The chat is ready: the card waits for the person's click — only a click lets
+// the page write to the clipboard and open a tab without a new permission (a new
+// permission would turn the extension off for everyone until they agree again).
+// The click copies the text and opens claude.ai in a new tab; ⌘V there brings the
+// chat into Claude's message box (or into the Claude app — the clipboard is the
+// computer's). The extension itself sends the chat nowhere.
+function gptpdfClaudeHandoff(text, turns) {
+    const card = document.getElementById('gptpdf-progress');
+    const go = document.getElementById('gptpdf-handoff-go');
+    const close = document.getElementById('gptpdf-handoff-close');
+    if(!card || !go || !close) return;
+    const paste = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '') ? '⌘V' : 'Ctrl+V';
+    gptpdfShowCard(false, true);
+    card.classList.add('gptpdf-handoff-on');
+    setHarvestProgress('Ready for Claude: ' + turns + (turns === 1 ? ' message' : ' messages'));
+    gptpdfSetFact('I\'ll copy the chat and open Claude in a new tab. Press ' + paste + ' there to paste it, then go on.');
+    gptpdfSetHint('');
+    const end = function() {
+        card.classList.remove('gptpdf-handoff-on');
+        go.onclick = close.onclick = null;
+        go.disabled = false;
+        hideLoadingOverlay();
+    };
+    go.onclick = function() {
+        go.disabled = true;
+        gptpdfCopyText(text).then(function(ok) {
+            if(!ok) {
+                go.disabled = false;
+                gptpdfSetFact('The chat could not be copied. Try again — or choose Markdown and save it as a file.');
+                return;
+            }
+            window.open(GPTPDF_CLAUDE_URL, '_blank', 'noopener');
+            if(typeof gptpdfChatGPT !== 'undefined' && gptpdfChatGPT.handOff) gptpdfChatGPT.handOff('claude');
+            end();
+        });
+    };
+    close.onclick = end;
+}
+
 function gptpdfFmtSave(data, type, filename, format) {
     const url = URL.createObjectURL(new Blob([data], { type: type }));
     gptpdfChatGPT.saveBlob(url, filename, format);

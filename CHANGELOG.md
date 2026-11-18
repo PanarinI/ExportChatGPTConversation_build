@@ -5,6 +5,16 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [Unreleased] — 1.2.10
+### Added
+- **Claude.** A fourth way out of the Export menu, now "Export to": PDF ·
+  Word · Markdown · Claude. Claude gets the chat as text, with every question
+  and one line on top saying it is a ChatGPT conversation to go on with. When
+  it is ready, the card offers "Copy and open Claude": one click copies the
+  chat and opens Claude in a new tab; ⌘V (Ctrl+V) there pastes it — or paste
+  it into the Claude app. The extension sends the chat nowhere itself and asks
+  for no new permission.
+
 ## [1.2.9] — 2026-11-18
 ### Added
 - **Word and Markdown.** The Export menu now asks which file to make: PDF,

@@ -177,7 +177,7 @@ gptpdfChatGPT.init = function() {
         if(!turnCache && !hasSelection) {
             try {
                 fmtAtStart = gptpdfFormat(await new Promise(function(r) { gptpdfShared.getOptions(r); }));
-                turnCache = await harvestVirtualizedTurns({ pictures: fmtAtStart !== 'md' });
+                turnCache = await harvestVirtualizedTurns({ pictures: !gptpdfFormatText(fmtAtStart) });
                 gptpdfChatGPT._t.harvested = Date.now();
             } catch(e) {
                 turnCache = null;
@@ -225,7 +225,7 @@ gptpdfChatGPT.init = function() {
             let main = gptpdfChatRoot();
             // Markdown carries no pictures' bytes (formats.js): nothing to fetch.
             const fmt = fmtAtStart || gptpdfFormat(options);
-            const noPictures = fmt === 'md';
+            const noPictures = gptpdfFormatText(fmt);   // Markdown, Claude
 
             // Lock computed image sizes and convert external images to base64
             const imgPromises = [];
@@ -624,19 +624,28 @@ gptpdfChatGPT.init = function() {
     }
 
     // Hook into saveBlob — fires on every successful export
-    const _gptpdfOrigSaveBlob = gptpdfChatGPT.saveBlob;
-    gptpdfChatGPT.saveBlob = function(url, filename, format) {
-        _gptpdfOrigSaveBlob.call(this, url, filename, format);
-        // Rate Us appears from the 2nd successful export onward (not the 1st),
-        // and only until the user has rated. Count exports in storage.
-        // Also honor the legacy 'pcr_rated' key — users who rated on a pre-rename
-        // build keep it in storage (survives CWS auto-update) and must NOT be re-asked.
+    // Rate Us appears from the 2nd successful export onward (not the 1st),
+    // and only until the user has rated. Count exports in storage.
+    // Also honor the legacy 'pcr_rated' key — users who rated on a pre-rename
+    // build keep it in storage (survives CWS auto-update) and must NOT be re-asked.
+    function gptpdfCountExport() {
         chrome.storage.local.get(['gptpdf_rated', 'gptpdf_export_count', 'pcr_rated'], function(r) {
             if(r.gptpdf_rated || r.pcr_rated) return;
             const count = (r.gptpdf_export_count || 0) + 1;
             chrome.storage.local.set({ gptpdf_export_count: count });
             if(count >= 2) gptpdfShowRateUs();
         });
+    }
+    const _gptpdfOrigSaveBlob = gptpdfChatGPT.saveBlob;
+    gptpdfChatGPT.saveBlob = function(url, filename, format) {
+        _gptpdfOrigSaveBlob.call(this, url, filename, format);
+        gptpdfCountExport();
+    };
+    // The chat handed to Claude (1.2.10) is an export done too.
+    const _gptpdfOrigHandOff = gptpdfChatGPT.handOff;
+    gptpdfChatGPT.handOff = function(format) {
+        _gptpdfOrigHandOff.call(this, format);
+        gptpdfCountExport();
     };
 
     // Star click → open URL, mark rated, revert to Export
@@ -1010,7 +1019,7 @@ function gptpdfPaintFormat(f) {
     const hint = document.getElementById('gptpdf-fmt-hint');
     if(hint) hint.textContent = F.hint;
     const btn = document.getElementById('gptpdf-convert-main');
-    if(btn) btn.title = 'Export as ' + F.name + ' (' + F.ext + ')';
+    if(btn) btn.title = F.tip || ('Export as ' + F.name + ' (' + F.ext + ')');
     if(typeof gptpdfRenderMenuSheet === 'function') gptpdfRenderMenuSheet();
 }
 
@@ -1102,6 +1111,12 @@ gptpdfChatGPT.showError = function(status, text, hideContact) {
   }
   document.getElementById('gptpdf-error-message').innerHTML = html.join('<br>');
   document.getElementById('gptpdf-error-overlay').style.display = 'flex';
+};
+
+// Claude (1.2.10): no file — the chat copied and claude.ai opened on the
+// person's click (formats.js). Counted as an export done, with its format.
+gptpdfChatGPT.handOff = function(format) {
+    sendGA4Event('export_completed', { layout: gptpdfLayoutName(), format: format || 'claude' });
 };
 
 gptpdfChatGPT.saveBlob = function(url, filename, format) {

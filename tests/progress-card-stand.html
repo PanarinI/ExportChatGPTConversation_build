@@ -19,6 +19,7 @@
     shrink  — «Compressing images… 5 of 30» — страница снова доступна, карточка в углу
     server  — «Creating the PDF from 513 messages…» + «You can keep using ChatGPT…»
     long    — то же после 20 с: под строкой «Long chats take longer.»
+    claude  — 1.2.10: чат для Claude готов — карточка ждёт щелчка «Copy and open Claude» (formats.js); &manual — для кадров
   Число одно — счётчик в кнопке (здесь нарисован, как его рисует startExportSpinner).
   ?theme=dark — тёмная тема.
 
@@ -33,6 +34,7 @@
 <script src="../helpers.js"></script>
 <script src="../capture.js"></script>
 <script src="../anim.js"></script>
+<script src="../formats.js"></script>
 <div id="gptpdf-host" class="gptpdf-block gptpdf-text-right"></div>
 <script>
 const params = new URLSearchParams(location.search);
@@ -57,7 +59,7 @@ document.getElementById('gptpdf-host').innerHTML = EXPORT_BUTTON_HTML;
 // (common.js) draws it — dots for the first 8 s, then seconds since the click.
 (function() {
     const secs = { stay: 12, pages: 41, request: 58, reading: 96, paused: 103, back: 118, images: 131, walk: 20,
-                   shrink: 136, server: 141, long: 163 }[params.get('step') || 'pages'];
+                   shrink: 136, server: 141, long: 163, claude: 24 }[params.get('step') || 'pages'];
     const spinner = document.getElementById('gptpdf-spinner');
     if(!spinner) return;
     spinner.classList.remove('gptpdf-hidden');
@@ -82,7 +84,24 @@ fake.innerHTML = Array.from({ length: 6 }, (_, i) =>
 document.body.appendChild(fake);
 
 const step = params.get('step') || 'pages';
-if(step === 'walk') {
+if(step === 'claude') {
+    // A short reading (a stack on his desk), then the hand-off card of 1.2.10.
+    gptpdfFormatNow = 'claude';   // the book on his stack says MD, as for the file
+    if(params.get('manual') !== null) {
+        gptpdfAnim._manual(true);
+        setInterval(function() { gptpdfAnim._tick(33); }, 33);
+    }
+    showLoadingOverlay();
+    let at = 0;
+    for(let k = 1; k <= 12; k++) {
+        at += 300;
+        setTimeout(function() { setHarvestProgress('Reading ' + k + ' of 40 messages…'); }, at);
+    }
+    setTimeout(function() {
+        hideLoadingOverlay();
+        gptpdfClaudeHandoff('Below is my conversation with ChatGPT.', 40);
+    }, at + 400);
+} else if(step === 'walk') {
     // The whole scrolling, live, for the figure (anim.js): the climb in parts,
     // the walk with a growing count, 4 s with nothing new (the figure waits),
     // the walk again, then the pictures — the scene goes.
