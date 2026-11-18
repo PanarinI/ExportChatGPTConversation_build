@@ -92,15 +92,32 @@ function gptpdfFmtIsCode(el) {
         el.matches('[data-code-block],[data-markdown-copy="code-block"],[data-gptpdf-code-block]');
 }
 
+// The picture being edited, shown in a question as a small faded reference
+// ("Исходное изображение", h-7: 28 px tall) — the PDF keeps it that small too
+// (render.js). Word took it full size: every picture of «мудрец» came twice,
+// the second half a page tall in the next question (18.11).
+function gptpdfFmtIsRef(img) {
+    return img.classList.contains('h-7') && !!img.closest('[data-message-author-role]');
+}
+
 // A picture of the chat, not a favicon, a blank pixel or an icon.
 function gptpdfFmtContentImg(img) {
     const src = img.getAttribute('src') || '';
     if(!src || /^data:image\/gif;base64,R0lGODlhAQABA/.test(src)) return false;
     if(/favicon/.test(src) || img.closest('[data-d-component="favicon"]')) return false;
-    const w = +img.getAttribute('data-gptpdf-w') || img.naturalWidth || 0;
-    const h = +img.getAttribute('data-gptpdf-h') || img.naturalHeight || 0;
+    if(!/^(data:image\/|https?:|blob:)/.test(src)) return false;
+    if(gptpdfFmtIsRef(img)) return true;
+    // The size the page showed it at: a stamp (common.js), or the style the
+    // cleanup made of it (render.js, step 9).
+    const w = +img.getAttribute('data-gptpdf-w') || parseFloat(img.style.width) || img.naturalWidth || 0;
+    const h = +img.getAttribute('data-gptpdf-h') || parseFloat(img.style.height) || img.naturalHeight || 0;
     if(w && h && w < 28 && h < 28) return false;
-    return /^data:image\//.test(src) || /^https?:/.test(src);
+    // Markdown fetches no picture (common.js): one of ChatGPT's own is known
+    // by its mark (gptpdfMarkPicture) — unmarked, it is an icon or a thumbnail.
+    if(/^https?:/.test(src) && typeof GPTPDF_PICTURE_HOST !== 'undefined' && GPTPDF_PICTURE_HOST.test(src)) {
+        return img.hasAttribute('data-gptpdf-pic');
+    }
+    return true;
 }
 
 function gptpdfFmtImg(img) {
@@ -109,8 +126,36 @@ function gptpdfFmtImg(img) {
         src: img.getAttribute('src') || '',
         alt: (img.getAttribute('alt') || '').trim(),
         w: +img.getAttribute('data-gptpdf-w') || img.naturalWidth || 0,
-        h: +img.getAttribute('data-gptpdf-h') || img.naturalHeight || 0
+        h: +img.getAttribute('data-gptpdf-h') || img.naturalHeight || 0,
+        ref: gptpdfFmtIsRef(img)
     };
+}
+
+// What a question or an answer carried as a file: one line, «File: name».
+function gptpdfFmtFileNote(names) {
+    return { t: 'p', file: true, inl: [{ t: 'text', v: names.length > 1 ? 'Files: ' : 'File: ', i: true },
+                                       { t: 'text', v: names.join(', '), i: true }] };
+}
+
+const GPTPDF_FMT_FILE_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|tiff?|heic|pdf|docx?|xlsx?|xlsm|csv|tsv|pptx?|txt|md|rtf|odt|ods|json|xml|ya?ml|zip|tar|gz|py|ipynb|js|ts|html?|css|java|cpp|rb|go|rs|php|sh|sql|mp3|wav|m4a|ogg|mp4|mov|webm|epub)$/i;
+
+// A file an answer made, shown as a card («Photon_Sprite.png · Изображение ·
+// Открыть файл»): read as its name alone. The card's words were glued to it —
+// «Photon_Sprite.pngИзображение», 8 times in the author's «Художник_базовый»
+// (18.11). The card's name is an element whose title is its whole text; a
+// name inside a sentence or a link stays as it is.
+function gptpdfFmtFileCards(root) {
+    root.querySelectorAll('[title]').forEach(function(el) {
+        if(!root.contains(el) || el.closest('[data-message-author-role="user"]')) return;
+        const t = el.getAttribute('title');
+        if(!t || !GPTPDF_FMT_FILE_EXT.test(t) || el.textContent.trim() !== t) return;
+        if(el.closest('p,li,td,th,pre,code,h1,h2,h3,h4,h5,h6,a,' + GPTPDF_FMT_PILL)) return;
+        const box = el.parentElement;
+        if(!box || box.closest('[data-gptpdf-file]')) return;
+        const note = root.ownerDocument.createElement('p');
+        note.setAttribute('data-gptpdf-file', t);
+        box.replaceWith(note);
+    });
 }
 
 function gptpdfFmtHasBlock(el) {
@@ -304,6 +349,7 @@ function gptpdfKatexNode(n) {
 // ── reading the copy ──────────────────────────────────────────────────────
 function gptpdfFmtRead(clone, options) {
     const turns = [];
+    gptpdfFmtFileCards(clone);
     // A turn of the copy (classic markup by now) is a question or an answer.
     // The whole answer turn is read: a picture made for it sits beside its
     // message element, not inside.
@@ -336,8 +382,7 @@ function gptpdfFmtQuestion(m) {
         const t = el.getAttribute('title');
         if(t && /\.[a-z0-9]{1,6}$/i.test(t) && el.textContent.trim() === t && files.indexOf(t) === -1) files.push(t);
     });
-    if(files.length) blocks.push({ t: 'p', file: true, inl: [{ t: 'text', v: files.length > 1 ? 'Files: ' : 'File: ', i: true },
-                                                  { t: 'text', v: files.join(', '), i: true }] });
+    if(files.length) blocks.push(gptpdfFmtFileNote(files));
     m.querySelectorAll('img').forEach(function(img) {
         if(gptpdfFmtContentImg(img) && !(textEl && textEl.contains(img))) blocks.push(gptpdfFmtImg(img));
     });
@@ -376,6 +421,7 @@ function gptpdfFmtBlocks(el, fmt) {
         if(n.nodeType !== 1 || gptpdfFmtSkip(n)) return;
         const tag = n.tagName;
         if(n.matches(GPTPDF_FMT_PILL)) { gptpdfFmtPill(n, fmt).forEach(function(x) { inl.push(x); }); return; }
+        if(n.hasAttribute('data-gptpdf-file')) { flush(); out.push(gptpdfFmtFileNote([n.getAttribute('data-gptpdf-file')])); return; }
         if(gptpdfFmtIsMath(n)) {
             const m = gptpdfFmtMath(n);
             if(m.display) { flush(); out.push({ t: 'math', tex: m.tex, mathml: m.mathml, display: true }); }
@@ -646,11 +692,13 @@ function gptpdfToMarkdown(model, options, title) {
     let shift = asHeading ? 1 : 0;
     model.turns.forEach(function(t) {
         if(t.role === 'user') {
+            // The picture being edited stays out (gptpdfMdImgNote).
+            const qb = t.blocks.filter(function(b) { return !(b.t === 'img' && b.ref); });
             if(asHeading) {
                 // The question's first line is the heading; the rest of its
                 // words, its file and its pictures follow as they are.
-                const first = t.blocks.findIndex(function(b) { return b.t === 'p' && !b.file; });
-                const blocks = t.blocks.slice();
+                const first = qb.findIndex(function(b) { return b.t === 'p' && !b.file; });
+                const blocks = qb.slice();
                 let words = '';
                 if(first !== -1) {
                     const inl = blocks[first].inl;
@@ -663,8 +711,8 @@ function gptpdfToMarkdown(model, options, title) {
                 if(words) parts.push('## ' + gptpdfMdEscape(words, true));
                 if(blocks.length) parts.push(gptpdfMdBlocks(blocks, 0));
             } else {
-                const md = gptpdfMdBlocks(t.blocks, 0);
-                parts.push(/^[^\n#>|`\-*0-9!]/.test(md) && t.blocks[0] && t.blocks[0].t === 'p'
+                const md = gptpdfMdBlocks(qb, 0);
+                parts.push(/^[^\n#>|`\-*0-9!]/.test(md) && qb[0] && qb[0].t === 'p'
                     ? '**You:** ' + md : '**You:**\n\n' + md);
             }
         } else {
@@ -745,6 +793,11 @@ function gptpdfMdRun(x) {
 }
 
 function gptpdfMdImgNote(img) {
+    // The picture being edited, a 28 px reference in a question: the picture
+    // itself is named a line above, in the answer that made it. Named here too
+    // it came and went with what was on the screen at the click (an on-screen
+    // reference is too small to count as a picture).
+    if(img.ref) return '';
     const what = img.alt && !/^(image|picture)$/i.test(img.alt) ? img.alt : 'Picture';
     return '*[' + gptpdfMdEscape(what).replace(/[\[\]]/g, '') + ']*';
 }

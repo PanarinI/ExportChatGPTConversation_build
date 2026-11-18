@@ -15,14 +15,21 @@ history and working notes.
   leave your computer for them. Word keeps your Settings: the style, the
   questions, paper and margins, a page per question, page numbers and the
   header. Headings, lists, tables, code, links, pictures and formulas come
-  across as Word's own. Markdown keeps the questions and the header; it
-  marks where a picture was instead of carrying it.
+  across as Word's own; big pictures go in as JPEG, so a chat full of
+  pictures stays light enough for Google Docs (it takes up to 50 MB). A file
+  ChatGPT made shows as one line, «File: name». Markdown keeps the questions
+  and the header; it marks where a picture was instead of carrying it.
 
 ### Changed
 - **"AI answers only" moved to Settings**, as a third way to show questions:
   Questions › Bubble, Heading or Hidden. "Select all" left the menu: Export
   always takes the whole chat. "Select to export" is one line now; its
   explanation is in its tooltip.
+
+### Fixed
+- **The figure starts every export at an empty desk.** The stack of sheets
+  from the last export stayed on his desk until the page was reloaded, so the
+  next export began with sheets already there.
 
 ## [1.2.8] — 2026-11-17
 ### Changed

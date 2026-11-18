@@ -136,6 +136,8 @@ async function gptpdfToDocx(model, options, title) {
         if(!m) return run('[' + (img.alt || 'Picture') + ']', { i: true, color: '888888' });
         let w = img.w || m.w, h = img.h || m.h;
         if(!(w > 0 && h > 0)) { w = m.w; h = m.h; }
+        // The faded reference in a question stays 28 px tall, as in the chat (formats.js).
+        if(img.ref && m.w > 0 && m.h > 0) { w = 28 * m.w / m.h; h = 28; }
         const limit = (maxW || textW) / 15;       // px
         if(w > limit) { h = h * limit / w; w = limit; }
         const cx = Math.round(w * 9525), cy = Math.round(h * 9525);
@@ -145,7 +147,7 @@ async function gptpdfToDocx(model, options, title) {
             '<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>' +
             '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic>' +
             '<pic:nvPicPr><pic:cNvPr id="' + id + '" name="Picture ' + id + '"/><pic:cNvPicPr/></pic:nvPicPr>' +
-            '<pic:blipFill><a:blip r:embed="' + m.rid + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>' +
+            '<pic:blipFill><a:blip r:embed="' + m.rid + '"' + (img.ref ? '><a:alphaModFix amt="50000"/></a:blip>' : '/>') + '<a:stretch><a:fillRect/></a:stretch></pic:blipFill>' +
             '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm>' +
             '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
     };
@@ -522,8 +524,9 @@ async function gptpdfToDocx(model, options, title) {
 }
 
 // A picture for the file: PNG, JPEG and GIF go as they are, their size read
-// from their own header (no decoding); anything else (WebP, AVIF, SVG) is drawn
-// once into a PNG — Word reads only the old kinds.
+// from their own header (no decoding) — unless heavy (gptpdfDocxPicture below);
+// anything else (WebP, AVIF, SVG) is drawn once into a PNG or a JPEG — Word
+// reads only the old kinds.
 function gptpdfImageSize(b, ext) {
     if(ext === 'png' && b.length > 24) {
         return { w: ((b[16] << 24) | (b[17] << 16) | (b[18] << 8) | b[19]) >>> 0, h: ((b[20] << 24) | (b[21] << 16) | (b[22] << 8) | b[23]) >>> 0 };
@@ -544,6 +547,15 @@ function gptpdfImageSize(b, ext) {
     return { w: 0, h: 0 };
 }
 
+// A heavy picture goes in lighter. ChatGPT's pictures are 1024 px PNGs of
+// 1.5–2.5 MB: 59 of them made the author's «мудрец» an 88 MB file (18.11), and
+// Google Docs does not open a .docx over 50 MB. Redrawn as JPEG when nothing in
+// it is see-through (about a tenth of the weight), and no wider than 1600 px —
+// a page's text is 6.7 inches wide, 1600 px prints sharp on it.
+const GPTPDF_DOCX_LIGHT_FROM = 300 * 1024;   // bytes
+const GPTPDF_DOCX_MAX_PX = 1600;
+const GPTPDF_DOCX_JPEG_Q = 0.86;
+
 async function gptpdfDocxPicture(src) {
     const m = /^data:(image\/[a-z0-9.+-]+)(;base64)?,(.*)$/i.exec(src || '');
     if(!m) return null;
@@ -556,11 +568,26 @@ async function gptpdfDocxPicture(src) {
     } else {
         bytes = new TextEncoder().encode(decodeURIComponent(m[3]));
     }
+    const heavy = bytes.length >= GPTPDF_DOCX_LIGHT_FROM;
     const ext = { 'image/png': 'png', 'image/jpeg': 'jpeg', 'image/jpg': 'jpeg', 'image/gif': 'gif' }[type];
     if(ext) {
         const s = gptpdfImageSize(bytes, ext);
-        if(s.w > 0 && s.h > 0) return { bytes: bytes, ext: ext, w: s.w, h: s.h };
+        if(s.w > 0 && s.h > 0) {
+            const big = Math.max(s.w, s.h) > GPTPDF_DOCX_MAX_PX;
+            if(heavy && (ext === 'png' || (ext === 'jpeg' && big))) {
+                const light = await gptpdfDocxRedraw(src, true);
+                if(light && light.bytes.length < bytes.length) return light;
+            }
+            return { bytes: bytes, ext: ext, w: s.w, h: s.h };
+        }
     }
+    // WebP, AVIF, SVG: Word reads only the old kinds.
+    return gptpdfDocxRedraw(src, heavy);
+}
+
+// Drawn once on a canvas: as a JPEG when allowed and nothing in it is
+// see-through, as a PNG otherwise; no wider than GPTPDF_DOCX_MAX_PX.
+async function gptpdfDocxRedraw(src, light) {
     const im = await new Promise(function(resolve) {
         const el = new Image();
         el.onload = function() { resolve(el); };
@@ -568,14 +595,32 @@ async function gptpdfDocxPicture(src) {
         el.src = src;
     });
     if(!im || !(im.naturalWidth > 0 && im.naturalHeight > 0)) return null;
+    let w = im.naturalWidth, h = im.naturalHeight;
+    if(light && Math.max(w, h) > GPTPDF_DOCX_MAX_PX) {
+        const k = GPTPDF_DOCX_MAX_PX / Math.max(w, h);
+        w = Math.round(w * k); h = Math.round(h * k);
+    }
     const c = document.createElement('canvas');
-    c.width = im.naturalWidth; c.height = im.naturalHeight;
-    c.getContext('2d').drawImage(im, 0, 0);
-    const url = c.toDataURL('image/png');
+    c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    g.drawImage(im, 0, 0, w, h);
+    let opaque = false;
+    if(light) {
+        try {
+            const d = g.getImageData(0, 0, w, h).data;
+            opaque = true;
+            for(let i = 3; i < d.length; i += 4) {
+                if(d[i] < 255) { opaque = false; break; }
+            }
+        } catch(e) {
+            opaque = false;
+        }
+    }
+    const url = opaque ? c.toDataURL('image/jpeg', GPTPDF_DOCX_JPEG_Q) : c.toDataURL('image/png');
     const bin = atob(url.split(',')[1]);
-    const png = new Uint8Array(bin.length);
-    for(let i = 0; i < bin.length; i++) png[i] = bin.charCodeAt(i);
-    return { bytes: png, ext: 'png', w: im.naturalWidth, h: im.naturalHeight };
+    const out = new Uint8Array(bin.length);
+    for(let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return { bytes: out, ext: opaque ? 'jpeg' : 'png', w: w, h: h };
 }
 
 // ── formulas: MathML → OMML ───────────────────────────────────────────────

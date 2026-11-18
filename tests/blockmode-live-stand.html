@@ -212,7 +212,7 @@ function lateArrive(slot, i) {
         let btns = gallery.querySelectorAll('[data-testid="generated-image-preview"]');
         if(n === 2 && LATE_IMG === 'append') {
             gallery.insertAdjacentHTML('beforeend', '<div class="group/generated-image-preview">' +
-                '<button type="button" data-testid="generated-image-preview">' + img + '</button></div>');
+                '<button type="button" data-testid="generated-image-preview" aria-label="Generated image">' + img + '</button></div>');
             return;
         }
         if(btns[n - 1]) btns[n - 1].innerHTML = img;
@@ -249,7 +249,7 @@ function pairHtml(i) {
                 '<div data-markdown-text-style="assistant-message">' + p[1] + '</div></div>';
           }).join('')
         : '<div data-testid="generated-image-gallery"><div>' +
-          '<button type="button" data-testid="generated-image-preview">' +
+          '<button type="button" data-testid="generated-image-preview" aria-label="Generated image 1">' +
           '<img src="' + IMG + '" alt="Generated image 1"></button></div></div>';
     const ids = parts ? parts.map(function(p) { return p[0]; }).join(' ') : 'a' + i;
     const late = LATE_IMG && parts && i % 2 === 1 ? lateGalleryHtml() : '';
@@ -441,6 +441,18 @@ gptpdfChatGPT.sendChunkedData = function(htmlContent, params, fileName, fnCleanu
         Math.round(htmlContent.length / 1024) + ' КБ';
     setTimeout(fnCleanup, 30);
 };
+// Word и Markdown (1.2.9) пишутся здесь же, в браузере (formats.js): файл — справа (Markdown текстом,
+// Word размером) и в window.__file / payload-dump для headless-прогона. У настоящей кнопки картинки
+// ChatGPT есть подпись (aria-label) — без пометки картинки чистка снимала её вместе с кнопкой (18.11).
+gptpdfFmtSave = function(data, type, filename, format) {
+    const size = data.byteLength || data.length || 0;
+    const text = format === 'md' ? (typeof data === 'string' ? data : new TextDecoder().decode(data)) : '';
+    window.__file = { name: filename, format: format, size: size, text: text };
+    window.__payload = window.__payload || { file: window.__file };
+    document.getElementById('out').srcdoc = '<pre style="white-space:pre-wrap;font:12px/1.5 ui-monospace,monospace;padding:12px">' +
+        (text || 'Word: ' + Math.round(size / 1024) + ' КБ').replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</pre>';
+    document.getElementById('side-head').textContent = 'Файл: «' + filename + '», ' + Math.round(size / 1024) + ' КБ';
+};
 
 // ?partial=1 — сбор «прочёл 9 из 269» (как у человека 10.11): экспорт должен спросить
 // «Only 9 of 269 messages could be read», а не отдать огрызок молча. Сам сбор настоящий,
@@ -469,6 +481,38 @@ if(/auto=export/.test(location.search)) {
         document.body.appendChild(pre);
     })();
 }
+
+// ?menuvar=a|b — предложения 18.11 к «Select to export» (слово автора: «выглядит как призыв, что сюда нужно
+// нажать, чтобы экспортировать»). Только кадры: накладывает вариант на настоящее меню, код расширения не трогает.
+//   a — второй выбор под форматами: What goes in · [Whole chat] [Pick blocks…], целиком уже выбрано;
+//   b — тихая строка-ссылка вместо кнопки: «Only some parts? Pick blocks ›».
+(function() {
+    const m = /menuvar=(a|b)/.exec(location.search);
+    if(!m) return;
+    const css = document.createElement('style');
+    css.textContent =
+        '.gptpdf-scope{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 2px}' +
+        '.gptpdf-scope button{border:1.5px solid rgba(0,0,0,.10);border-radius:10px;background:transparent;color:rgba(0,0,0,.85);' +
+        'font:inherit;font-size:13px;font-weight:500;line-height:1.2;padding:9px 6px;cursor:pointer}' +
+        '.gptpdf-scope button.on{border-color:#EA4C3A;background:rgba(234,76,58,.07);color:#c93a2a}' +
+        '.gptpdf-pick-link{display:block;width:100%;text-align:left;background:none;border:0;padding:4px 6px 6px;' +
+        'font:inherit;font-size:12.5px;color:rgba(0,0,0,.5);cursor:pointer}' +
+        '.gptpdf-pick-link span{color:rgba(0,0,0,.72);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}';
+    document.head.appendChild(css);
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    (async function() {
+        for(let i = 0; i < 100 && !document.getElementById('gptpdf-blocks'); i++) await wait(100);
+        const btn = document.getElementById('gptpdf-blocks');
+        const sep = document.querySelector('.gptpdf-fmt-sep');
+        if(!btn) return;
+        if(sep) sep.remove();
+        btn.outerHTML = m[1] === 'a'
+            ? '<div class="gptpdf-fmt-label" style="padding-top:10px">What goes in</div>' +
+              '<div class="gptpdf-scope" role="radiogroup"><button type="button" class="on">Whole chat</button>' +
+              '<button type="button" id="gptpdf-blocks" title="Tick the blocks you want — the rest stays out">Pick blocks…</button></div>'
+            : '<button type="button" id="gptpdf-blocks" class="gptpdf-pick-link">Only some parts? <span>Pick blocks</span> ›</button>';
+    })();
+})();
 
 // ?show=menu | style | paper | header — кадры 1.2.6: открыть меню с листом или окно настроек на
 // нужной закладке. Только для снимков; щелчки проверяют руками (настоящей мышью).

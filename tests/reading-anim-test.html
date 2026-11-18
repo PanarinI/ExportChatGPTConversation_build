@@ -113,6 +113,21 @@ const st = () => gptpdfAnim._state();
         check('сервер делает PDF — сцена остаётся', st().on && st().mode === 'binding');
         hideLoadingOverlay();
         check('файл пришёл, карточку убрали — сцены нет', !st().on && st().mode === '');
+
+        // 18.11: «мудрец» сразу после «Художника», без перезагрузки — на подъёме уже лежали
+        // пять листков прошлого экспорта (карточка живёт в странице между экспортами).
+        out.push('', '— Следующий экспорт без перезагрузки: стол пустой —');
+        for(let k = 1; k <= 10; k++) { setHarvestProgress('Reading ' + k + ' of 20 messages…'); await run(700); }
+        const full = st().sheets;
+        hideLoadingOverlay();
+        setHarvestProgress('Loading conversation… 10');
+        check('новый экспорт с подъёма — стопки прошлого нет', full >= 6 && st().sheets === 0, full + ' → ' + st().sheets);
+        for(let k = 1; k <= 10; k++) { setHarvestProgress('Reading ' + k + ' of 20 messages…'); await run(700); }
+        hideLoadingOverlay();
+        await sleep(3200);
+        gptpdfExportStep('Preparing the PDF…');
+        check('новый экспорт сразу со скрепления (выбор блоков) — стопка своя, не прошлая', st().sheets === 5, st().sheets);
+        hideLoadingOverlay();
     } catch(e) {
         check('без исключений', false, e.message);
     }

@@ -313,6 +313,14 @@ const gptpdfAnim = (function() {
         frozen = false;
         if(newMode !== mode) {
             const wasOn = !!mode;
+            // A new export, or a new climb, starts at an empty desk. The card
+            // stays in the page between exports, and so did the last one's
+            // stack: «Loading…» on «мудрец» right after «Художник», no reload —
+            // five sheets already there (author, 18.11: «Какая-то разная логика»).
+            if(newMode === 'loading' || (!wasOn && Date.now() - stoppedAt >= RESUME_MS)) {
+                el.stack.textContent = '';
+                stackN = 0;
+            }
             mode = newMode;
             count = -1;
             flight = null;

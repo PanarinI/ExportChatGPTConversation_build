@@ -1,0 +1,132 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Сцена экспорта — макет 18.11</title>
+<!--
+  Слово автора 18.11 (после живой выгрузки «мудреца»): затемнённая страница — зал, карточка — сцена в луче;
+  сценка первична и чуть крупнее; объяснение — не текст под сценкой, а реплика человечка («он показывает тебе
+  фильм, крутит и сообщает»); «Don't switch tabs» — табличка на стене слева от проектора, серьёзное предупреждение,
+  «в принципе красным»; сама сцена чуть тёплая — очень тонкий намёк на свет проектора; минимализм, без художественности.
+  Клерк — настоящий anim.js, время вручную (как dizajn/animaciya/maket-c/krupno.html).
+  ?s=up|down|bind · &dark · &t=мс (сколько сцена идёт)
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu \
+      --allow-file-access-from-files --hide-scrollbars --window-size=1280,760 --screenshot=s.png \
+      "file://$PWD/dizajn/scena/maket.html?s=down"
+-->
+<script src="../../shared.js"></script>
+<script src="../../templates.js"></script>
+<script src="../../anim.js"></script>
+<style>
+:root { --page: #fff; --ink: #0d0d0d; --line: #ececec; }
+html.dark { --page: #212121; --ink: #ececec; --line: #2f2f2f; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+/* the ChatGPT page behind */
+.top { height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; }
+.top b { font-size: 17px; font-weight: 600; }
+.exp { position: relative; display: flex; align-items: center; gap: 10px; z-index: 10002; }
+.exp .btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(0,0,0,.12); background: var(--page); color: #EA4C3A; font-weight: 600; font-size: 13px; }
+html.dark .exp .btn { border-color: rgba(255,255,255,.15); }
+.chat { width: 680px; margin: 30px auto; }
+.chat p { margin: 0 0 18px; }
+.chat .q { margin-left: auto; width: fit-content; max-width: 70%; background: rgba(0,0,0,.05); padding: 10px 16px; border-radius: 18px; }
+html.dark .chat .q { background: rgba(255,255,255,.08); }
+
+/* the hall: the page dims, a little less around the stage — the spotlight */
+.hall { position: fixed; inset: 0; z-index: 10001;
+        background: radial-gradient(ellipse 560px 420px at calc(100% - 240px) 210px, rgba(0,0,0,.34), rgba(0,0,0,.52) 60%, rgba(0,0,0,.6) 100%); }
+html.dark .hall { background: radial-gradient(ellipse 560px 420px at calc(100% - 240px) 210px, rgba(0,0,0,.46), rgba(0,0,0,.66) 60%, rgba(0,0,0,.74) 100%); }
+.bind .hall { display: none; }
+
+/* the stage: the card, a touch larger, a touch warm — the projector's light, barely */
+#gptpdf-progress { display: flex !important; position: absolute !important; top: calc(100% + 10px) !important; right: 0 !important;
+                   width: 440px !important; padding: 14px 16px 12px !important; gap: 4px !important;
+                   background: radial-gradient(ellipse 58% 62% at 44% 66%, rgba(255, 190, 110, .13), transparent 72%), #fffdf9 !important; }
+#gptpdf-progress.gptpdf-dark { background: radial-gradient(ellipse 58% 62% at 44% 66%, rgba(255, 180, 100, .075), transparent 72%), #2b2927 !important; }
+#gptpdf-progress .gptpdf-loading-card { }
+.gptpdf-loading-card { --gptpdf-card-bg: #fffdf9 !important; }
+.gptpdf-loading-card.gptpdf-dark { --gptpdf-card-bg: #2b2927 !important; }
+.gptpdf-anim { display: block !important; margin: 0 !important; }
+
+.scene { position: relative; width: 100%; padding-top: 74px; }   /* the air above the stage: his line appears there */
+.say { position: absolute; top: 4px; right: 18px; width: 236px; padding: 8px 11px; border-radius: 12px;
+       background: #fff; border: 1px solid rgba(0,0,0,.13); font-size: 12.5px; line-height: 1.38; color: #2b2b2b;
+       box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.say::after { content: ""; position: absolute; bottom: -7px; right: 92px; width: 12px; height: 12px; background: inherit;
+              border-right: 1px solid rgba(0,0,0,.13); border-bottom: 1px solid rgba(0,0,0,.13); transform: rotate(45deg); }
+.gptpdf-dark .say { background: #3a3734; color: #eee; border-color: rgba(255,255,255,.13); }
+.gptpdf-dark .say::after { border-color: rgba(255,255,255,.13); }
+.say:empty { display: none; }
+
+/* the sign on the wall, left of the projector */
+.sign { position: absolute; left: 4px; top: 92px; width: 98px; padding: 6px 7px 7px; border-radius: 2px;
+        border: 1px solid rgba(192, 57, 43, .55); background: var(--gptpdf-card-bg); color: rgba(0,0,0,.6);
+        font-size: 10px; line-height: 1.32; box-shadow: 0 1px 0 rgba(0,0,0,.04); }
+.sign b { display: block; color: #c0392b; font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 3px; }
+.gptpdf-dark .sign { border-color: rgba(255, 128, 110, .5); color: rgba(255,255,255,.62); }
+.gptpdf-dark .sign b { color: #ff8f80; }
+.sign.calm { border-color: rgba(0,0,0,.2); }
+.sign.calm b { color: rgba(0,0,0,.66); }
+.gptpdf-dark .sign.calm { border-color: rgba(255,255,255,.22); }
+.gptpdf-dark .sign.calm b { color: rgba(255,255,255,.75); }
+/* the scene is drawn in a 320-wide box; the sign takes the empty wall on its left */
+.scene .gptpdf-anim svg { width: 100%; }
+</style>
+
+<div class="top"><b>Lisbon trip: 3-day plan</b>
+  <div class="exp"><span class="btn">⤓ Export</span>
+    <div class="gptpdf-loading-card" id="gptpdf-progress">
+      <div class="gptpdf-loading-text"></div>
+      <div class="scene">
+        <div class="say"></div>
+        <div class="sign"></div>
+        <div class="gptpdf-anim"></div>
+      </div>
+      <button class="gptpdf-loading-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+<div class="chat">
+  <p class="q">Plan a 3-day trip to Lisbon for two, mid-range budget.</p>
+  <p>A relaxed pace: one big sight each morning, free evenings. Day 1 — Alfama walk, São Jorge Castle, a fado dinner.
+     Day 2 — Belém Tower, the Jerónimos Monastery and pastéis de Belém. Day 3 — the train to Sintra and the Pena Palace.</p>
+  <p class="q">Split a €900 budget across the three days in Python.</p>
+  <p>Here is a small helper that splits the budget by weight. Day 3 gets more because of the Sintra train and the palace tickets.</p>
+  <p class="q">What should we pack for early October?</p>
+  <p>Layers: days around 22 °C, cooler evenings by the river. Comfortable shoes — Lisbon is hilly and paved with slippery stone.</p>
+</div>
+<div class="hall"></div>
+
+<script>
+const q = new URLSearchParams(location.search);
+const S = q.get('s') || 'down', DARK = q.get('dark') !== null, T = +(q.get('t') || 0);
+document.documentElement.classList.toggle('dark', DARK);
+document.documentElement.classList.toggle('bind', S === 'bind');
+document.head.insertAdjacentHTML('afterbegin', '<style>' + UI_CSS + '</style>');
+const card = document.getElementById('gptpdf-progress');
+card.classList.toggle('gptpdf-dark', DARK);
+const say = card.querySelector('.say'), sign = card.querySelector('.sign');
+
+// What is said where (texts of capture.js; his line — in the first person: he is the one who scrolls).
+const STAY = '<b>Don’t switch tabs</b>or minimize the window: the export pauses while it’s hidden';
+const LEAVE = '<b>You can switch tabs</b>the file will download by itself. Don’t close this tab';
+gptpdfAnim._manual(true);
+const line = t => { card.querySelector('.gptpdf-loading-text').textContent = t; gptpdfAnim.fromText(t); };
+const run = ms => { for(let t = 0; t < ms; t += 33) gptpdfAnim._tick(33); };
+if(S === 'up') {
+    let p = 1;
+    for(let t = 0; t < (T || 2800); t += 900) { line('Loading older messages… ' + p++ + ' parts'); run(900); }
+    say.textContent = 'ChatGPT sends long chats in parts of about 10 messages. I wind them in, one by one.';
+    sign.innerHTML = STAY;
+} else if(S === 'down') {
+    let k = 9;
+    for(let t = 0; t < (T || 1950); t += 650) { line('Reading ' + k++ + ' of 40 messages…'); run(650); }
+    say.textContent = 'ChatGPT shows only the messages that fit on your screen, so I scroll through the chat and copy each one.';
+    sign.innerHTML = STAY;
+} else {
+    for(let k = 1; k <= 6; k++) { line('Reading ' + k + ' of 40 messages…'); run(650); }
+    gptpdfAnim.stop();
+    line('Creating the PDF from 40 messages…');
+    run(T || 2600);
+    sign.innerHTML = LEAVE;
+    sign.classList.add('calm');
+}
+</script>

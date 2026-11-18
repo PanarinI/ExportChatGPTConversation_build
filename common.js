@@ -219,14 +219,14 @@ gptpdfChatGPT.init = function() {
         gptpdfShared.getOptions(function(options) {
             // The open chat, not the hidden previous one (helpers.js).
             let main = gptpdfChatRoot();
-            // Markdown carries no pictures (formats.js): nothing to fetch.
+            // Markdown carries no pictures' bytes (formats.js): nothing to fetch.
             const fmt = gptpdfFormat(options);
             const noPictures = fmt === 'md';
 
             // Lock computed image sizes and convert external images to base64
             const imgPromises = [];
             const liveImgs = [];
-            (noPictures ? [] : main.querySelectorAll('img')).forEach(function(img) {
+            main.querySelectorAll('img').forEach(function(img) {
                 gptpdfLiveImagesSave(img, liveImgs);
                 gptpdfMarkPicture(img, img.getAttribute('src'));
                 const isGallery = !!img.closest('.no-scrollbar');
@@ -237,6 +237,11 @@ gptpdfChatGPT.init = function() {
                         img.setAttribute('data-gptpdf-h', Math.round(rect.height));
                     }
                 }
+                // Markdown names a picture in its place («*[Picture]*»): marked
+                // and measured all the same — the cleanup keeps by that what is a
+                // picture (render.js, step 3), and only by that. Until 18.11 it
+                // skipped this too, and every picture left without a trace.
+                if (noPictures) return;
                 // blob: pictures (the pair layout's generated images) can only
                 // travel inline — see gptpdfBlobToDataUrl in helpers.js.
                 if (img.src && img.src.startsWith('blob:')) {
@@ -311,9 +316,21 @@ gptpdfChatGPT.init = function() {
             // Second-pass: convert any images that came in via virtualized turns
             // (they were captured as raw HTML with original URLs, not base64)
             const lateImgPromises = [];
-            (noPictures ? [] : main_clone.querySelectorAll('img')).forEach(function(img) {
+            main_clone.querySelectorAll('img').forEach(function(img) {
                 const src = img.getAttribute('src') || '';
                 if (!src || src.startsWith('data:')) return;
+                if (noPictures) {
+                    // A picture of a turn read off-screen has no layout to
+                    // measure: its own width (or "big enough") tells the
+                    // cleanup it is a picture, not an icon.
+                    gptpdfMarkPicture(img, src);
+                    if (!img.getAttribute('data-gptpdf-w') &&
+                        (img.hasAttribute('data-gptpdf-pic') || src.startsWith('blob:'))) {
+                        img.setAttribute('data-gptpdf-w',
+                            img.getAttribute('width') || String(GPTPDF_PICTURE_MIN_PX));
+                    }
+                    return;
+                }
                 if (src.startsWith('blob:')) {
                     lateImgPromises.push(gptpdfInlineBlobImage(img));
                     return;

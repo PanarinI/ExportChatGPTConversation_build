@@ -67,6 +67,22 @@
 </main>
 </template>
 
+<template id="pics">
+<main>
+ <div data-testid="conversation-turn-1"><div data-message-author-role="user"><div data-user-message-bubble="true">
+  <button type="button" aria-label="Исходное изображение"><img class="h-7 w-auto rounded-sm opacity-50" alt="Исходное изображение" src="REF"></button>
+  <div class="whitespace-pre-wrap">Make it darker</div></div></div></div>
+ <div data-testid="conversation-turn-2"><div data-message-author-role="assistant">
+  <div data-testid="generated-image-gallery"><div><img alt="Generated image 1" data-gptpdf-pic="" width="1024" height="1024" src="https://files.oaiusercontent.com/file-abc?sig=1"></div></div>
+  <img alt="" src="https://chatgpt.com/backend-api/estuary/content?id=icon" style="width:20px;height:20px">
+  <img alt="GPT icon" src="https://files.oaiusercontent.com/file-icon">
+  <div class="markdown prose"><p>You can download it <span data-file-reference="true" data-markdown-copy-text="Photon_Sprite.png" role="button" aria-label="Open file preview Photon_Sprite.png"><span><span><svg></svg></span><span>here</span></span></span>.</p>
+   <p>The name <span title="notes.txt">notes.txt</span> inside a sentence stays.</p></div>
+  <div class="rounded-2xl border"><div><span><button aria-label="Open file preview Photon_Sprite.png" type="button"></button><span><svg></svg><span><span title="Photon_Sprite.png">Photon_Sprite.png</span><span><span>Image</span><span data-markdown-copy="exclude">Open file</span></span></span></span></span></div></div>
+ </div></div>
+</main>
+</template>
+
 <script>
 const log = document.getElementById('log');
 let fails = 0;
@@ -161,6 +177,53 @@ function sameMath(a, b) {
     check('word: question as a bookmark target, page numbers, A4 margins',
         /w:name="gptpdf_q0"/.test(d) && /footerReference/.test(d) && /<w:pgSz w:w="11906" w:h="16838"\/>/.test(d));
     check('word: ordered list starts at 3', /<w:startOverride w:val="3"\/>/.test(files['word/numbering.xml'] || ''));
+
+    // ── pictures and files (18.11, the author's «Художник_базовый» and «мудрец») ──
+    const pngOf = function(w, h, alpha) {
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const g = c.getContext('2d');
+        const im = g.createImageData(w, h);
+        for(let i = 0; i < im.data.length; i += 4) {
+            im.data[i] = Math.random() * 255; im.data[i + 1] = Math.random() * 255; im.data[i + 2] = (i / 4) % 255;
+            im.data[i + 3] = alpha ? 128 : 255;
+        }
+        g.putImageData(im, 0, 0);
+        return c.toDataURL('image/png');
+    };
+    const ref = pngOf(64, 64, false);
+    const pics = function() {
+        const c = copyOf('pics');
+        c.querySelector('img.h-7').setAttribute('src', ref);
+        return c;
+    };
+    const mp = gptpdfToMarkdown(gptpdfFmtRead(pics(), O), O, 'Pics');
+    check('markdown: a picture ChatGPT made is named in its place', mp.includes('*[Generated image 1]*'), mp);
+    check('markdown: an icon and an unmarked ChatGPT thumbnail stay out', !mp.includes('GPT icon') && (mp.match(/\*\[/g) || []).length === 1, mp);
+    check('markdown: the picture being edited is not named again in the question (it is, a line above)', mp.includes('**You:** Make it darker') && !mp.includes('Исходное'), mp.slice(0, 120));
+    check('a file an answer made: its name once, the card\'s words out',
+        mp.includes('*File: Photon_Sprite.png*') && !mp.includes('Photon_Sprite.pngImage') && !mp.includes('Open file'), mp);
+    check('a file named inside a sentence stays a word', mp.includes('The name notes.txt inside a sentence stays.') && !mp.includes('File: notes.txt'));
+    check('an inline mention keeps its words', mp.includes('You can download it here.'));
+
+    const pb = await gptpdfToDocx(gptpdfFmtRead(pics(), W), W, 'Pics');
+    const pf = await unzip(pb);
+    const pd = pf['word/document.xml'] || '';
+    check('word: the picture being edited stays 28 px tall and faded, as in the chat',
+        /<wp:extent cx="266700" cy="266700"\/>/.test(pd) && /<a:alphaModFix amt="50000"\/>/.test(pd), (pd.match(/<wp:extent[^>]*>/) || [''])[0]);
+    check('word: the file card as one line', pd.includes('Photon_Sprite.png') && !pd.includes('Open file') && !/Photon_Sprite\.png<\/w:t><\/w:r><w:r><w:rPr>[^]*?Image</.test(pd));
+
+    // A heavy picture goes lighter: opaque → JPEG, see-through stays PNG (Google Docs opens no .docx over 50 MB).
+    const heavy = pngOf(700, 700, false), clear = pngOf(700, 700, true);
+    const hb = await gptpdfToDocx({ turns: [{ role: 'assistant', blocks: [
+        { t: 'img', src: heavy, alt: '', w: 700, h: 700 }, { t: 'img', src: clear, alt: '', w: 700, h: 700 }] }] }, W, 'Heavy');
+    const hf = await unzip(hb);
+    const media = Object.keys(hf).filter(function(n) { return n.startsWith('word/media/'); }).sort();
+    const heavyBytes = atob(heavy.split(',')[1]).length;
+    check('word: a heavy picture with nothing see-through goes in as JPEG, lighter',
+        media[0] === 'word/media/image1.jpeg' && hf[media[0]].length < heavyBytes, media.join(', ') + ' · ' + (hf[media[0]] || []).length + ' < ' + heavyBytes);
+    check('word: a see-through picture stays PNG', media[1] === 'word/media/image2.png', media.join(', '));
+    check('word: JPEG is in the content types', /Extension="jpeg"/.test(hf['[Content_Types].xml'] || ''));
 
     log.textContent += fails ? '\nFAIL: ' + fails + '\n' : '\nall passed\n';
 })().catch(function(e) { log.textContent += '✗ crashed: ' + e + '\n' + (e.stack || '') + '\n'; });
