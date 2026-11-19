@@ -39,7 +39,8 @@ MAIN = [
     ('can you export chatgpt conversations', '', 'сомневаются, можно ли 🔶', 'хвост; вопрос → FAQ'),
     ('how to export chatgpt conversation as text', '', 'спрашивают про текст 🔶', 'хвост: text — Markdown это текст'),
     ('export chatgpt conversation chrome extension', '', 'ищут расширение 🔶', 'хвост: chrome extension'),
-    ('export entire chatgpt conversation', '', 'весь чат целиком 🔶', 'хвост: entire — наш Whole chat'),
+    ('how to export a chat from chatgpt', '', 'спрашивают, как выгрузить чат 🔶',
+     'новый 18.11 (слово автора: «хороший ключ, 1300, почему нет?») — вместо export entire chatgpt conversation; вариация chat'),
 ]
 EXTRA = [
     ('download chatgpt chat', 'chatgpt chat download',
@@ -100,7 +101,87 @@ RESERVE = [
     ('chatgpt to google docs', '', 'выдача 11.10 ✅: 4 из 8 — перенести ответ или таблицу в Docs', 'Google Docs'),
     ('chatgpt to pdf extension', '', 'ищут расширение 🔶', 'большой за год, но падает весь год: 1300 в ноябре 2025 → 30 в октябре 2026'),
     ('save chatgpt chrome extension', '', 'ищут расширение 🔶', 'почти ноль с сентября'),
+    ('export entire chatgpt conversation', '', 'весь чат целиком 🔶', 'был Main 15 → место отдано how to export a chat from chatgpt '
+     '(слово автора 18.11); хвост: entire — наш Whole chat'),
 ]
+# Интент (слово автора 18.11: «померяем интенты… ключи должны соответствовать той боли, которую мы закрываем»).
+# Наша боль: вынести ОДИН разговор ChatGPT — в файл (PDF, Word, Markdown) или в другое место (Google Docs, Notion, Obsidian,
+# Claude) — целиком или частями. Каждый органический результат первой десятки выдачи (по порядку) — одна буква:
+#   O — про нашу боль (один чат: сохранить, скачать, распечатать, PDF/Word/Markdown, расширения-выгрузчики, просьбы о такой кнопке);
+#   A — рядом (вся история или данные аккаунта, все чаты разом, бэкап; ChatGPT внутри Docs/Word/Notion; переезд с историей);
+#   X — другое (только память, загрузить файл в ChatGPT, сравнение сервисов, промпт «вынеси контекст»).
+# Страница судится по заголовку; у страниц-эхо запроса (Facebook «answers», Instagram, TikTok) — по сниппету, т. е. по ответу.
+# Ключ: ✅ — O больше половины; ✗ — X половина и больше; иначе 🔶. Выдачи: 18.11 (raw/), 16.11 (../novye-vygruzki-2026-11-16/raw/),
+# 11.10 (app-studio/research/probes/klassika-cws-2026-10-11/syrye/).
+INTENT = {
+    'export chatgpt conversation': ('OOOOOOAO', '18.11', 'гайды и видео «сохранить чат в PDF», Reddit «весь разговор»; рядом — история и данные целиком'),
+    'chatgpt export': ('AOAOOAAO', '16.11', 'пополам: один чат в файл (расширения, exportgpt.pro, приложение для iPhone) и весь архив '
+                       '(Forbes, CLI-бэкап, выгрузка данных); «ChatGPT Exporter» — ещё и имя лидера ниши'),
+    'how to export chatgpt conversation': ('AAOOOXO', '18.11', 'один чат — 4 (Reddit, видео, гайды); полная выгрузка данных — 2; '
+                                           'Instagram — промпт «вынести контекст» (другое)'),
+    'chatgpt export extension': ('OOOOOOO', '18.11', 'все 7 — расширения и инструменты выгрузки чата'),
+    'chatgpt export chat': ('OAOOAAO', '18.11', 'на грани: один чат — 4 (гайды, видео, ChatGPT Exporter); выгрузка данных — 3'),
+    'how to export a chatgpt conversation': ('AOOAOAO', '18.11', 'на грани: один чат — 4 (видео, гайд выгрузчика); вся история — 3 '
+                                             '(Reddit, видео, Facebook)'),
+    'how to export chatgpt chat': ('OOOOOAA', '18.11', 'один чат — 5 (видео, Reddit, гайд выгрузчика); выгрузка данных — 2'),
+    'export chatgpt conversation to pdf': ('OOOOOOOO', '18.11', 'все 8 — чат в PDF: инструменты, видео, просьба о функции на форуме OpenAI'),
+    'how to export chatgpt conversation to pdf': ('OOAAOOO', '18.11', 'чат в PDF — 5; выгрузка всех чатов — 2'),
+    'export chatgpt to claude': ('AOAXXAX', '18.11', 'ровно наше — 1 (memdex.ai: продолжить разговор в Claude); переезд вместе с '
+                                 'историей — 3; только память — 3'),
+    'how to export chatgpt conversation as pdf': ('OOAOOOAO', '18.11', 'чат в PDF и печать — 6 (Reddit, видео, wikiHow, форум OpenAI); '
+                                                  'выгрузка всего — 2'),
+    'can you export chatgpt conversations': ('OAAAOOA', '18.11', 'больше про выгрузку всех данных — 4; один чат — 3; ИИ-обзор: «да — '
+                                             'архив целиком или расширения для отдельных чатов»'),
+    'how to export chatgpt conversation as text': ('OOOAOOOO', '18.11', 'один чат текстом — 7 (форум OpenAI просит «сохранить чат как '
+                                                   'TXT или Markdown», гайды); Facebook отвечает выгрузкой всего — 1'),
+    'export chatgpt conversation chrome extension': ('OOOOOOOOO', '18.11', 'все 9 — расширения выгрузки чата'),
+    'how to export a chat from chatgpt': ('AOOAOOA', '18.11', 'на грани: один чат — 4 (2 расширения в CWS, Reddit, Medium); выгрузка '
+                                          'данных — 3 (справка OpenAI, скрипт, блог)'),
+    'download chatgpt chat': ('OOOOOAOOA', '18.11', 'скачать один чат — 7 (видео, форум OpenAI «скачать один чат целиком», MakeUseOf); '
+                              'выгрузка данных — 2; ИИ-обзор понял ключ как «скачать приложение ChatGPT»'),
+    'how to save chatgpt conversation': ('AOAOOOO', '18.11', 'один чат — 5 (расширение в CWS, Medium, видео про PDF, Kaggle, HTML-файл); '
+                                         'весь аккаунт — 2 (справка OpenAI, Reddit «все мои разговоры»)'),
+    'how to save chatgpt chats': ('OOOAAAO', '18.11', 'на грани: один чат — 4 (форум OpenAI просит «выгрузку одного разговора»); '
+                                  'все чаты и данные — 3'),
+    'chatgpt to pdf': ('OOOOOOOO', '18.11', 'все 8 — чат в PDF: 3 инструмента (сайт, приложение Google Play, видео про PDFCrowd), '
+                       '5 «как сделать» (Reddit, YouTube, Facebook)'),
+    'how to save chatgpt conversation as pdf': ('OOOOOOOA', '18.11', 'чат в PDF — 7 (гайды, расширения, Reddit «длинный чат печатается '
+                                                'пустым»); скрипт для всех чатов — 1'),
+    'how to download chatgpt conversation': ('OAOAOOO', '18.11', 'один чат — 5 (Reddit «весь разговор, а не пересказ», расширение в '
+                                             'CWS, 2 сайта-выгрузчика, видео); все разговоры разом — 2 (справка OpenAI, скрипт)'),
+    'how to download a chatgpt conversation': ('OOOAOOOO', '18.11', 'один чат, чаще PDF — 7; выгрузка данных — 1'),
+    'print chatgpt conversation': ('OOOOAOOOO', '18.11', 'печать и PDF — 8 (гайды, 6 видео; одно — про «ExportGPT», наше ли ⬜); '
+                                   'Facebook отвечает выгрузкой всей истории — 1'),
+    'chatgpt to word extension': ('OAOOOAOOO', '18.11', 'чат в Word — 7 (первое — чужое «ChatGPT to Word or PDF»; Reddit «весь '
+                                  'разговор в Word или PDF»); официальная надстройка ChatGPT for Word — 2'),
+    'chatgpt to google docs extension': ('OOAAAOOA', '18.11', 'пополам: чат в Docs — 4 (2 расширения в CWS, 2 гайда); ChatGPT внутри '
+                                         'Docs — 4 (дополнения, «как добавить ChatGPT в Docs»)'),
+    'chatgpt to markdown': ('OAAAOOOOO', '11.10', 'чат в Markdown — 6 (расширения, скрипты); вся история в Markdown — 3 (Obsidian, '
+                            'конвертеры архива)'),
+    'save chatgpt conversation': ('OOOOOOOO', '18.11', 'все 8 — сохранить чат, в основном в PDF (видео, гайды)'),
+    'chatgpt to word': ('OOOOOOAXO', '16.11', 'ответ или чат в Word без потери вида — 7; «создать документ через ChatGPT» — 1; '
+                        'загрузить Word в ChatGPT — 1 (другое)'),
+    'chatgpt to notion': ('AXOAOAA', '16.11', 'сохранить чат в Notion — 2 (расширение, видео); ChatGPT внутри Notion — 4 '
+                          '(интеграции, MCP); сравнение Notion AI и ChatGPT — 1 (другое)'),
+    'chatgpt to markdown extension': ('OOOOOOOOO', '18.11', 'все 9 — расширения «чат в Markdown»'),
+}
+
+
+def intent_of(key):
+    v = INTENT.get(key)
+    if not v:
+        return '⬜', 'выдачи нет', None
+    codes, date, note = v
+    o, a, x, m = codes.count('O'), codes.count('A'), codes.count('X'), len(codes)
+    mark = '✅' if o * 2 > m else ('✗' if x * 2 >= m else '🔶')
+    parts = ['наш случай %d из %d' % (o, m)] + (['рядом %d' % a] if a else []) + (['другое %d' % x] if x else [])
+    return mark, ', '.join(parts) + ' (выдача %s)' % date, 'выдача %s ✅: %s' % (date, note)
+
+
+# Новый ключ 18.11: в замере 16.11 его нет
+NEW_VOL = {'how to export a chat from chatgpt': 'нет в замере 16.11; Google Ads ⬜ — Labs DataForSEO 18.11 истории не знает '
+                                              '(raw/vol-…json, $0,012); Semrush: 1 300 в октябре 2026, KD n/a'}
+
 # Вышли из Main / Extra / Запаса по выдаче 18.11: ищут другое
 NE_VZYALI = [
     ('transfer chatgpt to claude', '',
@@ -143,6 +224,9 @@ MES_RU = {'202608': 'авг', '202609': 'сен', '202610': 'окт'}
 
 def kd_fields(key):
     dfs, now, mes = KD_DFS.get(key), KD_NOW.get(key), KD_MES.get(key)
+    if key not in KD_DFS and key not in KD_NOW:
+        return {'kd_semrush_now': 'не снимали', 'kd_semrush_aug_oct': 'не снимали', 'kd_dfs': 'не снимали', 'kd_real': '⬜',
+                'kd_covers': '⬜ не снимали (ключ новый)'}
     vals = [v for _, v in (mes or []) if v is not None]
     if mes:
         months = ' · '.join(MES_RU[m] for m, _ in sorted(mes))
@@ -175,9 +259,13 @@ def num(x):
 
 def line(kind, key, twins, who, why):
     r = rows.get(key)
+    mark, inote, iwho = intent_of(key)
+    if iwho:
+        who = iwho
+    it = {'intent': mark, 'intent_note': inote}
     if not r:
         return dict({'group': kind, 'key': key, 'twins': twins, 'us_12m': '⬜', 'us_aug_oct': '⬜', 'world_12m': '⬜',
-                     'yoy': '⬜', 'who': who, 'why': why, 'trend': 'нет в замере 16.11'}, **kd_fields(key))
+                     'yoy': '⬜', 'who': who, 'why': why, 'trend': NEW_VOL.get(key, 'нет в замере 16.11')}, **it, **kd_fields(key))
     m = [num(v) for v in r['us_12_months'].split()]
     now = round(sum(m[-3:]) / 3) if len(m) == 12 and all(v is not None for v in m[-3:]) else ''
     year_ago = re.search(r'год назад \(11\.24–10\.25\) ≈(\d+)', r['notes'] or '')
@@ -193,13 +281,13 @@ def line(kind, key, twins, who, why):
         flag = '; окт.: провал всех ключей со словом extension (причина ⬜)'
     return dict({'group': kind, 'key': key, 'twins': twins, 'us_12m': int(us), 'us_aug_oct': now,
                  'world_12m': int(num(r['world_avg']) or 0), 'yoy': yoy,
-                 'who': who, 'why': why, 'trend': (r['trend_note'] or '') + flag}, **kd_fields(key))
+                 'who': who, 'why': why, 'trend': (r['trend_note'] or '') + flag}, **it, **kd_fields(key))
 
 
 out = ([line('Main', *x) for x in MAIN] + [line('Extra', *x) for x in EXTRA] + [line('запас', *x) for x in RESERVE]
        + [line('не взяли', *x) for x in NE_VZYALI])
-cols = ['group', 'key', 'twins', 'us_12m', 'us_aug_oct', 'world_12m', 'yoy', 'kd_semrush_now', 'kd_semrush_aug_oct', 'kd_dfs',
-        'kd_real', 'kd_covers', 'who', 'why', 'trend']
+cols = ['group', 'key', 'twins', 'us_12m', 'us_aug_oct', 'world_12m', 'yoy', 'intent', 'intent_note', 'kd_semrush_now',
+        'kd_semrush_aug_oct', 'kd_dfs', 'kd_real', 'kd_covers', 'who', 'why', 'trend']
 with open(os.path.join(HERE, 'kluchi.csv'), 'w', encoding='utf-8', newline='') as f:
     w = csv.DictWriter(f, fieldnames=cols)
     w.writeheader()
@@ -226,14 +314,23 @@ else:
                 continue
             i += 1
             tw = ' (= %s)' % o['twins'] if o['twins'] else ''
-            print('| %d | `%s`%s | %s | %s | %s | %s | %s | %s | %s |' % (
-                i, o['key'], tw, o['us_12m'], o['us_aug_oct'], o['world_12m'], o['yoy'], kd_short(o), o['who'], o['why']))
+            c = INTENT.get(o['key'])
+            ish = '%s %d/%d' % (o['intent'], c[0].count('O'), len(c[0])) if c else '⬜'
+            print('| %d | `%s`%s | %s | %s | %s | %s | %s | %s | %s | %s |' % (
+                i, o['key'], tw, o['us_12m'], o['us_aug_oct'], o['world_12m'], o['yoy'], kd_short(o), ish, o['who'], o['why']))
     for kind in ('запас', 'не взяли'):
         print('\n## %s' % kind)
         for o in out:
             if o['group'] == kind:
                 print('- `%s` — %s в мес (сейчас %s), мир %s, KD %s · %s' % (
                     o['key'], o['us_12m'], o['us_aug_oct'], o['world_12m'], kd_short(o), o['why']))
+    print('\n## Интент')
+    for kind in ('Main', 'Extra'):
+        for o in out:
+            if o['group'] == kind:
+                c = INTENT[o['key']]
+                print('| `%s` | %s | %s | %d из %d | %d | %d | %s | %s |' % (
+                    o['key'], kind, o['intent'], c[0].count('O'), len(c[0]), c[0].count('A'), c[0].count('X'), c[1], c[0]))
     print('\n## KD')
     for o in out:
         print('| `%s` | %s | %s | %s | %s | **%s** | %s |' % (

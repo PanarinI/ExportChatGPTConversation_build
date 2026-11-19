@@ -15,8 +15,9 @@
 
 - Объёмы — то, что уже куплено 16.11 — `../novye-vygruzki-2026-11-16/` (Google Ads через DataForSEO, США и мир), $0.
 - 18.11 докуплены 9 выдач Google США (DataForSEO, компьютер, английский, верхние 10) — для ключей, у которых выдачи не было:
-  **$0,018**. Сводка — `serp.md`, сырьё — `raw/`, скрипт — `serp.py`. Потом KD DataForSEO на 43 ключа — $0,017. Всего за 18.11
-  **$0,035** (баланс $20,9567 → $20,9216, каждый вызов — в `spend.log`).
+  **$0,018**. Сводка — `serp.md`, сырьё — `raw/`, скрипт — `serp.py`. Потом KD DataForSEO на 43 ключа — $0,017. Вечером — интент: 19
+  выдач ($0,038) и объём нового ключа через Labs ($0,012, данных нет). Всего за 18.11 **$0,085** (баланс $20,9567 → $20,8714, каждый
+  вызов — в `spend.log`).
 - «США, мес» — среднее за 12 месяцев ноябрь 2025 → октябрь 2026; «сейчас» — среднее августа–октября 2026; «год к году» — к тем же
   12 месяцам годом раньше (ноя.24 → окт.25); «новый» — год назад почти не искали.
 - KD — 18.11, три замера, берём наибольший (правило автора 18.11): Semrush ноябрь, Semrush август–октябрь (10 голов) и DataForSEO.
@@ -28,48 +29,48 @@
 
 ## Main — 15 (ключ названия и его вариации)
 
-| # | ключ | США, мес (12 мес) | США сейчас (авг–окт) | мир, мес | год к году | KD реальный | кто ищет | зачем |
-|---|---|---|---|---|---|---|---|---|
-| 1 | `export chatgpt conversation` (= export chatgpt conversations · chatgpt export conversation(s) · chatgpt conversation export) | 442 | 487 | 1325 | +0 % | 43 ✅ | ищут именно выгрузку чата — ключ нашего названия, держим его мы (карточка 16.11) 🔶 по словам | ключ названия: точное вхождение 7–10 раз (канон 2.1.4) |
-| 2 | `chatgpt export` (= chatgpt exporter · export chatgpt) | 1741 | 1600 | 6508 | +357 % | 40 ✅ | выдача 16.11 ✅: 8 из 8 по делу, 5 — один чат в файл, 2 — архив целиком; «ChatGPT Exporter» — ещё и имя лидера ниши 🔶 | самый крупный ключ замера; голова названия — вариация без conversation |
-| 3 | `how to export chatgpt conversation` (= how to export chatgpt conversations · chatgpt how to export conversation) | 335 | 247 | 681 | +4 % | 35 ✅ | спрашивают, как сделать 🔶 по словам | хвост ключа названия; вопрос → FAQ |
-| 4 | `chatgpt export extension` | 238 | 180 | 587 | +170 % | 0 🔶 | ищут расширение 🔶 по словам | вариация с хвостом extension |
-| 5 | `chatgpt export chat` (= chatgpt export chats · export chatgpt chat · chatgpt chat export) | 186 | 183 | 982 | +60 % | 39 🔶 | выгрузка чата; chat = conversation словами людей 🔶 | вариация: chat вместо conversation |
-| 6 | `how to export a chatgpt conversation` | 175 | 213 | 337 | +52 % | 34 🔶 | спрашивают, как сделать 🔶 | хвост ключа названия; вопрос → FAQ |
-| 7 | `how to export chatgpt chat` | 157 | 183 | 806 | +64 % | 35 🔶 | спрашивают, как сделать 🔶 | вариация chat; вопрос |
-| 8 | `export chatgpt conversation to pdf` | 156 | 120 | 537 | -19 % | 41 🔶 | чат в PDF 🔶 по словам | хвост: PDF |
-| 9 | `how to export chatgpt conversation to pdf` | 143 | 213 | 176 | +96 % | 34 🔶 | спрашивают, как получить PDF 🔶 | хвост: PDF; вопрос |
-| 10 | `export chatgpt to claude` | 393 | 213 | 898 | новый (год назад ≈0) | 36 ✅ | выдача 18.11 ✅: 5 из 7 — переезд целиком (память и история; ИИ-обзор — встроенный импорт памяти Claude); 1 из 7 — ровно наше: «продолжить разговор ChatGPT в Claude» (memdex.ai); 1 — Reddit: свой инструмент выгрузки памяти | вариация с хвостом to claude — новое место 1.2.10; теперь единственный ключ Claude в таблице (transfer и import ушли); честно: переносим разговор, не память |
-| 11 | `how to export chatgpt conversation as pdf` (= how to export chatgpt conversations as pdf (10)) | 78 | 113 | 286 | -1 % | 1 🔶 | спрашивают, как получить PDF 🔶 | хвост: as pdf; вопрос |
-| 12 | `can you export chatgpt conversations` | 69 | 43 | 152 | +60 % | 6 🔶 | сомневаются, можно ли 🔶 | хвост; вопрос → FAQ |
-| 13 | `how to export chatgpt conversation as text` | 37 | 53 | 98 | новый (год назад ≈1) | ⬜ | спрашивают про текст 🔶 | хвост: text — Markdown это текст |
-| 14 | `export chatgpt conversation chrome extension` | 34 | 10 | 62 | -43 % | 15 🔶 | ищут расширение 🔶 | хвост: chrome extension |
-| 15 | `export entire chatgpt conversation` | 29 | 37 | 57 | +32 % | ⬜ | весь чат целиком 🔶 | хвост: entire — наш Whole chat |
+| # | ключ | США, мес (12 мес) | США сейчас (авг–окт) | мир, мес | год к году | KD реальный | интент | кто ищет (выдача) | зачем |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | `export chatgpt conversation` (= export chatgpt conversations · chatgpt export conversation(s) · chatgpt conversation export) | 442 | 487 | 1325 | +0 % | 43 ✅ | ✅ 7/8 | выдача 18.11 ✅: гайды и видео «сохранить чат в PDF», Reddit «весь разговор»; рядом — история и данные целиком | ключ названия: точное вхождение 7–10 раз (канон 2.1.4) |
+| 2 | `chatgpt export` (= chatgpt exporter · export chatgpt) | 1741 | 1600 | 6508 | +357 % | 40 ✅ | 🔶 4/8 | выдача 16.11 ✅: пополам: один чат в файл (расширения, exportgpt.pro, приложение для iPhone) и весь архив (Forbes, CLI-бэкап, выгрузка данных); «ChatGPT Exporter» — ещё и имя лидера ниши | самый крупный ключ замера; голова названия — вариация без conversation |
+| 3 | `how to export chatgpt conversation` (= how to export chatgpt conversations · chatgpt how to export conversation) | 335 | 247 | 681 | +4 % | 35 ✅ | ✅ 4/7 | выдача 18.11 ✅: один чат — 4 (Reddit, видео, гайды); полная выгрузка данных — 2; Instagram — промпт «вынести контекст» (другое) | хвост ключа названия; вопрос → FAQ |
+| 4 | `chatgpt export extension` | 238 | 180 | 587 | +170 % | 0 🔶 | ✅ 7/7 | выдача 18.11 ✅: все 7 — расширения и инструменты выгрузки чата | вариация с хвостом extension |
+| 5 | `chatgpt export chat` (= chatgpt export chats · export chatgpt chat · chatgpt chat export) | 186 | 183 | 982 | +60 % | 39 🔶 | ✅ 4/7 | выдача 18.11 ✅: на грани: один чат — 4 (гайды, видео, ChatGPT Exporter); выгрузка данных — 3 | вариация: chat вместо conversation |
+| 6 | `how to export a chatgpt conversation` | 175 | 213 | 337 | +52 % | 34 🔶 | ✅ 4/7 | выдача 18.11 ✅: на грани: один чат — 4 (видео, гайд выгрузчика); вся история — 3 (Reddit, видео, Facebook) | хвост ключа названия; вопрос → FAQ |
+| 7 | `how to export chatgpt chat` | 157 | 183 | 806 | +64 % | 35 🔶 | ✅ 5/7 | выдача 18.11 ✅: один чат — 5 (видео, Reddit, гайд выгрузчика); выгрузка данных — 2 | вариация chat; вопрос |
+| 8 | `export chatgpt conversation to pdf` | 156 | 120 | 537 | -19 % | 41 🔶 | ✅ 8/8 | выдача 18.11 ✅: все 8 — чат в PDF: инструменты, видео, просьба о функции на форуме OpenAI | хвост: PDF |
+| 9 | `how to export chatgpt conversation to pdf` | 143 | 213 | 176 | +96 % | 34 🔶 | ✅ 5/7 | выдача 18.11 ✅: чат в PDF — 5; выгрузка всех чатов — 2 | хвост: PDF; вопрос |
+| 10 | `export chatgpt to claude` | 393 | 213 | 898 | новый (год назад ≈0) | 36 ✅ | 🔶 1/7 | выдача 18.11 ✅: ровно наше — 1 (memdex.ai: продолжить разговор в Claude); переезд вместе с историей — 3; только память — 3 | вариация с хвостом to claude — новое место 1.2.10; теперь единственный ключ Claude в таблице (transfer и import ушли); честно: переносим разговор, не память |
+| 11 | `how to export chatgpt conversation as pdf` (= how to export chatgpt conversations as pdf (10)) | 78 | 113 | 286 | -1 % | 1 🔶 | ✅ 6/8 | выдача 18.11 ✅: чат в PDF и печать — 6 (Reddit, видео, wikiHow, форум OpenAI); выгрузка всего — 2 | хвост: as pdf; вопрос |
+| 12 | `can you export chatgpt conversations` | 69 | 43 | 152 | +60 % | 6 🔶 | 🔶 3/7 | выдача 18.11 ✅: больше про выгрузку всех данных — 4; один чат — 3; ИИ-обзор: «да — архив целиком или расширения для отдельных чатов» | хвост; вопрос → FAQ |
+| 13 | `how to export chatgpt conversation as text` | 37 | 53 | 98 | новый (год назад ≈1) | ⬜ | ✅ 7/8 | выдача 18.11 ✅: один чат текстом — 7 (форум OpenAI просит «сохранить чат как TXT или Markdown», гайды); Facebook отвечает выгрузкой всего — 1 | хвост: text — Markdown это текст |
+| 14 | `export chatgpt conversation chrome extension` | 34 | 10 | 62 | -43 % | 15 🔶 | ✅ 9/9 | выдача 18.11 ✅: все 9 — расширения выгрузки чата | хвост: chrome extension |
+| 15 | `how to export a chat from chatgpt` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ✅ 4/7 | выдача 18.11 ✅: на грани: один чат — 4 (2 расширения в CWS, Reddit, Medium); выгрузка данных — 3 (справка OpenAI, скрипт, блог) | новый 18.11 (слово автора: «хороший ключ, 1300, почему нет?») — вместо export entire chatgpt conversation; вариация chat |
 
-Всего в Main ≈4213 поисков в месяц в США за год. По канону Main вписывается в полное описание 15–20 раз: половина — точный ключ
-названия, половина — вариации с хвостами (`2.1-meta-cws.md:91`). Строки 1, 3, 6, 8, 9, 11–15 содержат все слова названия — это
-«Broad Match» в смысле канона; строки 2, 4, 5, 7, 10 — голова названия (`chatgpt export`, `export chatgpt`) или `chat` вместо
+Всего в Main ≈4184 поисков в месяц в США за год — без строки 15: объёма Google Ads у неё нет (Semrush — 1 300). По канону Main вписывается в полное описание 15–20 раз: половина — точный ключ
+названия, половина — вариации с хвостами (`2.1-meta-cws.md:91`). Строки 1, 3, 6, 8, 9, 11–14 содержат все слова названия — это
+«Broad Match» в смысле канона; строки 2, 4, 5, 7, 10, 15 — голова названия (`chatgpt export`, `export chatgpt`) или `chat` вместо
 `conversation`: так пишут люди, и спроса у них больше всего 🧮.
 
 ## Extra — 15 (другие слова, о том же продукте)
 
-| # | ключ | США, мес (12 мес) | США сейчас (авг–окт) | мир, мес | год к году | KD реальный | кто ищет | зачем |
-|---|---|---|---|---|---|---|---|---|
-| 1 | `download chatgpt chat` (= chatgpt chat download) | 88 | 113 | 386 | +69 % | 45 🔶 | скачать чат 🔶 по словам (своей выдачи нет) | ↔ вместо transfer chatgpt to claude, из Запаса: растёт весь год (×2), сейчас ≈113; слово задачи download |
-| 2 | `how to save chatgpt conversation` (= how to save chatgpt conversations) | 392 | 300 | 772 | -35 % | 41 ✅ | выдача 18.11 ✅: 5 из 7 — сохранить один чат (расширение в CWS, гайды, видео про PDF, HTML-файл); 2 из 7 — весь аккаунт (справка OpenAI, Reddit «все мои разговоры»); ИИ-обзор делит: один чат · вся история · архив | слово задачи save (не export) |
-| 3 | `how to save chatgpt chats` (= chatgpt how to save chats) | 68 | 70 | 177 | -50 % | 7 🔶 | спрашивают, как сохранить чаты 🔶 по словам (своей выдачи нет; у how to save chatgpt conversation — 5 из 7 про один чат) | ↔ вместо import chatgpt to claude, из Запаса: ровно ≈70 в месяц весь год; save |
-| 4 | `chatgpt to pdf` | 368 | 377 | 4950 | -45 % | 40 ✅ | выдача 18.11 ✅: 8 из 8 — чат в PDF: 3 инструмента (сайт, приложение Google Play, видео про PDFCrowd) и 5 «как сделать» (Reddit, YouTube, Facebook); ИИ-обзор — печать в PDF, расширения, конвертеры | главная функция: PDF; не путать с «chatgpt pdf» — там загружают PDF в ChatGPT |
-| 5 | `how to save chatgpt conversation as pdf` | 238 | 443 | 638 | +45 % | 36 ✅ | спрашивают, как сохранить в PDF 🔶 | save + PDF; растёт |
-| 6 | `how to download chatgpt conversation` | 238 | 160 | 395 | +4 % | 37 ✅ | выдача 18.11 ✅: 5 из 7 — скачать один чат (Reddit: «весь разговор, а не пересказ»; расширение в CWS, 2 сайта-выгрузчика, видео про PDF и Word); 2 из 7 — все разговоры разом (справка OpenAI, скрипт на GitHub) | слово задачи download |
-| 7 | `how to download a chatgpt conversation` | 228 | 307 | 412 | +41 % | 42 ✅ | спрашивают, как скачать 🔶 (та же фраза без a — выдача ✅, 5 из 7 про один чат) | download; растёт |
-| 8 | `print chatgpt conversation` | 120 | 107 | 232 | -10 % | 23 🔶 | выдача 18.11 ✅: 9 из 9 по делу — как распечатать, сохранить или выгрузить чат (3 гайда, 6 видео; одно — про «ExportGPT», наше ли — ⬜); ИИ-обзор — печать браузера (Ctrl+P), ссылка, расширение | слово задачи print |
-| 9 | `chatgpt to word extension` | 112 | 77 | 563 | +115 % | 11 🔶 | выдача 18.11 ✅: 7 из 9 — чат в Word расширением (первое — чужое «ChatGPT to Word or PDF»; Reddit — «весь разговор в Word или PDF»); 2 из 9 — официальная надстройка ChatGPT for Word (другое) | Word |
-| 10 | `chatgpt to google docs extension` | 96 | 83 | 161 | +153 % | 22 🔶 | выдача 18.11 ✅: пополам — 4 из 8 вынести чат в Docs (2 расширения в CWS, 2 гайда), 4 из 8 — ChatGPT внутри Docs (дополнения, «как добавить ChatGPT в Docs») | Google Docs — новое место 1.3.0; в тексте — «чат в Google Docs», не «ChatGPT в Docs» |
-| 11 | `chatgpt to markdown` | 84 | 70 | 474 | +25 % | 29 🔶 | выдача 11.10 ✅: 9 из 9 — чат в Markdown, софт 5 из 9 | Markdown |
-| 12 | `save chatgpt conversation` (= save chatgpt conversations) | 80 | 77 | 187 | -21 % | 31 🔶 | сохранить чат 🔶 | save |
-| 13 | `chatgpt to word` | 73 | 97 | 1592 | -3 % | 32 🔶 | выдача 16.11 ✅: 7 из 9 — перенести текст в Word без потери вида; ИИ-обзор начинает с надстройки ChatGPT для Word (другое) | Word; в мире в 22 раза больше, чем в США |
-| 14 | `chatgpt to notion` | 35 | 17 | 493 | -65 % | 0 🔶 | выдача 16.11 ✅: 3 из 7 — сохранить чат в Notion расширением; 4 — интеграция и сравнение (другое) | Notion — новое место 1.3.0 |
-| 15 | `chatgpt to markdown extension` | 93 | 57 | 144 | +675 % | 24 🔶 | ищут расширение 🔶 по словам (своей выдачи нет; у chatgpt to markdown — 9 из 9 по делу) | ↔ вместо chatgpt to obsidian, из Запаса: заметки Obsidian — это файлы Markdown |
+| # | ключ | США, мес (12 мес) | США сейчас (авг–окт) | мир, мес | год к году | KD реальный | интент | кто ищет (выдача) | зачем |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | `download chatgpt chat` (= chatgpt chat download) | 88 | 113 | 386 | +69 % | 45 🔶 | ✅ 7/9 | выдача 18.11 ✅: скачать один чат — 7 (видео, форум OpenAI «скачать один чат целиком», MakeUseOf); выгрузка данных — 2; ИИ-обзор понял ключ как «скачать приложение ChatGPT» | ↔ вместо transfer chatgpt to claude, из Запаса: растёт весь год (×2), сейчас ≈113; слово задачи download |
+| 2 | `how to save chatgpt conversation` (= how to save chatgpt conversations) | 392 | 300 | 772 | -35 % | 41 ✅ | ✅ 5/7 | выдача 18.11 ✅: один чат — 5 (расширение в CWS, Medium, видео про PDF, Kaggle, HTML-файл); весь аккаунт — 2 (справка OpenAI, Reddit «все мои разговоры») | слово задачи save (не export) |
+| 3 | `how to save chatgpt chats` (= chatgpt how to save chats) | 68 | 70 | 177 | -50 % | 7 🔶 | ✅ 4/7 | выдача 18.11 ✅: на грани: один чат — 4 (форум OpenAI просит «выгрузку одного разговора»); все чаты и данные — 3 | ↔ вместо import chatgpt to claude, из Запаса: ровно ≈70 в месяц весь год; save |
+| 4 | `chatgpt to pdf` | 368 | 377 | 4950 | -45 % | 40 ✅ | ✅ 8/8 | выдача 18.11 ✅: все 8 — чат в PDF: 3 инструмента (сайт, приложение Google Play, видео про PDFCrowd), 5 «как сделать» (Reddit, YouTube, Facebook) | главная функция: PDF; не путать с «chatgpt pdf» — там загружают PDF в ChatGPT |
+| 5 | `how to save chatgpt conversation as pdf` | 238 | 443 | 638 | +45 % | 36 ✅ | ✅ 7/8 | выдача 18.11 ✅: чат в PDF — 7 (гайды, расширения, Reddit «длинный чат печатается пустым»); скрипт для всех чатов — 1 | save + PDF; растёт |
+| 6 | `how to download chatgpt conversation` | 238 | 160 | 395 | +4 % | 37 ✅ | ✅ 5/7 | выдача 18.11 ✅: один чат — 5 (Reddit «весь разговор, а не пересказ», расширение в CWS, 2 сайта-выгрузчика, видео); все разговоры разом — 2 (справка OpenAI, скрипт) | слово задачи download |
+| 7 | `how to download a chatgpt conversation` | 228 | 307 | 412 | +41 % | 42 ✅ | ✅ 7/8 | выдача 18.11 ✅: один чат, чаще PDF — 7; выгрузка данных — 1 | download; растёт |
+| 8 | `print chatgpt conversation` | 120 | 107 | 232 | -10 % | 23 🔶 | ✅ 8/9 | выдача 18.11 ✅: печать и PDF — 8 (гайды, 6 видео; одно — про «ExportGPT», наше ли ⬜); Facebook отвечает выгрузкой всей истории — 1 | слово задачи print |
+| 9 | `chatgpt to word extension` | 112 | 77 | 563 | +115 % | 11 🔶 | ✅ 7/9 | выдача 18.11 ✅: чат в Word — 7 (первое — чужое «ChatGPT to Word or PDF»; Reddit «весь разговор в Word или PDF»); официальная надстройка ChatGPT for Word — 2 | Word |
+| 10 | `chatgpt to google docs extension` | 96 | 83 | 161 | +153 % | 22 🔶 | 🔶 4/8 | выдача 18.11 ✅: пополам: чат в Docs — 4 (2 расширения в CWS, 2 гайда); ChatGPT внутри Docs — 4 (дополнения, «как добавить ChatGPT в Docs») | Google Docs — новое место 1.3.0; в тексте — «чат в Google Docs», не «ChatGPT в Docs» |
+| 11 | `chatgpt to markdown` | 84 | 70 | 474 | +25 % | 29 🔶 | ✅ 6/9 | выдача 11.10 ✅: чат в Markdown — 6 (расширения, скрипты); вся история в Markdown — 3 (Obsidian, конвертеры архива) | Markdown |
+| 12 | `save chatgpt conversation` (= save chatgpt conversations) | 80 | 77 | 187 | -21 % | 31 🔶 | ✅ 8/8 | выдача 18.11 ✅: все 8 — сохранить чат, в основном в PDF (видео, гайды) | save |
+| 13 | `chatgpt to word` | 73 | 97 | 1592 | -3 % | 32 🔶 | ✅ 7/9 | выдача 16.11 ✅: ответ или чат в Word без потери вида — 7; «создать документ через ChatGPT» — 1; загрузить Word в ChatGPT — 1 (другое) | Word; в мире в 22 раза больше, чем в США |
+| 14 | `chatgpt to notion` | 35 | 17 | 493 | -65 % | 0 🔶 | 🔶 2/7 | выдача 16.11 ✅: сохранить чат в Notion — 2 (расширение, видео); ChatGPT внутри Notion — 4 (интеграции, MCP); сравнение Notion AI и ChatGPT — 1 (другое) | Notion — новое место 1.3.0 |
+| 15 | `chatgpt to markdown extension` | 93 | 57 | 144 | +675 % | 24 🔶 | ✅ 9/9 | выдача 18.11 ✅: все 9 — расширения «чат в Markdown» | ↔ вместо chatgpt to obsidian, из Запаса: заметки Obsidian — это файлы Markdown |
 
 Всего в Extra ≈2313 в месяц в США. Здесь слова задач — save, download, print — и новые места: Word, Google Docs, Markdown,
 Notion. Claude держит Main 10, Obsidian — через Markdown.
@@ -89,6 +90,92 @@ Notion. Claude держит Main 10, Obsidian — через Markdown.
 - `chatgpt to google docs` — 39 в мес (сейчас 30), мир 188, KD 21 🔶 · Google Docs
 - `chatgpt to pdf extension` — 534 в мес (сейчас 70), мир 1583, KD 35 🔶 · большой за год, но падает весь год: 1300 в ноябре 2025 → 30 в октябре 2026
 - `save chatgpt chrome extension` — 242 в мес (сейчас 33), мир 349, KD 46 🔶 · почти ноль с сентября
+- `export entire chatgpt conversation` — 29 в мес (сейчас 37), мир 57, KD ⬜ · был Main 15 → место отдано how to export a chat from chatgpt (слово автора 18.11); хвост: entire — наш Whole chat
+
+## Объём: было и стало (19.11, вопрос автора)
+
+Сколько поисков в месяц ловят ключи. Мерка одна: Google Ads через DataForSEO, США и мир. «Год» — среднее за ноябрь 2025 →
+октябрь 2026, «сейчас» — август–октябрь 2026. Скрипт `bylo-stalo.py` ($0, без сети), строки «было» — `bylo-v-tekste.csv`.
+
+| | США, год | США, сейчас | мир, год | ключей |
+|---|---|---|---|---|
+| было: ключи в нынешнем тексте листинга | 6 195 | 4 447 | 22 761 | 22 |
+| было без имени чужого расширения | 4 809 | 4 214 | 21 221 | 20 |
+| стало: Main + Extra | 6 497 | 6 213 | 25 011 | 29 из 30 |
+
+- **«Было»** — какие из 910 ключей замера 16.11 стоят в нынешнем тексте (название + краткое + полное, en), точной фразой, в
+  том числе внутри длинных фраз (так канон считает вхождения, 2.1.4). Таблицы ключей у старого листинга нет.
+- В «было» почти вся разница между «год» и «сейчас» (≈1 590 из 1 750) — два падающих ключа: имя чужого расширения
+  `chatgpt print and save extension` (1 324 за год → 203 сейчас) и `chatgpt to pdf extension` (534 → 70).
+- **Чего не покрывает:** фразы старого текста вне замера 16.11 (`chatgpt downloader`, `ai exporter`…) — ⬜, поэтому «было» —
+  нижняя граница. «Стало» — список ключей, а не текст. Честное сравнение — тем же скриптом по готовому новому тексту; новый
+  ключ `how to export a chat from chatgpt` пока без объёма Google (Semrush: 1 300).
+
+## Интент — насколько ключи про нашу боль (18.11)
+
+- **Слово автора 18.11:** «давай мы теперь померяем интенты… насколько они соответствуют нам… Ключи должны соответствовать… той
+  боли, которую мы закрываем».
+- **Наша боль:** вынести один разговор ChatGPT — в файл (PDF, Word, Markdown) или в другое место (Google Docs, Notion, Obsidian,
+  Claude) — целиком или частями.
+- **Как мерил:** выдача Google США (компьютер, верхние 10) у всех 30 ключей Main и Extra: 19 куплены 18.11 вечером, 7 — днём 18.11,
+  3 — 16.11, 1 — 11.10. Каждый органический результат — одна буква:
+  - **O** — наш случай: один чат — сохранить, скачать, распечатать, в PDF, Word или Markdown; расширения-выгрузчики; просьбы о такой
+    кнопке на форуме OpenAI;
+  - **A** — рядом: вся история или данные аккаунта, все чаты разом, бэкап; ChatGPT внутри Docs, Word или Notion; переезд вместе с
+    историей;
+  - **X** — другое: только память, загрузить файл в ChatGPT, сравнение сервисов.
+  Страница судится по заголовку. Страницы, которые просто повторяют запрос (Facebook «answers», Instagram, TikTok), — по сниппету,
+  то есть по ответу.
+- **Отметка ключа:** ✅ — наш случай больше половины результатов; ✗ — другое половина и больше; иначе 🔶. Ярлык интента Semrush
+  не брал. Буквы каждого ключа — в последнем столбце и в `sobrat.py` (INTENT); сами выдачи — `serp.md` и `raw/`.
+- **Итог: ✅ 25, 🔶 5, ✗ 0.** Ключей с чужой болью нет.
+- **🔶 — пять:**
+  - `chatgpt export` (4 из 8) и `can you export chatgpt conversations` (3 из 7) — пополам с выгрузкой всего аккаунта;
+  - `chatgpt to google docs extension` (4 из 8) — пополам с «ChatGPT внутри Docs»;
+  - `chatgpt to notion` (2 из 7) — больше про ChatGPT внутри Notion;
+  - `export chatgpt to claude` (1 из 7) — переезд с историей и памятью; ровно наше — одна страница (memdex.ai, «продолжить разговор
+    ChatGPT в Claude»).
+- **На грани ✅ (4 из 7):** `how to export chatgpt conversation`, `chatgpt export chat`, `how to export a chatgpt conversation`,
+  `how to export a chat from chatgpt`, `how to save chatgpt chats` — остальные результаты у них про выгрузку всей истории.
+
+| ключ | где | интент | наш случай | рядом | другое | выдача | буквы по порядку |
+|---|---|---|---|---|---|---|---|
+| `export chatgpt conversation` | Main | ✅ | 7 из 8 | 1 | 0 | 18.11 | OOOOOOAO |
+| `chatgpt export` | Main | 🔶 | 4 из 8 | 4 | 0 | 16.11 | AOAOOAAO |
+| `how to export chatgpt conversation` | Main | ✅ | 4 из 7 | 2 | 1 | 18.11 | AAOOOXO |
+| `chatgpt export extension` | Main | ✅ | 7 из 7 | 0 | 0 | 18.11 | OOOOOOO |
+| `chatgpt export chat` | Main | ✅ | 4 из 7 | 3 | 0 | 18.11 | OAOOAAO |
+| `how to export a chatgpt conversation` | Main | ✅ | 4 из 7 | 3 | 0 | 18.11 | AOOAOAO |
+| `how to export chatgpt chat` | Main | ✅ | 5 из 7 | 2 | 0 | 18.11 | OOOOOAA |
+| `export chatgpt conversation to pdf` | Main | ✅ | 8 из 8 | 0 | 0 | 18.11 | OOOOOOOO |
+| `how to export chatgpt conversation to pdf` | Main | ✅ | 5 из 7 | 2 | 0 | 18.11 | OOAAOOO |
+| `export chatgpt to claude` | Main | 🔶 | 1 из 7 | 3 | 3 | 18.11 | AOAXXAX |
+| `how to export chatgpt conversation as pdf` | Main | ✅ | 6 из 8 | 2 | 0 | 18.11 | OOAOOOAO |
+| `can you export chatgpt conversations` | Main | 🔶 | 3 из 7 | 4 | 0 | 18.11 | OAAAOOA |
+| `how to export chatgpt conversation as text` | Main | ✅ | 7 из 8 | 1 | 0 | 18.11 | OOOAOOOO |
+| `export chatgpt conversation chrome extension` | Main | ✅ | 9 из 9 | 0 | 0 | 18.11 | OOOOOOOOO |
+| `how to export a chat from chatgpt` | Main | ✅ | 4 из 7 | 3 | 0 | 18.11 | AOOAOOA |
+| `download chatgpt chat` | Extra | ✅ | 7 из 9 | 2 | 0 | 18.11 | OOOOOAOOA |
+| `how to save chatgpt conversation` | Extra | ✅ | 5 из 7 | 2 | 0 | 18.11 | AOAOOOO |
+| `how to save chatgpt chats` | Extra | ✅ | 4 из 7 | 3 | 0 | 18.11 | OOOAAAO |
+| `chatgpt to pdf` | Extra | ✅ | 8 из 8 | 0 | 0 | 18.11 | OOOOOOOO |
+| `how to save chatgpt conversation as pdf` | Extra | ✅ | 7 из 8 | 1 | 0 | 18.11 | OOOOOOOA |
+| `how to download chatgpt conversation` | Extra | ✅ | 5 из 7 | 2 | 0 | 18.11 | OAOAOOO |
+| `how to download a chatgpt conversation` | Extra | ✅ | 7 из 8 | 1 | 0 | 18.11 | OOOAOOOO |
+| `print chatgpt conversation` | Extra | ✅ | 8 из 9 | 1 | 0 | 18.11 | OOOOAOOOO |
+| `chatgpt to word extension` | Extra | ✅ | 7 из 9 | 2 | 0 | 18.11 | OAOOOAOOO |
+| `chatgpt to google docs extension` | Extra | 🔶 | 4 из 8 | 4 | 0 | 18.11 | OOAAAOOA |
+| `chatgpt to markdown` | Extra | ✅ | 6 из 9 | 3 | 0 | 11.10 | OAAAOOOOO |
+| `save chatgpt conversation` | Extra | ✅ | 8 из 8 | 0 | 0 | 18.11 | OOOOOOOO |
+| `chatgpt to word` | Extra | ✅ | 7 из 9 | 1 | 1 | 16.11 | OOOOOOAXO |
+| `chatgpt to notion` | Extra | 🔶 | 2 из 7 | 4 | 1 | 16.11 | AXOAOAA |
+| `chatgpt to markdown extension` | Extra | ✅ | 9 из 9 | 0 | 0 | 18.11 | OOOOOOOOO |
+
+**Что сдвинулось.**
+- По интенту — ничего: ✗ не получил ни один ключ, замены из Запаса не понадобились.
+- По слову автора 18.11 («хороший ключ, 1300, почему нет?»): `how to export a chat from chatgpt` — в Main 15 вместо
+  `export entire chatgpt conversation`, тот — в Запас. Интент нового ключа ✅ на грани (4 из 7). Объём Google Ads ⬜: Labs
+  DataForSEO истории по нему не знает ($0,012 ушло без данных), мира в Labs нет совсем; 1 300 — это Semrush за октябрь.
 
 ## KD — сложность в Google (18.11)
 
@@ -100,7 +187,8 @@ Notion. Claude держит Main 10, Obsidian — через Markdown.
   - Semrush, август–октябрь — Keyword Overview с `date=` у 10 голов (5 Main + 5 Extra по объёму США), 30 страниц по одной: KD у 9,
     август = сентябрь = октябрь у всех 9. У `chatgpt export extension` Semrush KD не знает ни в одном месяце.
   - DataForSEO — один прогон на 43 ключа: KD у 35, $0,017.
-  - Итого KD реальный есть у 38 ключей из 43: все три замера (✅) — у 9, неполный (🔶) — у 29, нет ни у кого (⬜) — у 5.
+  - Итого KD реальный есть у 38 ключей из 43: все три замера (✅) — у 9, неполный (🔶) — у 29, нет ни у кого (⬜) — у 5. Новый
+    ключ Main 15 (вечер 18.11) в замерах не был — ⬜.
 - **Картина сменилась.** По одному DataForSEO почти всё выглядело лёгким (KD 0–15). Semrush ставит головы на 33–43 ✅, и в Main и
   Extra 17 ключей из 28 с числом — 30 и выше. DataForSEO здесь почти везде ниже Semrush — на 11–44 пункта (у ключа названия 8 против
   43); выше только у `download chatgpt chat` (45 против 35). Калибровка студии (KD ≈ 0,84·DFS + 26) дала бы 26–39 — ближе к Semrush 🧮.
@@ -135,7 +223,7 @@ Notion. Claude держит Main 10, Obsidian — через Markdown.
 | `can you export chatgpt conversations` | Main | n/a | не снимали | 6 | **6** | 🔶 только DFS: Semrush KD не знает |
 | `how to export chatgpt conversation as text` | Main | n/a | не снимали | n/a | **⬜** | ⬜ нет ни у кого |
 | `export chatgpt conversation chrome extension` | Main | n/a | не снимали | 15 | **15** | 🔶 только DFS: Semrush KD не знает |
-| `export entire chatgpt conversation` | Main | n/a | не снимали | n/a | **⬜** | ⬜ нет ни у кого |
+| `how to export a chat from chatgpt` | Main | не снимали | не снимали | не снимали | **⬜** | ⬜ не снимали (ключ новый) |
 | `download chatgpt chat` | Extra | 35 | не снимали | 45 | **45** | 🔶 Semrush ноя + DFS; месяцы не сняты |
 | `how to save chatgpt conversation` | Extra | 41 | 41 (авг · сен · окт) | 10 | **41** | ✅ Semrush ноя + авг–окт + DFS |
 | `how to save chatgpt chats` | Extra | n/a | не снимали | 7 | **7** | 🔶 только DFS: Semrush KD не знает |
@@ -160,6 +248,7 @@ Notion. Claude держит Main 10, Obsidian — через Markdown.
 | `chatgpt to google docs` | запас | 21 | не снимали | 0 | **21** | 🔶 Semrush ноя + DFS; месяцы не сняты |
 | `chatgpt to pdf extension` | запас | 35 | не снимали | 8 | **35** | 🔶 Semrush ноя + DFS; месяцы не сняты |
 | `save chatgpt chrome extension` | запас | 46 | не снимали | 2 | **46** | 🔶 Semrush ноя + DFS; месяцы не сняты |
+| `export entire chatgpt conversation` | запас | n/a | не снимали | n/a | **⬜** | ⬜ нет ни у кого |
 | `transfer chatgpt to claude` | не взяли | 24 | не снимали | 3 | **24** | 🔶 Semrush ноя + DFS; месяцы не сняты |
 | `import chatgpt to claude` | не взяли | 36 | не снимали | 0 | **36** | 🔶 Semrush ноя + DFS; месяцы не сняты |
 | `how to transfer chatgpt to claude` | не взяли | 36 | не снимали | n/a | **36** | 🔶 только Semrush ноя |
@@ -201,22 +290,44 @@ Notion. Claude держит Main 10, Obsidian — через Markdown.
   переезжают целиком; память переносит встроенный импорт Claude, а разговоры им не переносятся — в выдаче об этом прямо пишут 🔶.
   Наше место — «продолжить этот разговор в Claude», не «перенести память». Поэтому в таблице один ключ Claude — Main 10; растёт после
   волны только `transfer chats from chatgpt to claude` (сейчас ≈197, в Запасе, своей выдачи нет 🔶).
+- **Один чат, не архив:** у общих ключей с export ИИ-обзор Google начинает с родной выгрузки аккаунта (ZIP со всей историей), и в
+  выдаче её много (буква A в разделе «Интент»). Текст должен сказать прямо: один разговор — читаемым файлом или в нужное место, без
+  архива всего аккаунта.
 - **Бренды** (Word, Google Docs, Notion, Obsidian, Claude) — только внутри фраз, не списком: отказ Keyword Spam 04.10 был за перечни.
   Правило Google — не больше 5 повторов ключа; канон хочет ключ названия 15–20 раз. Это противоречие держать в уме при Тургеневе.
 - **В нынешнем тексте** (en, 3 723 знака): «works directly in your browser» — неправда для PDF (он делается на нашем сервере), правда
   теперь для Word, Markdown и передач; «focuses specifically on PDF… too many formats» — устарело.
 
+## Тексты и проверка на спам (19.11)
+
+- **v1** (`teksty/v1.md`) — слово автора 19.11: «Да, утверждаю, ключи и этот текст».
+- **v2** — заглавные: канон убирает их в половине вхождений ключей, и в кратком, и в полном (`2.1-meta-cws.md:102`); в
+  кратком не было сделано — заметил автор.
+- **v3–v5** — Text Checker (канон `2.1b-textchecker-2026-11-19.md`): из жёлтой зоны «близко к переспаму» выведены chat,
+  export, conversation и file. Правились только общие слова, кроме одного ключа: `export chatgpt conversation chrome
+  extension` (34 в мес, самый малый из 30) ушёл из текста — его export и conversation держали жёлтую зону.
+- **Итог v5** (`teksty/v5.md`): красных нет; в жёлтой одно слово из названия — chatgpt 2,78 % (канон это допускает).
+  Краткое 128 знаков, полное 4 453; в тексте 29 ключей из 30, вхождений Main 21, Extra 15; строчными — треть ключей в
+  кратком и почти половина в полном.
+- Оценка риска переспама все пять раз была недоступна (сбой у Ашманова), проверки не списаны. Журнал —
+  `teksty/textchecker.log`; локальный счёт — `schet.py` (совпадает с сервисом до единицы по главным словам).
+
 ## Пробелы и сколько стоит закрыть
 
-- **Выдачи 9 ключей сняты 18.11** ($0,018, `serp.md`). Без своей выдачи остались три новых в таблице — `download chatgpt chat`,
-  `how to save chatgpt chats`, `chatgpt to markdown extension` (у соседних фраз выдача по делу ✅) — и кандидат
-  `transfer chats from chatgpt to claude`: ≈$0,002 штука.
+- **Выдачи есть у всех 30 ключей Main и Extra:** 26 сняты 18.11 (`serp.md`), 3 — 16.11, 1 — 11.10. Без выдачи — Запас (кроме `chatgpt to google docs`,
+  11.10), в том числе кандидат `transfer chats from chatgpt to claude`: ≈$0,002 штука.
+- **Объём Google Ads у `how to export a chat from chatgpt`** ⬜: Labs не знает, мира в Labs нет. США и мир — задача Google Ads
+  ≈$0,05–0,09 (выше потолка $0,02), по слову автора; в ту же задачу ложатся `chatgpt exporter browser extension` и
+  `can i export a chatgpt conversation`.
+- **Тёзка в CWS:** карточка «ExportGPT: Export ChatGPT Conversation» (`jamcijfplmgbngnppdhmbbogjebgfimn`) стоит 2-й в выдаче
+  `how to export a chat from chatgpt` и 4-й у `chatgpt export extension`, а ИИ-обзор `chatgpt export extension` описывает ExportGPT
+  с боковой панелью кнопок. Наша ли это карточка — ⬜ (сверить ID).
 - **KD за август–октябрь** снят только у 10 голов; у остальных 33 ключей — ноябрь Semrush и DataForSEO (🔶). Добрать — Keyword
   Overview с `date=`, 3 страницы на ключ, $0 в пробном Semrush; аккаунт сегодня уже отключали, так что только по слову автора.
   Semrush не знает KD 15 ключей (кнопку «refresh» не нажимали); у 5 ключей KD нет ни у кого.
-- **Ключи, которых нет в замере 16.11,** — их показал Semrush на странице `chatgpt export` (октябрь): `how to export a chat from chatgpt`
-  (1 300 в месяц по Semrush, KD нет), `chatgpt exporter browser extension` (390, KD 39), `can i export a chatgpt conversation` (170,
-  KD 32). Объёма Google Ads и выдачи у них нет ⬜ — новые, не проверены.
+- **Ключи, которых нет в замере 16.11,** — их показал Semrush на странице `chatgpt export` (октябрь). `how to export a chat from
+  chatgpt` (1 300 в месяц по Semrush) взят в Main по слову автора; ещё два — `chatgpt exporter browser extension` (390, KD 39) и
+  `can i export a chatgpt conversation` (170, KD 32) — без объёма Google Ads и без выдачи ⬜.
 - **Канон называет источник Main — Broad Match в Semrush;** у нас подсказки DataForSEO (на этом же листинге 07-11 они повторили Main и
   Extra автора из Semrush почти один в один) 🧮. Строго по канону — выгрузка Broad Match «export chatgpt conversation» из пробного
   Semrush, **$0** руками.

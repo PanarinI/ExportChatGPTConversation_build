@@ -1,0 +1,65 @@
+Export ChatGPT Conversation
+Easily export chatgpt conversation in one click: ChatGPT to PDF or Word file, or export chatgpt to Claude and continue the chat.
+📦 ChatGPT export, chat by chat
+Looking for how to export a chat from ChatGPT as a clean, readable file? This chatgpt export extension takes one whole thread, every question and every answer, and turns it into PDF or Word. Or it hands everything to another app, so you can go on working there.
+It does not pull the archive of your entire account: you get the thread that is open in front of you.
+
+⚡ How it works
+1️⃣ Go to the dialogue you want to keep
+2️⃣ Click the arrow on the extension's button at the top of the page
+3️⃣ Pick PDF, Word or Claude
+4️⃣ Press the button, then save the file or paste the text
+
+📄 PDF with real pages
+If you wonder how to export chatgpt conversation to pdf without screenshots and copy-paste, pick PDF. The pages are set for reading and printing:
+➤ contents and bookmarks, one per question
+➤ page numbers, calm margins and page breaks
+➤ formulas, tables and code the way you see them on screen
+➤ pictures from your questions and from the answers
+➤ a light sheet by default, a dark one if you like
+
+📝 Word and Google Docs
+Need to know how to download chatgpt conversation as an editable file? As a chatgpt to word extension, it builds the .docx right in your browser. Headings, lists, tables, code, links, pictures and formulas arrive as Word's own, ready to edit.
+Prefer Google Docs? Choose it under the arrow on the Word tile. Everything is copied with its formatting and a new document opens, so all that is left is to paste. That makes it a simple chatgpt to google docs extension. Pictures stay in the Word file; in Docs a short note marks where each one was.
+
+🤖 Go on in another app
+Want another assistant to go on with the same thread? Choose Claude: every question and answer is copied with one line on top, and claude.ai opens for you to paste it.
+ChatGPT to Notion works the same way: a new Notion page opens, and the text is waiting in your clipboard. For Obsidian, a new note with the whole text appears in your vault by itself.
+
+📋 Plain text for any editor
+Wondering how to export chatgpt conversation as text? Choose Markdown file: plain text with headings that opens anywhere. A ChatGPT to Markdown extension is handy for notes, wikis and other AI tools. Instead of carrying pictures, it marks where each picture was.
+
+✂️ Whole chat or only what matters
+Not sure how to export chatgpt chat without the small talk around it? Under What goes in, keep Whole chat or choose Pick blocks and tick the questions and answers you want. Long threads are read from the first message to the last before the file is made, and you see how many messages have been read.
+
+⚙️ Settings with a live preview
+1. Three ready styles: Chat, Document and Compact
+2. Font, text size and line spacing
+3. Questions as bubbles, as headings, or hidden for answers only
+4. Paper size, margins, page breaks or one long page
+5. A header with the title, the date and a link back to the source
+The first page of your file is drawn next to the settings and changes as you click.
+
+💡 How to save chatgpt chats you will need later
+• keep a long research thread as a PDF you can search
+• print chatgpt conversation for a meeting or a lesson
+• send a whole thread to a colleague as one tidy file
+• keep code answers with their indentation
+• move a draft into Word or Docs to finish it
+
+🔒 What leaves your computer
+Word and Markdown files, and the copies for other apps, are made right in your browser. A PDF is made on our print server: the chat is sent there to build the pages and comes back as a file. No account and no sign-up.
+
+❓ Questions and answers
+📌 How to export a ChatGPT conversation?
+💡 Open the thread, open the menu, pick PDF, Word or Claude and press the button. Next time the main button goes straight to your last choice.
+📌 Can you export ChatGPT conversations one at a time?
+💡 Yes, one dialogue at a time. The built-in data download of your account sends the whole history as a ZIP archive instead.
+📌 How to save ChatGPT conversation as PDF with pictures and formulas?
+💡 Choose PDF: pictures, formulas, tables and code stay in their places.
+📌 How to download a ChatGPT conversation that is very long?
+💡 The extension scrolls through the whole thread and shows how many messages it has read so far.
+📌 How to export ChatGPT conversation as PDF in dark mode?
+💡 Pick the dark sheet in Settings; by default the page is light.
+
+🎯 One chat, one click: this chrome extension lets you download chatgpt chat as a file to read, print or share.
