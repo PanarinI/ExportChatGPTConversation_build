@@ -1,0 +1,948 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "isoYearIsoWeek"
+  },
+  {
+   "name": "customEvent:reason"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "eventCount",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "totalUsers",
+   "type": "TYPE_INTEGER"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "202642"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "28"
+    },
+    {
+     "value": "9"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202644"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "18"
+    },
+    {
+     "value": "6"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202632"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "16"
+    },
+    {
+     "value": "7"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202638"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "15"
+    },
+    {
+     "value": "7"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202633"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "13"
+    },
+    {
+     "value": "9"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202640"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "13"
+    },
+    {
+     "value": "10"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202642"
+    },
+    {
+     "value": "http_400"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "12"
+    },
+    {
+     "value": "2"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202636"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "11"
+    },
+    {
+     "value": "7"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202645"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "11"
+    },
+    {
+     "value": "8"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202646"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "10"
+    },
+    {
+     "value": "8"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202633"
+    },
+    {
+     "value": "http_400"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "8"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202639"
+    },
+    {
+     "value": "http_400"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "8"
+    },
+    {
+     "value": "2"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202643"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "8"
+    },
+    {
+     "value": "4"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202647"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "8"
+    },
+    {
+     "value": "5"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202638"
+    },
+    {
+     "value": "http_400"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "7"
+    },
+    {
+     "value": "5"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202637"
+    },
+    {
+     "value": "http_400"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "6"
+    },
+    {
+     "value": "4"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202638"
+    },
+    {
+     "value": "http_500"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "6"
+    },
+    {
+     "value": "3"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202639"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "6"
+    },
+    {
+     "value": "5"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202641"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "5"
+    },
+    {
+     "value": "4"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202631"
+    },
+    {
+     "value": "(not set)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "4"
+    },
+    {
+     "value": "2"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202637"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "4"
+    },
+    {
+     "value": "3"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202635"
+    },
+    {
+     "value": "http_500"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "3"
+    },
+    {
+     "value": "2"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202631"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202632"
+    },
+    {
+     "value": "http_400"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202634"
+    },
+    {
+     "value": "http_400"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202635"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    },
+    {
+     "value": "2"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202636"
+    },
+    {
+     "value": "http_500"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202636"
+    },
+    {
+     "value": "too_large"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    },
+    {
+     "value": "2"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202639"
+    },
+    {
+     "value": "http_500"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202640"
+    },
+    {
+     "value": "http_400"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202640"
+    },
+    {
+     "value": "too_large"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202645"
+    },
+    {
+     "value": "http_500"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202646"
+    },
+    {
+     "value": "http_500"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    },
+    {
+     "value": "2"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202647"
+    },
+    {
+     "value": "too_large"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    },
+    {
+     "value": "2"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202633"
+    },
+    {
+     "value": "http_500"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202634"
+    },
+    {
+     "value": "http_500"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202634"
+    },
+    {
+     "value": "network"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202634"
+    },
+    {
+     "value": "too_large"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202635"
+    },
+    {
+     "value": "http_400"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202636"
+    },
+    {
+     "value": "http_400"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202638"
+    },
+    {
+     "value": "too_large"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202640"
+    },
+    {
+     "value": "http_403"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202640"
+    },
+    {
+     "value": "http_500"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202641"
+    },
+    {
+     "value": "http_403"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202642"
+    },
+    {
+     "value": "client"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202642"
+    },
+    {
+     "value": "http_403"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202644"
+    },
+    {
+     "value": "http_403"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202644"
+    },
+    {
+     "value": "too_large"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202645"
+    },
+    {
+     "value": "http_403"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202648"
+    },
+    {
+     "value": "too_large"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  }
+ ],
+ "rowCount": 50,
+ "metadata": {
+  "currencyCode": "USD",
+  "timeZone": "America/Los_Angeles",
+  "dataTruncationReasons": [
+   {
+    "dataTruncationType": "DATA_TRUNCATION_TYPE_DATE_RANGE",
+    "dataTruncationDateRanges": [
+     {
+      "startDate": "2026-07-20",
+      "endDate": "2026-07-30"
+     }
+    ]
+   },
+   {
+    "dataTruncationType": "DATA_TRUNCATION_TYPE_DATE_RANGE",
+    "dataTruncationDateRanges": [
+     {
+      "startDate": "2026-07-20",
+      "endDate": "2026-07-30"
+     }
+    ]
+   }
+  ]
+ },
+ "kind": "analyticsData#runReport"
+}

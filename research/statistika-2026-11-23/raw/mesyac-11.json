@@ -1,0 +1,160 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "eventName"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "eventCount",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "totalUsers",
+   "type": "TYPE_INTEGER"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "export_completed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1067"
+    },
+    {
+     "value": "307"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "session_start"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "289"
+    },
+    {
+     "value": "255"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "page_view"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "283"
+    },
+    {
+     "value": "255"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "scroll"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "271"
+    },
+    {
+     "value": "246"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "first_visit"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "248"
+    },
+    {
+     "value": "248"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "user_engagement"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "168"
+    },
+    {
+     "value": "157"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "wp_export_click"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "107"
+    },
+    {
+     "value": "57"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "export_selected_used"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "56"
+    },
+    {
+     "value": "31"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "export_failed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "36"
+    },
+    {
+     "value": "27"
+    }
+   ]
+  }
+ ],
+ "rowCount": 9,
+ "metadata": {
+  "currencyCode": "USD",
+  "timeZone": "America/Los_Angeles"
+ },
+ "kind": "analyticsData#runReport"
+}

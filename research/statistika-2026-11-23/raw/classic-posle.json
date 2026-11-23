@@ -1,0 +1,334 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "date"
+  },
+  {
+   "name": "customEvent:layout"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "eventCount",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "totalUsers",
+   "type": "TYPE_INTEGER"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "20261115"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "108"
+    },
+    {
+     "value": "25"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261116"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "93"
+    },
+    {
+     "value": "28"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261120"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "83"
+    },
+    {
+     "value": "29"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261111"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "64"
+    },
+    {
+     "value": "23"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261114"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "58"
+    },
+    {
+     "value": "11"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261110"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "52"
+    },
+    {
+     "value": "26"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261117"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "45"
+    },
+    {
+     "value": "21"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261122"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "44"
+    },
+    {
+     "value": "24"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261119"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "43"
+    },
+    {
+     "value": "24"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261112"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "41"
+    },
+    {
+     "value": "20"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261121"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "40"
+    },
+    {
+     "value": "21"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261118"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "34"
+    },
+    {
+     "value": "25"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261113"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "16"
+    },
+    {
+     "value": "13"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261123"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "9"
+    },
+    {
+     "value": "4"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261115"
+    },
+    {
+     "value": "classic"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    },
+    {
+     "value": "2"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261118"
+    },
+    {
+     "value": "classic"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261121"
+    },
+    {
+     "value": "classic"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  }
+ ],
+ "rowCount": 17,
+ "metadata": {
+  "currencyCode": "USD",
+  "timeZone": "America/Los_Angeles"
+ },
+ "kind": "analyticsData#runReport"
+}

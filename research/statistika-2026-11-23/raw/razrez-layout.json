@@ -1,0 +1,316 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "eventName"
+  },
+  {
+   "name": "customEvent:layout"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "eventCount",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "totalUsers",
+   "type": "TYPE_INTEGER"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "export_completed"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1056"
+    },
+    {
+     "value": "303"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "session_start"
+    },
+    {
+     "value": "(not set)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "276"
+    },
+    {
+     "value": "243"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "page_view"
+    },
+    {
+     "value": "(not set)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "269"
+    },
+    {
+     "value": "243"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "scroll"
+    },
+    {
+     "value": "(not set)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "259"
+    },
+    {
+     "value": "236"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "first_visit"
+    },
+    {
+     "value": "(not set)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "236"
+    },
+    {
+     "value": "236"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "user_engagement"
+    },
+    {
+     "value": "(not set)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "161"
+    },
+    {
+     "value": "150"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "wp_export_click"
+    },
+    {
+     "value": "(not set)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "104"
+    },
+    {
+     "value": "55"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "export_selected_used"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "56"
+    },
+    {
+     "value": "31"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "export_failed"
+    },
+    {
+     "value": "pair"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "37"
+    },
+    {
+     "value": "27"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "export_completed"
+    },
+    {
+     "value": "classic"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "20"
+    },
+    {
+     "value": "9"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "page_view"
+    },
+    {
+     "value": ""
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "16"
+    },
+    {
+     "value": "14"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "session_start"
+    },
+    {
+     "value": ""
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "16"
+    },
+    {
+     "value": "14"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "first_visit"
+    },
+    {
+     "value": ""
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "14"
+    },
+    {
+     "value": "14"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "scroll"
+    },
+    {
+     "value": ""
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "14"
+    },
+    {
+     "value": "12"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "user_engagement"
+    },
+    {
+     "value": ""
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "8"
+    },
+    {
+     "value": "8"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "wp_export_click"
+    },
+    {
+     "value": ""
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "3"
+    },
+    {
+     "value": "2"
+    }
+   ]
+  }
+ ],
+ "rowCount": 16,
+ "metadata": {
+  "currencyCode": "USD",
+  "timeZone": "America/Los_Angeles"
+ },
+ "kind": "analyticsData#runReport"
+}

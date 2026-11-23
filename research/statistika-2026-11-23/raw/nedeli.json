@@ -1,0 +1,658 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "isoYearIsoWeek"
+  },
+  {
+   "name": "eventName"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "eventCount",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "totalUsers",
+   "type": "TYPE_INTEGER"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "202643"
+    },
+    {
+     "value": "export_completed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "480"
+    },
+    {
+     "value": "105"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202646"
+    },
+    {
+     "value": "export_completed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "401"
+    },
+    {
+     "value": "116"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202647"
+    },
+    {
+     "value": "export_completed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "384"
+    },
+    {
+     "value": "124"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202642"
+    },
+    {
+     "value": "export_completed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "364"
+    },
+    {
+     "value": "113"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202640"
+    },
+    {
+     "value": "export_completed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "356"
+    },
+    {
+     "value": "108"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202641"
+    },
+    {
+     "value": "export_completed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "345"
+    },
+    {
+     "value": "95"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202644"
+    },
+    {
+     "value": "export_completed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "250"
+    },
+    {
+     "value": "110"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202645"
+    },
+    {
+     "value": "export_completed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "234"
+    },
+    {
+     "value": "112"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202643"
+    },
+    {
+     "value": "first_visit"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "98"
+    },
+    {
+     "value": "98"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202641"
+    },
+    {
+     "value": "first_visit"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "95"
+    },
+    {
+     "value": "95"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202640"
+    },
+    {
+     "value": "first_visit"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "92"
+    },
+    {
+     "value": "92"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202647"
+    },
+    {
+     "value": "first_visit"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "83"
+    },
+    {
+     "value": "83"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202646"
+    },
+    {
+     "value": "first_visit"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "80"
+    },
+    {
+     "value": "80"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202642"
+    },
+    {
+     "value": "first_visit"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "78"
+    },
+    {
+     "value": "78"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202645"
+    },
+    {
+     "value": "first_visit"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "77"
+    },
+    {
+     "value": "77"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202644"
+    },
+    {
+     "value": "first_visit"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "70"
+    },
+    {
+     "value": "70"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202642"
+    },
+    {
+     "value": "export_failed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "42"
+    },
+    {
+     "value": "13"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202647"
+    },
+    {
+     "value": "export_selected_used"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "30"
+    },
+    {
+     "value": "14"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202641"
+    },
+    {
+     "value": "export_selected_used"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "20"
+    },
+    {
+     "value": "9"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202644"
+    },
+    {
+     "value": "export_failed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "20"
+    },
+    {
+     "value": "8"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202640"
+    },
+    {
+     "value": "export_failed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "19"
+    },
+    {
+     "value": "14"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202642"
+    },
+    {
+     "value": "export_selected_used"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "18"
+    },
+    {
+     "value": "11"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202644"
+    },
+    {
+     "value": "export_selected_used"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "17"
+    },
+    {
+     "value": "10"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202646"
+    },
+    {
+     "value": "export_selected_used"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "16"
+    },
+    {
+     "value": "11"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202645"
+    },
+    {
+     "value": "export_failed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "14"
+    },
+    {
+     "value": "10"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202643"
+    },
+    {
+     "value": "export_selected_used"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "13"
+    },
+    {
+     "value": "9"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202646"
+    },
+    {
+     "value": "export_failed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "12"
+    },
+    {
+     "value": "10"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202647"
+    },
+    {
+     "value": "export_failed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "10"
+    },
+    {
+     "value": "7"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202648"
+    },
+    {
+     "value": "export_completed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "9"
+    },
+    {
+     "value": "4"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202643"
+    },
+    {
+     "value": "export_failed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "8"
+    },
+    {
+     "value": "4"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202645"
+    },
+    {
+     "value": "export_selected_used"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "8"
+    },
+    {
+     "value": "7"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202641"
+    },
+    {
+     "value": "export_failed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "6"
+    },
+    {
+     "value": "5"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202640"
+    },
+    {
+     "value": "export_selected_used"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "3"
+    },
+    {
+     "value": "3"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202648"
+    },
+    {
+     "value": "first_visit"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    },
+    {
+     "value": "2"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "202648"
+    },
+    {
+     "value": "export_failed"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1"
+    },
+    {
+     "value": "1"
+    }
+   ]
+  }
+ ],
+ "rowCount": 35,
+ "metadata": {
+  "currencyCode": "USD",
+  "timeZone": "America/Los_Angeles"
+ },
+ "kind": "analyticsData#runReport"
+}
