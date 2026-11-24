@@ -5,7 +5,7 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
-## [Unreleased] — 1.3.2
+## [1.3.2] — 2026-11-24
 ### Changed
 - **A new, shorter store description in all 51 languages.** It says what the
   extension does now, in plain sentences: one whole conversation, or the blocks
