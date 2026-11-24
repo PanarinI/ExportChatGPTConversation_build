@@ -5,6 +5,18 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
+## [1.3.1] — 2026-11-24
+### Changed
+- **A new store description in all 51 languages.** It says what the extension
+  does now: one whole conversation, or the blocks you pick, as PDF or Word, or
+  handed on to Claude, Notion, Obsidian or Google Docs, or as a Markdown file.
+  It no longer says that a PDF is made inside your browser: Word, Markdown and
+  the copies for other apps are made there, a PDF is made on our print server.
+
+### Fixed
+- **Two store names.** The Spanish name had a typo (Expport), and the Hebrew
+  name showed &#39; instead of an apostrophe.
+
 ## [1.3.0] — 2026-11-18
 ### Added
 - **Claude, Obsidian, Notion and Google Docs.** The Export menu is now
