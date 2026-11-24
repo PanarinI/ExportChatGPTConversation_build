@@ -5,17 +5,23 @@ follows [Keep a Changelog](https://keepachangelog.com/); dates are YYYY-MM-DD.
 Entries for 1.1.1 and earlier were reconstructed after the fact from git
 history and working notes.
 
-## [1.3.1] — 2026-11-24
+## [Unreleased] — 1.3.2
 ### Changed
-- **A new store description in all 51 languages.** It says what the extension
-  does now: one whole conversation, or the blocks you pick, as PDF or Word, or
-  handed on to Claude, Notion, Obsidian or Google Docs, or as a Markdown file.
+- **A new, shorter store description in all 51 languages.** It says what the
+  extension does now, in plain sentences: one whole conversation, or the blocks
+  you pick, as PDF or Word, or handed on to Claude, Notion, Obsidian or Google
+  Docs, or as a Markdown file, with three short questions and answers at the
+  end. No search phrases, and no product name repeated over and over.
   It no longer says that a PDF is made inside your browser: Word, Markdown and
   the copies for other apps are made there, a PDF is made on our print server.
 
 ### Fixed
 - **Two store names.** The Spanish name had a typo (Expport), and the Hebrew
   name showed &#39; instead of an apostrophe.
+
+## [1.3.1] — 2026-11-24 — not published
+The Chrome Web Store turned this version down: its description repeated
+keywords too often (Keyword Spam). 1.3.2 replaces it with the same code.
 
 ## [1.3.0] — 2026-11-18
 ### Added
