@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Скриншот CWS 3 — «Export only what matters», светлое поле (25.11.2026)</title>
+<!--
+  Слайд 3 стора в варианте Б (слово автора 25.11). Тот же слайд, что в сторе
+  (html_pdf_converter/banner/slide2_large_1280_800.png), — та же раскладка и тот же текст, изменено:
+    · поле — светлое #f6f2ec, рамки выбора и заливка — синий продукта #2F6FED (с 17.11 выбор синий: «красный —
+      это когда удаляем»): base-3.png = исходник через perekras.py;
+    · список под таблицей — на исходнике бессмыслица генератора («Flysis aheef…», «Puterint (2019)»): закрыт белым,
+      набраны три обычных совета про сон тем же кеглем;
+    · заголовок — тот же текст тёмным, шрифт как на слайдах 1 и 2; полоска внизу — градиент иконки.
+  Снимок — kadr.sh (Chrome for Testing, 1280×800).
+-->
+<style>
+  html, body { margin: 0; width: 1280px; height: 800px; overflow: hidden; }
+  body { position: relative; background: #f6f2ec url(base-3.png) no-repeat 0 0 / 1280px 800px;
+         font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif; }
+  body::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 10px;
+                background: linear-gradient(90deg, #fd9d3f, #ea4c3a); }
+  .list { position: absolute; left: 196px; top: 645px; width: 846px; height: 61px; background: #fff; overflow: hidden;
+          font-family: Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 18.5px; color: #161616; }
+  .list2 { position: absolute; left: 1042px; top: 676px; width: 163px; height: 30px; background: #fff; }  /* серая полоса
+           исходника у нижнего края окна — под галочкой и правее */
+  .list div { position: absolute; left: 30px; white-space: nowrap; line-height: 23px; }
+  .list div::before { content: ""; position: absolute; left: -21px; top: 9px; width: 5.5px; height: 5.5px; border-radius: 50%;
+                      background: #161616; }
+  h1 { position: absolute; left: 76px; top: 721px; margin: 0; color: #1d1a17; font-size: 60px; font-weight: 800;
+       letter-spacing: -1.2px; line-height: 1; }
+</style>
+<body>
+<div class="list">
+  <div style="top: 3px">Keep the same bedtime and wake time, even on weekends.</div>
+  <div style="top: 26px">Avoid caffeine in the six hours before sleep.</div>
+  <div style="top: 49px">Keep the bedroom cool, dark and quiet.</div>
+</div>
+<div class="list2"></div>
+<h1>Export only what matters</h1>

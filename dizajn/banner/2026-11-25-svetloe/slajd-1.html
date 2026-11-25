@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Скриншот CWS 1 — «Export ChatGPT to PDF», светлое поле (25.11.2026)</title>
+<!--
+  Слайд 1 стора в варианте Б (слово автора 25.11: «Б гораздо менее напряжно выглядит. Давай его возьмём»).
+  Тот же слайд, что в сторе (../2026-10-04-dorabotka/: original.png + плашки + «1 / 2»), изменён только цвет:
+    · поле — светлое #f6f2ec: base-1.png = original.png через perekras.py (окно, лист, плашка Export, тени — те же);
+    · стрелка — была белой, на светлом поле пропала бы: обведена по исходной (те же точки) цветом кнопки;
+    · заголовок — тот же текст тёмным, шрифт как на слайде 2; плашки фич — белые с тонкой рамкой;
+    · полоска внизу — градиент иконки, как на слайдах 2 и 3.
+  Снимок — kadr.sh (Chrome for Testing, 1280×800).
+-->
+<style>
+  html, body { margin: 0; width: 1280px; height: 800px; overflow: hidden; }
+  body { position: relative; background: #f6f2ec url(base-1.png) no-repeat 0 0 / 1280px 800px;
+         font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif; }
+  body::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 10px;
+                background: linear-gradient(90deg, #fd9d3f, #ea4c3a); }
+  svg.arrow { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; }
+  /* подпись листа PDF — как на живом слайде: «1 / 2», как в настоящем PDF */
+  .patch { position: absolute; left: 888px; top: 604px; width: 276px; height: 26px; background: #fff; }
+  .pageno { position: absolute; left: 888px; top: 604px; width: 276px; height: 26px; display: flex;
+            align-items: center; justify-content: center; font-size: 12px; color: #555; letter-spacing: .2px; }
+  h1 { position: absolute; left: 76px; top: 628px; margin: 0; color: #1d1a17; font-size: 66px; font-weight: 800;
+       letter-spacing: -1.4px; line-height: 1; }
+  .row { position: absolute; left: 78px; top: 712px; display: flex; align-items: center; gap: 30px; }
+  .sub { color: #6b645c; font-size: 44px; font-weight: 600; letter-spacing: -.6px; white-space: nowrap; }
+  .chips { display: flex; gap: 14px; }
+  .chip { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 18px 0 13px; background: #fff;
+          border: 1px solid #e6dfd6; border-radius: 14px; box-sizing: border-box;
+          box-shadow: 0 8px 22px rgba(60, 40, 20, .10), 0 2px 6px rgba(60, 40, 20, .08);
+          font-size: 22px; font-weight: 700; color: #1d1a17; letter-spacing: -.2px; white-space: nowrap; }
+  .chip svg { width: 23px; height: 23px; flex: 0 0 23px; }
+</style>
+<body>
+<svg class="arrow" viewBox="0 0 1280 800">
+  <polygon fill="#df4a30" stroke="#df4a30" stroke-width="1.6" stroke-linejoin="round" points="
+    556,233 558,240 561,246 564,252 567,258 570,264 573,270 578,276 582,282 587,288 591,294 597,300 603,306 610,312
+    618,318 626,324 628,326 636,330 644,335 652,338 660,341 668,344 676,347 684,349 692,350 700,351 708,352 716,353
+    724,354 732,354 740,354 748,353 752,353 752,328 803,367 752,408 752,383 748,383 740,383 732,383 724,382 716,381
+    708,380 700,378 692,376 684,374 676,372 668,369 660,365 652,362 644,357 636,353 628,347 620,341 602,325 597,319
+    592,313 587,307 583,301 579,295 575,289 572,283 569,277 566,271 563,265 561,259 559,253 557,247 556,241 555,234"/>
+</svg>
+<div class="patch"></div>
+<div class="pageno">1 / 2</div>
+<h1>Export ChatGPT to PDF</h1>
+<div class="row">
+  <div class="sub">in one click</div>
+  <div class="chips">
+    <div class="chip"><svg viewBox="0 0 24 24"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f26a3d"/><stop offset="1" stop-color="#e23b2a"/></linearGradient></defs><circle cx="12" cy="12" r="11" fill="url(#g)"/><path d="M6.8 12.4l3.4 3.4 7-7.2" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>No sign-up</div>
+    <div class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="url(#g)"/><path d="M6.8 12.4l3.4 3.4 7-7.2" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>No daily limit</div>
+    <div class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="url(#g)"/><path d="M6.8 12.4l3.4 3.4 7-7.2" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>No watermark</div>
+  </div>
+</div>

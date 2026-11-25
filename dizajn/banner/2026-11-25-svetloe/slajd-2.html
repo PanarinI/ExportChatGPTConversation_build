@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Скриншот CWS 2 — «Every format makes it to the PDF», светлое поле (25.11.2026)</title>
+<!--
+  Слайд 2 стора в варианте Б — ровно тот, что автор выбрал на кадре сравнения 25.11
+  (../2026-11-25-cvet/banner.html?v=b; «Б гораздо менее напряжно выглядит. Давай его возьмём»).
+  Плитки — те же вырезки из настоящих PDF (../2026-10-08-formaty/), меняется только цвет: светлое поле #f6f2ec,
+  тёмный заголовок, цвет кнопки — акцентом (подписи плиток, стрелка), полоска внизу — градиент иконки.
+  Снимок — kadr.sh (Chrome for Testing, 1280×800).
+-->
+<style>
+  html, body { margin: 0; width: 1280px; height: 800px; overflow: hidden; }
+  body { position: relative; background: #f6f2ec;
+         font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif; }
+  body::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 10px;
+                background: linear-gradient(90deg, #fd9d3f, #ea4c3a); }
+  .grid { position: absolute; left: 60px; right: 60px; top: 40px; height: 540px;
+          display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 22px; }
+  .tile { background: #fff; border: 1px solid #e6dfd6; border-radius: 18px;
+          box-shadow: 0 14px 36px rgba(60,40,20,.10), 0 2px 8px rgba(60,40,20,.08);
+          display: flex; flex-direction: column; padding: 16px 20px 18px; box-sizing: border-box; overflow: hidden; }
+  .label { font-size: 23px; font-weight: 800; color: #df4a30; letter-spacing: -0.2px; margin: 0 0 10px; }
+  .show { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 0; }
+  .show img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+  .tall img { max-height: 196px; }
+  .src { gap: 4px; }
+  .src .cap { font-size: 15px; font-weight: 700; color: #8a8a8a; text-transform: uppercase; letter-spacing: .6px; }
+  .src .arrow { font-size: 22px; line-height: 1; color: #df4a30; font-weight: 800; margin: 2px 0; }
+  h1 { position: absolute; left: 76px; bottom: 92px; margin: 0; color: #1d1a17; font-size: 66px; font-weight: 800;
+       letter-spacing: -1.4px; line-height: 1; }
+  .sub { position: absolute; left: 78px; bottom: 44px; color: #6b645c; font-size: 29px; font-weight: 600; }
+</style>
+<body>
+<div class="grid">
+  <div class="tile"><div class="label">Tables</div><div class="show"><img src="../2026-10-08-formaty/tile-table.png" alt=""></div></div>
+  <div class="tile"><div class="label">Code</div><div class="show"><img src="../2026-10-08-formaty/tile-code.png" alt=""></div></div>
+  <div class="tile"><div class="label">Formulas</div><div class="show">
+    <img src="../2026-10-08-formaty/tile-formula-inline.png" alt="" style="max-width:88%">
+    <img src="../2026-10-08-formaty/tile-formula-display.png" alt="" style="max-width:70%"></div></div>
+  <div class="tile"><div class="label">Charts</div><div class="show tall"><img src="../2026-10-08-formaty/tile-chart.png" alt=""></div></div>
+  <div class="tile"><div class="label">Images</div><div class="show tall"><img src="../2026-10-08-formaty/tile-image.png" alt=""></div></div>
+  <div class="tile"><div class="label">Sources, each a link</div><div class="show src">
+    <div class="cap">In ChatGPT</div>
+    <img src="../2026-10-08-formaty/tile-pill-chat.png" alt="" style="height:44px">
+    <div class="arrow">↓</div>
+    <div class="cap">In the PDF</div>
+    <img src="../2026-10-08-formaty/tile-sources.png" alt="" style="width:88%"></div></div>
+</div>
+<h1>Every format makes it to the PDF</h1>
+<div class="sub">Long chats in full · Clickable contents</div>

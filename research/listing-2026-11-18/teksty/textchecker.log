@@ -12,3 +12,17 @@
 
 Сверка с локальным счётом (schet.py): chatgpt, export, the, to, and, a — совпали до единицы; chat и conversation у сервиса
 на 1 больше (он сводит chats → chat, conversations → conversation); слов у сервиса на ~8 меньше.
+
+24.11 — после отказа CWS (Keyword Spam / Yellow Argon: ChatGPT 18+ «throughout the listing», ключи дословно). Текст —
+по правилу Google, не по плотности канона: ChatGPT ≤5 на весь листинг, любое слово ≤5, без вопросов-запросов, без
+строчного «chatgpt» (слово автора 24.11 «давай… чтобы уж точно пройти… делай, переделывай»). Своя проверка — pravilo-google.py.
+2026-11-24  v6  3104 · 567 слов · красных 0 · жёлтые: one 2.12 % (12) — Text Checker считает «one» значимым словом
+2026-11-24  v7  3112 · 567 · красных 0 · жёлтых 0 · выше всех значимых — conversation, pdf, word, file, claude, question,
+            answer, whole, picture: по 5 (0.88 %, синие); chatgpt 3. Обе проверки не списаны (риск-сервис недоступен).
+            ссылка на результат v7: https://textchecker.online/a?id=ApPrJHnGj8GUoRSzOihN
+2026-11-24  v8  3385 · 617 · красных 0 · жёлтых 0 · значимые сверху — conversation, pdf, word, file, chat, claude, question,
+            answer, page, picture: по 5 (0.81 %, синие). v8 = v7 + раздел «вопрос-ответ» (канон 2.1:90, слово автора 24.11
+            «если канон просит вернуть, ну, верни… утверждаю»). Не списана. Ссылка: https://textchecker.online/a?id=MRWXIGi58V0baXDwY5ox
+2026-11-24  v9  3379 · 614 · красных 0 · жёлтых 0 · значимые сверху — conversation, pdf, word, file, claude, question, answer,
+            page, picture: по 5 (0.81 %). v9 = v8 с новым кратким: перед названием одно слово (канон 2.1:48, 53; примеры 2.1.5;
+            слово автора 24.11 «переделай краткие описания»). Не списана. Ссылка: https://textchecker.online/a?id=BXGwWxba8WGt5q7mpoTx
